@@ -116,7 +116,7 @@ function ContactForm() {
   };
 
   const inputCls = (field) =>
-    `w-full px-3 py-2.5 rounded-xl border text-sm bg-white dark:bg-[#202124]
+    `w-full px-3 py-2 rounded-xl border text-sm bg-white dark:bg-[#202124]
      text-[#202124] dark:text-[#e8eaed] placeholder-[#9aa0a6]
      outline-none transition-all focus:ring-2 focus:ring-[#1a73e8] focus:border-transparent
      ${errors[field] ? 'border-[#c5221f] ring-1 ring-[#c5221f]' : 'border-[#dadce0] dark:border-[#5f6368]'}`;
@@ -135,7 +135,7 @@ function ContactForm() {
       </div>
 
       {/* Title */}
-      <h2 className="text-[20px] font-normal text-[#1a73e8] dark:text-[#8ab4f8] mb-3">Contact Anurag</h2>
+      <h2 className="text-[20px] font-normal text-[#1a73e8] dark:text-[#8ab4f8] mb-1">Contact Anurag</h2>
 
       {/* Card */}
       <div className="bg-white dark:bg-[#292a2d] rounded-2xl border border-[#dadce0] dark:border-[#5f6368] overflow-hidden shadow-sm">
@@ -160,7 +160,7 @@ function ContactForm() {
         ) : (
           <form onSubmit={handleSubmit} noValidate>
             {/* Header strip */}
-            <div className="px-6 pt-3 pb-3 border-b border-[#f1f3f4] dark:border-[#3c4043]">
+            <div className="px-6 pt-3 pb-2 border-b border-[#f1f3f4] dark:border-[#3c4043]">
               <p className="text-sm text-[#5f6368] dark:text-[#9aa0a6]">
                 I typically respond within <span className="font-medium text-[#202124] dark:text-[#e8eaed]">24 hours</span>.
                 All fields marked <span className="text-[#c5221f]">*</span> are required.
@@ -277,7 +277,7 @@ function ContactForm() {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 bg-[#f8f9fa] dark:bg-[#202124] border-t border-[#f1f3f4] dark:border-[#3c4043] flex items-center justify-between gap-3">
+            <div className="px-6 py-2 bg-[#f8f9fa] dark:bg-[#202124] border-t border-[#f1f3f4] dark:border-[#3c4043] flex items-center justify-between gap-3">
               <p className="text-xs text-[#9aa0a6]">
                 Your message is saved securely and only used to respond to you.
               </p>
