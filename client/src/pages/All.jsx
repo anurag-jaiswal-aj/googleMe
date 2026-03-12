@@ -207,6 +207,46 @@ const SOCIALS = [
     faviconBg: '#24292e',
     faviconLetter: 'G',
   },
+  {
+    url: 'leetcode.com › u › anurag_jaiswal',
+    title: 'LeetCode — anurag_jaiswal',
+    snippet: 'Solving Data Structures & Algorithms problems with a focus on optimised solutions. Check my problem-solving activity, contest ratings, and submission history.',
+    href: 'https://leetcode.com/u/anurag_jaiswal/',
+    faviconBg: '#FFA116',
+    faviconLetter: 'L',
+  },
+  {
+    url: 'codechef.com › users › anurag_aj',
+    title: 'CodeChef — anurag_aj',
+    snippet: 'Competitive programming profile on CodeChef. Participate in monthly contests, long challenges, and short contests to sharpen algorithmic skills.',
+    href: 'https://www.codechef.com/users/anurag_aj',
+    faviconBg: '#5B4638',
+    faviconLetter: 'C',
+  },
+  {
+    url: 'codeforces.com › profile › anurag_aj',
+    title: 'Codeforces — anurag_aj',
+    snippet: 'Active competitive programmer on Codeforces. Working through rated rounds and problem sets covering graphs, DP, and combinatorics.',
+    href: 'https://codeforces.com/profile/anurag_aj',
+    faviconBg: '#1F8ACB',
+    faviconLetter: 'CF',
+  },
+  {
+    url: 'hackerrank.com › profile › anurag_aj',
+    title: 'HackerRank — anurag_aj',
+    snippet: 'Problem-solving and skill certifications on HackerRank. Completed challenges across Data Structures, Algorithms, SQL, and Python domains.',
+    href: 'https://www.hackerrank.com/profile/anurag_aj',
+    faviconBg: '#00EA64',
+    faviconLetter: 'H',
+  },
+  {
+    url: 'Medium.com › profile › anurag_aj',
+    title: 'Medium — anurag_aj',
+    snippet: 'Blogs on Medium. Completed challenges across Data Structures, Algorithms, SQL, and Python domains.',
+    href: 'https://www.medium.com/profile/anurag_aj',
+    faviconBg: '#00632b',
+    faviconLetter: 'M',
+  }
 ];
 
 const TOTAL = QA.length + PROJECTS.length + POSTS.length + SOCIALS.length;
