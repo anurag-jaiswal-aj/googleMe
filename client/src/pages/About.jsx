@@ -5,67 +5,103 @@ import FilterSort from '../components/FilterSort';
 
 /* ── Dummy data ─────────────────────────────────────── */
 const SKILLS = [
-  { cat: 'Languages',  list: ['JavaScript', 'TypeScript', 'Python', 'Java', 'C++'] },
-  { cat: 'Frontend',   list: ['React', 'Next.js', 'TailwindCSS', 'HTML5', 'CSS3'] },
-  { cat: 'Backend',    list: ['Node.js', 'Express', 'REST APIs', 'GraphQL'] },
-  { cat: 'Database',   list: ['MongoDB', 'PostgreSQL', 'MySQL', 'Redis'] },
-  { cat: 'DevOps',     list: ['Docker', 'Git', 'GitHub Actions', 'Linux'] },
+  {
+    cat: 'Languages',
+    list: ['JavaScript', 'Python', 'Java', 'C++', 'C']
+  },
+
+  {
+    cat: 'Frontend',
+    list: ['React', 'HTML5', 'CSS3', 'TailwindCSS', 'Bootstrap']
+  },
+
+  {
+    cat: 'Backend',
+    list: ['Node.js', 'Express.js', 'REST APIs', 'JDBC']
+  },
+
+  {
+    cat: 'Database',
+    list: ['MongoDB', 'MySQL', 'Supabase']
+  },
+
+  {
+    cat: 'Machine Learning',
+    list: ['NumPy', 'Pandas', 'Scikit-learn', 'Matplotlib']
+  },
+
+  {
+    cat: 'Tools',
+    list: ['Git', 'GitHub', 'Linux', 'VS Code']
+  }
 ];
 
 const EDUCATION = [
   {
-    year: '2022 – Present',
-    degree: 'B.Tech — Information Science & Engineering',
-    school: 'RV College of Engineering, Bengaluru',
-    detail: '3rd Year · 5th Semester · CGPA 8.5 / 10',
+    year: '2023 – Present',
+    degree: 'Bachelor of Engineering in Information Science & Engineering',
+    school: 'JSS Academy of Technical Education, Bengaluru',
+    detail: '3rd Year · CGPA 9.1 ',
     color: '#4285F4',
   },
   {
-    year: '2020 – 2022',
-    degree: 'Higher Secondary (12th Grade)',
-    school: 'Delhi Public School, New Delhi',
-    detail: 'Science Stream (PCM + CS) · 92.4%',
-    color: '#34A853',
+    year: '2022 – 2023',
+    degree: 'Pre-University',
+    school: 'J.B.P.I.C, Ambedkar Nagar',
+    detail: 'PCM · 91%',
+    color: '#4285F4',
   },
   {
-    year: '2008 – 2020',
-    degree: 'Secondary School (1st – 10th Grade)',
-    school: 'Delhi Public School, New Delhi',
-    detail: 'CBSE · 94%',
-    color: '#FBBC05',
+    year: '2020 – 2021',
+    degree: 'High School',
+    school: 'J.B.P.I.C, Ambedkar Nagar',
+    detail: 'CS · 90%',
+    color: '#4285F4',
   },
 ];
 
 const EXPERIENCE = [
   {
-    period: 'May – Jul 2024',
-    role: 'Full-Stack Web Development Intern',
-    company: 'Infosys Ltd. · Bengaluru (On-site)',
-    detail: 'Built and shipped three production features using React + Node.js. Reduced API response time by 30% through query optimisation. Worked in a 6-person Agile squad with 2-week sprints.',
-    color: '#EA4335',
+    period: '2024 – Present',
+    role: 'Freelance Web Developer',
+    company: 'Independent',
+    detail: 'Developed and delivered custom web applications for clients using React, Node.js, MongoDB, and MySQL. Built responsive interfaces, backend APIs, and scalable full-stack solutions.',
+    color: '#4285F4',
   },
   {
-    period: 'Dec 2023 – Feb 2024',
+    period: '2023 – Present',
     role: 'Open-Source Contributor',
-    company: 'Various GitHub Repositories',
-    detail: 'Contributed bug-fixes and documentation improvements to two mid-sized open-source projects (combined 2k+ stars). Pull requests merged within 48 hrs on average.',
-    color: '#1a73e8',
+    company: 'Independent',
+    detail: 'Contributed to open-source repositories through bug fixes, feature improvements, and documentation updates. Collaborated with developers through pull requests and issue discussions.',
+    color: '#4285F4',
+  },
+  {
+    period: '2023 – Present',
+    role: 'Personal Projects Developer',
+    company: 'Independent',
+    detail: 'Built multiple full-stack and machine learning projects using MERN stack, Java, MongoDB, MySQL, and Python. Worked on data analysis, ML models, and scalable web applications.',
+    color: '#4285F4',
   },
 ];
 
 const SECTIONS = ['Bio', 'Skills', 'Education', 'Experience'];
 const SORT_OPTS = [
   { value: 'relevance', label: 'Relevance' },
-  { value: 'az',        label: 'A \u2192 Z' },
+  { value: 'az', label: 'A \u2192 Z' },
 ];
 
 /* ── Sitelinks strip ────────────────────────────────── */
-function Sitelinks({ links }) {
+function Sitelinks({ links, onLinkClick }) {
   return (
     <div className="mt-3 grid grid-cols-2 gap-x-8 gap-y-0">
-      {links.map(({ label, to }) => (
+      {links.map(({ label, to, key }) => (
         <a key={label} href={to}
-           className="text-sm text-[#1a73e8] dark:text-[#8ab4f8] hover:underline py-1.5
+          onClick={event => {
+            if (to.startsWith('#')) {
+              onLinkClick?.(event, { label, to, key });
+            }
+          }}
+          className="text-sm text-[#1a73e8] dark:text-[#8ab4f8] hover:underline py-1.5
                       border-b border-[#e8eaed] dark:border-[#3c4043] truncate">
           {label}
         </a>
@@ -76,15 +112,39 @@ function Sitelinks({ links }) {
 
 /* ── Page ───────────────────────────────────────────── */
 export default function About() {
-  const [filters,    setFilters]    = useState([]);
-  const [sort,       setSort]       = useState('relevance');
+  const [filters, setFilters] = useState([]);
+  const [sort, setSort] = useState('relevance');
   const [filterOpen, setFilterOpen] = useState(false);
-  const [sortOpen,   setSortOpen]   = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const [openFaq, setOpenFaq] = useState(null);
+  const [expanded, setExpanded] = useState({ bio: false, skills: false, edu: false, exp: false });
+  const openSection = (key) => {
+    if (!key) return;
+    setExpanded({
+      bio: key === 'bio',
+      skills: key === 'skills',
+      edu: key === 'edu',
+      exp: key === 'exp',
+    });
+  };
+  const handleSectionLink = (event, sectionId) => {
+    if (!sectionId) return;
+    event.preventDefault();
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  const downloadResume = () => {
+    const link = document.createElement('a');
+    link.href = '/Resume_aj.pdf';
+    link.download = 'Resume_aj.pdf';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
 
   const ALL = [
-    { id: 'Bio',        delay: 0.05 },
-    { id: 'Skills',     delay: 0.10 },
-    { id: 'Education',  delay: 0.15 },
+    { id: 'Bio', delay: 0.05 },
+    { id: 'Education', delay: 0.10 },
+    { id: 'Skills', delay: 0.15 },
     { id: 'Experience', delay: 0.20 },
   ];
 
@@ -94,7 +154,225 @@ export default function About() {
 
   if (sort === 'az') visible = [...visible].sort((a, b) => a.id.localeCompare(b.id));
 
-  const show = id => visible.some(r => r.id === id);
+  const renderResult = ({ id, delay }) => {
+    if (id === 'Bio') {
+      return (
+        <motion.div
+          key={id}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay }}
+        >
+          <SearchResult
+            url="anurag.dev/about/bio"
+            title="About Me | Anurag Jaiswal"
+            snippet="Hi, I'm Anurag Jaiswal, an Information Science Engineering student passionate about Web Development, Machine Learning, and Data Structures & Algorithms."
+            onTitleClick={() => openSection('bio')}
+            faviconBg="#4285F4"
+            faviconLetter="A"
+            menuItems={[
+              {
+                label: 'Download Resume',
+                action: downloadResume,
+              },
+            ]}
+          >
+            <AnimatePresence initial={false}>
+              {expanded.bio && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-relaxed mt-2">
+                    I enjoy building scalable full-stack web applications and exploring how machine learning can power intelligent, data-driven systems. My work involves developing applications using JavaScript, the MERN stack, Python, MongoDB, and MySQL, while also experimenting with machine learning models and data analysis.
+                  </p>
+                  <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-relaxed mt-2">
+                    Alongside development and ML, I actively strengthen my problem-solving skills through Data Structures and Algorithms, focusing on writing efficient and optimized solutions.
+                  </p>
+                  <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-relaxed mt-2">
+                    I enjoy learning new technologies, building projects, and continuously improving my ability to create scalable, intelligent software systems.
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <Sitelinks links={[
+              { label: 'Skills', to: '#skills', key: 'skills' },
+              { label: 'Education', to: '#education', key: 'edu' },
+              { label: 'Experience', to: '#experience', key: 'exp' },
+              { label: 'Projects', to: '/projects' },
+              { label: 'Contact', to: '/contact' },
+              { label: 'Blog', to: '/blog' },
+            ]} onLinkClick={(event, link) => handleSectionLink(event, link.to.slice(1))} />
+          </SearchResult>
+        </motion.div>
+      );
+    }
+
+    if (id === 'Education') {
+      return (
+        <motion.div
+          key={id}
+          id="education"
+          className="scroll-mt-36"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay }}
+        >
+          <SearchResult
+            url="anurag.dev/about/education"
+            title="Education | Academic Timeline"
+            snippet="Bachelor of Engineering in Information Science & Engineering at JSS Academy of Technical Education, Bengaluru with a CGPA of 9.1. Pursued Pre-University in PCM and High School from J.B.P.I.C with 91% and 90% respectively."
+            onTitleClick={() => openSection('edu')}
+            faviconBg="#4285F4"
+            faviconLetter="E"
+            menuItems={[
+              {
+                label: 'Download Resume',
+                action: downloadResume,
+              },
+            ]}
+          >
+            <AnimatePresence initial={false}>
+              {expanded.edu && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-3 space-y-4">
+                    {EDUCATION.map(({ year, degree, school, detail, color }, i) => (
+                      <div key={i} className="flex items-start gap-3">
+                        <div className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: color }} />
+                        <div>
+                          <p className="text-sm font-medium text-[#202124] dark:text-[#e8eaed]">{degree} ({year})</p>
+                          <p className="text-sm text-[#1a73e8] dark:text-[#8ab4f8]">{school}</p>
+                          <p className="text-xs text-[#133780] dark:text-[#bdc1c6] mt-0.5">{detail}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </SearchResult>
+        </motion.div>
+      );
+    }
+
+    if (id === 'Skills') {
+      return (
+        <motion.div
+          key={id}
+          id="skills"
+          className="scroll-mt-36"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay }}
+        >
+          <SearchResult
+            url="anurag.dev/about/skills"
+            title="Skills & Technologies | My Tech Stack"
+            snippet="Full-stack skill set spanning JavaScript, React, Node.js, Express.js, MongoDB, MySQL, and Java. Experience building MERN applications and exploring Machine Learning with Python while strengthening problem-solving through Data Structures & Algorithms."
+            onTitleClick={() => openSection('skills')}
+            faviconBg="#4285F4"
+            faviconLetter="S"
+            menuItems={[
+              {
+                label: 'Download Resume',
+                action: downloadResume,
+              },
+            ]}
+          >
+            <AnimatePresence initial={false}>
+              {expanded.skills && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-4">
+                    {SKILLS.map(({ cat, list }) => (
+                      <div key={cat} className="border-l-2 border-[#dadce0] dark:border-[#3c4043] pl-3">
+                        <p className="text-xs font-semibold text-[#133780] dark:text-[#bdc1c6] mb-1.5 uppercase tracking-wide">
+                          {cat}
+                        </p>
+                        {list.map(s => (
+                          <p key={s} className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-[1.7]">{s}</p>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </SearchResult>
+        </motion.div>
+      );
+    }
+
+    if (id === 'Experience') {
+      return (
+        <motion.div
+          key={id}
+          id="experience"
+          className="scroll-mt-36"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay }}
+        >
+          <SearchResult
+            url="anurag.dev/about/experience"
+            title="Experience | Work & Internships"
+            snippet="Freelance developer and open-source contributor. Developed multiple full-stack applications using modern web technologies while contributing to open-source projects and building real-world web solutions."
+            onTitleClick={() => openSection('exp')}
+            faviconBg="#4285F4"
+            faviconLetter="E"
+            menuItems={[
+              {
+                label: 'Download Resume',
+                action: downloadResume,
+              },
+            ]}
+          >
+            <AnimatePresence initial={false}>
+              {expanded.exp && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-3 space-y-4">
+                    {EXPERIENCE.map(({ period, role, company, detail, color }, i) => (
+                      <div key={i} className="flex items-start gap-3">
+                        <div className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: color }} />
+                        <div>
+                          <p className="text-sm font-medium text-[#202124] dark:text-[#e8eaed]">{role}</p>
+                          <p className="text-sm text-[#1a73e8] dark:text-[#8ab4f8]">{company}</p>
+                          <p className="text-xs text-[#133780] dark:text-[#bdc1c6] mt-0.5">{period}</p>
+                          <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] mt-1 leading-relaxed">{detail}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </SearchResult>
+        </motion.div>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
@@ -130,136 +408,7 @@ export default function About() {
           transition={{ duration: 0.15 }}
         >
 
-          {/* Result 1 - Bio */}
-          {show('Bio') && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 }}
-            >
-              <SearchResult
-                url="yourname.dev \u203a about"
-                title="About Me \u2014 Your Name | Full-Stack Developer"
-                snippet="Hi! I'm a 3rd-year B.Tech student in Information Science & Engineering passionate about building full-stack web applications. I love clean UI, fast tooling, and solving real-world problems with code. Currently open to internships and full-time opportunities."
-                faviconBg="#4285F4"
-                faviconLetter="A"
-              >
-                <a
-                  href="/resume.pdf"
-                  download
-                  className="inline-flex items-center gap-1.5 mt-2 text-sm text-[#1a73e8] dark:text-[#8ab4f8] hover:underline"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  Download Resume (PDF)
-                </a>
-                <Sitelinks links={[
-                  { label: 'Skills',     to: '#skills'     },
-                  { label: 'Education',  to: '#education'  },
-                  { label: 'Experience', to: '#experience' },
-                  { label: 'Projects',   to: '/projects'   },
-                  { label: 'Contact',    to: '/contact'    },
-                  { label: 'Blog',       to: '/blog'       },
-                ]} />
-              </SearchResult>
-            </motion.div>
-          )}
-
-          {/* Result 2 - Skills */}
-          {show('Skills') && (
-            <motion.div
-              id="skills"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.10 }}
-            >
-              <SearchResult
-                url="yourname.dev \u203a about \u203a skills"
-                title="Skills & Technologies \u2014 Your Name"
-                snippet="Full-stack skill set spanning JavaScript, TypeScript, React, Node.js, MongoDB, PostgreSQL, Docker, and more. 2+ years hands-on project experience."
-                faviconBg="#34A853"
-                faviconLetter="S"
-              >
-                <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-4">
-                  {SKILLS.map(({ cat, list }) => (
-                    <div key={cat} className="border-l-2 border-[#dadce0] dark:border-[#3c4043] pl-3">
-                      <p className="text-xs font-semibold text-[#133780] dark:text-[#bdc1c6] mb-1.5 uppercase tracking-wide">
-                        {cat}
-                      </p>
-                      {list.map(s => (
-                        <p key={s} className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-[1.7]">{s}</p>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </SearchResult>
-            </motion.div>
-          )}
-
-          {/* Result 3 - Education */}
-          {show('Education') && (
-            <motion.div
-              id="education"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-            >
-              <SearchResult
-                url="yourname.dev \u203a about \u203a education"
-                title="Education \u2014 Your Name | Academic Timeline"
-                snippet="B.Tech in Information Science & Engineering at RV College of Engineering, Bengaluru (2022\u2013Present). CGPA 8.5 / 10. Previously 12th grade at DPS with 92.4% in PCM + CS."
-                faviconBg="#FBBC05"
-                faviconLetter="E"
-              >
-                <div className="mt-3 space-y-4">
-                  {EDUCATION.map(({ year, degree, school, detail, color }, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <div className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: color }} />
-                      <div>
-                        <p className="text-sm font-medium text-[#202124] dark:text-[#e8eaed]">{degree}</p>
-                        <p className="text-sm text-[#1a73e8] dark:text-[#8ab4f8]">{school}</p>
-                        <p className="text-xs text-[#133780] dark:text-[#bdc1c6] mt-0.5">{year} \u00b7 {detail}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </SearchResult>
-            </motion.div>
-          )}
-
-          {/* Result 4 - Experience */}
-          {show('Experience') && (
-            <motion.div
-              id="experience"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.20 }}
-            >
-              <SearchResult
-                url="yourname.dev \u203a about \u203a experience"
-                title="Experience \u2014 Your Name | Work & Internships"
-                snippet="Full-Stack Web Development Intern at Infosys Ltd. (Summer 2024). Shipped three production features, cut API latency by 30%, and contributed to two open-source projects on GitHub."
-                faviconBg="#EA4335"
-                faviconLetter="W"
-              >
-                <div className="mt-3 space-y-4">
-                  {EXPERIENCE.map(({ period, role, company, detail, color }, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <div className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: color }} />
-                      <div>
-                        <p className="text-sm font-medium text-[#202124] dark:text-[#e8eaed]">{role}</p>
-                        <p className="text-sm text-[#1a73e8] dark:text-[#8ab4f8]">{company}</p>
-                        <p className="text-xs text-[#133780] dark:text-[#bdc1c6] mt-0.5">{period}</p>
-                        <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] mt-1 leading-relaxed">{detail}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </SearchResult>
-            </motion.div>
-          )}
+          {visible.map(renderResult)}
 
           {/* People also ask */}
           <motion.div
@@ -267,43 +416,66 @@ export default function About() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
           >
-            <div className="max-w-[680px] border border-[#dadce0] dark:border-[#3c4043] rounded-xl overflow-hidden mb-8">
+            <div className="max-w-[680px] border border-[#dadce0] dark:border-[#3c4043] rounded-xl overflow-hidden mb-1">
               <div className="px-5 py-3 border-b border-[#e8eaed] dark:border-[#3c4043]">
                 <p className="text-base font-medium text-[#202124] dark:text-[#e8eaed]">People also ask</p>
               </div>
               {[
                 {
-                  q: 'What technologies does Your Name know?',
-                  a: 'React, Node.js, Express, MongoDB, TailwindCSS, TypeScript, Python, Docker, and more. See the Skills section above for the full list.',
+                  q: 'Are you available for freelance work?',
+                  a: 'Yes. I am open to freelance projects, collaborations, and internship opportunities related to web development, backend systems, and machine learning. You can reach out through the Contact page.',
                 },
                 {
-                  q: 'Is Your Name available for freelance work?',
-                  a: 'Yes! Open to freelance projects, internships, and full-time roles. Use the Contact page to get in touch — typical response within 24 hours.',
+                  q: 'Do you work on Machine Learning projects?',
+                  a: 'Yes. I explore machine learning concepts and build ML experiments using Python with libraries such as NumPy, Pandas, Scikit-learn, and Matplotlib.',
                 },
                 {
-                  q: "Where can I see Your Name's projects?",
-                  a: 'Visit the Projects page for case studies with demos, or check github.com/yourname for source code and open-source contributions.',
+                  q: 'Do you practice Data Structures & Algorithms?',
+                  a: 'Yes. I regularly practice Data Structures & Algorithms to improve my problem-solving skills and to design efficient and optimized solutions.',
                 },
                 {
-                  q: 'What is Your Name currently studying?',
-                  a: 'B.Tech in Information Science & Engineering at RV College of Engineering, Bengaluru (2022\u2013Present). Currently in 3rd year, 5th semester with CGPA 8.5 / 10.',
+                  q: 'How do you approach learning new technologies?',
+                  a: 'I usually learn new technologies by building small projects and experimenting with practical implementations to understand how systems work in real-world scenarios.',
                 },
-              ].map(({ q, a }) => (
-                <details key={q} className="group border-b last:border-b-0 border-[#e8eaed] dark:border-[#3c4043]">
-                  <summary className="flex items-center justify-between px-5 py-4 cursor-pointer list-none
-                                      text-sm font-medium text-[#202124] dark:text-[#e8eaed]
-                                      hover:bg-[#f8f9fa] dark:hover:bg-[#303134]">
+                {
+                  q: 'What are you currently learning or exploring?',
+                  a: 'I am currently exploring advanced Machine Learning concepts, improving backend architecture knowledge, and strengthening my problem-solving skills through DSA.',
+                },
+              ].map(({ q, a }, i) => (
+                <div key={q} className="border-b last:border-b-0 border-[#e8eaed] dark:border-[#3c4043]">
+                  <button
+                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                    className="w-full flex items-center justify-between px-5 py-3 cursor-pointer text-left
+                               text-sm font-medium text-[#202124] dark:text-[#e8eaed]
+                               hover:bg-[#f8f9fa] dark:hover:bg-[#303134] transition-colors"
+                  >
                     {q}
-                    <svg className="w-4 h-4 shrink-0 text-[#70757a] group-open:rotate-180 transition-transform"
-                         fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg
+                      className={`w-4 h-4 shrink-0 text-[#70757a] transition-transform duration-200 ${
+                        openFaq === i ? 'rotate-180' : ''
+                      }`}
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    >
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
-                  </summary>
-                  <div className="px-5 pb-4 pt-3 text-sm text-[#133780] dark:text-[#bdc1c6] leading-relaxed
-                                  border-t border-[#e8eaed] dark:border-[#3c4043]">
-                    {a}
-                  </div>
-                </details>
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {openFaq === i && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-5 pb-4 pt-3 text-sm text-[#133780] dark:text-[#bdc1c6] leading-relaxed
+                                        border-t border-[#e8eaed] dark:border-[#3c4043]">
+                          {a}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               ))}
             </div>
           </motion.div>

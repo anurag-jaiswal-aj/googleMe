@@ -277,7 +277,27 @@ export default function Home() {
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
         try {
-          const WMO = { 0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌦️',61:'🌧️',63:'🌧️',65:'🌧️',71:'🌨️',73:'🌨️',75:'🌨️',80:'🌦️',81:'🌦️',82:'🌦️',95:'⛈️' };
+          const WMO = {
+            0: '☀️',
+            1: '🌤️',
+            2: '⛅',
+            3: '☁️',
+            45: '🌫️',
+            48: '🌫️',
+            51: '🌦️',
+            53: '🌦️',
+            55: '🌧️',
+            61: '🌧️',
+            63: '🌧️',
+            65: '🌧️',
+            71: '🌨️',
+            73: '🌨️',
+            75: '❄️',
+            80: '🌦️',
+            81: '🌧️',
+            82: '⛈️',
+            95: '⛈️',
+          };
           const [meteo, geo] = await Promise.all([
             fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.latitude}&longitude=${coords.longitude}&current_weather=true`).then(r => r.json()),
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}`).then(r => r.json()),
@@ -1372,13 +1392,11 @@ export default function Home() {
                   desc: 'Click the camera icon to open Lens. Drag & drop or paste an image, or enter an image URL, to perform a visual search within the portfolio.',
                 },
                 {
-                  title: 'AI Mode (✦)',
-                  icon: '✦',
+                  title: 'AI Mode',
                   desc: 'Click the sparkle icon in the search bar to open AI Mode — a conversational assistant that answers any question about Anurag, his skills, projects, and experience.',
                 },
                 {
-                  title: 'Apps Grid (⠿)',
-                  icon: '⠿',
+                  title: 'Apps Grid',
                   desc: 'Click the 9-dot grid icon in the top-right corner to open quick-access tiles: Search, Gmail, Works, Blog, LinkedIn, GitHub, About, LeetCode, CodeChef.',
                 },
                 {
@@ -1692,9 +1710,8 @@ export default function Home() {
                           transition={{ delay: idx * 0.04 }}
                           className="rounded-xl border border-[#e8eaed] dark:border-[#3c4043]
                                      bg-[#fafafa] dark:bg-[#28292a]
-                                     px-4 py-3.5 flex gap-3 items-start"
+                                     px-4 py-3.5"
                         >
-                          <span className="text-xl mt-0.5 shrink-0 select-none">{item.icon}</span>
                           <div>
                             <p className="text-[13.5px] font-semibold text-[#202124] dark:text-[#e8eaed] mb-0.5">
                               {item.title}
@@ -1713,7 +1730,7 @@ export default function Home() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <p className="text-[12px] text-[#1a73e8] dark:text-[#8ab4f8] leading-relaxed">
-                        <strong>Tip:</strong> Have more questions? Use the <strong>AI Mode</strong> (✦ button in the search bar) to ask anything about Anurag or this portfolio.
+                        <strong>Tip:</strong> Have more questions? Use <strong>AI Mode</strong> in the search bar to ask anything about Anurag or this portfolio.
                       </p>
                     </div>
                   </div>

@@ -591,8 +591,8 @@ export default function SearchLayout() {
                 { title: 'Search Bar', icon: '🔍', desc: 'Type any keyword — name, skill, project, or topic — to search across the portfolio. Press Enter or use the search button to navigate.' },
                 { title: 'Smart Suggestions', icon: '💡', desc: 'Suggestions appear as you type. Use arrow keys to navigate them, Enter to select, or Escape to dismiss.' },
                 { title: 'Voice Search (Mic)', icon: '🎤', desc: 'Click the microphone icon in the Home search bar to speak your query. Requires microphone permission.' },
-                { title: 'AI Mode (✦)', icon: '✦', desc: 'Click the sparkle icon in the Home search bar to open AI Mode — a conversational assistant that answers anything about Anurag.' },
-                { title: 'Apps Grid (⠿)', icon: '⠿', desc: 'Click the 9-dot icon (top-right) to open quick-access tiles: Search, Gmail, Works, Blog, LinkedIn, GitHub, About, LeetCode, CodeChef.' },
+                { title: 'AI Mode', icon: '✦', desc: 'Click the sparkle icon in the Home search bar to open AI Mode — a conversational assistant that answers anything about Anurag.' },
+                { title: 'Apps Grid', icon: '⠿', desc: 'Click the 9-dot icon (top-right) to open quick-access tiles: Search, Gmail, Works, Blog, LinkedIn, GitHub, About, LeetCode, CodeChef.' },
                 { title: 'Avatar & Profile', icon: '👤', desc: 'Click the "A" avatar to see account info, copy email, toggle dark/light mode, or open this Help guide.' },
                 { title: 'Weather & Clock', icon: '🌤', desc: 'The Home page top-left shows live time and weather fetched from your location automatically — no API key needed.' },
                 { title: 'Language Switcher', icon: '🌐', desc: 'Below the Home search buttons, click any Indian language to translate UI labels instantly.' },
@@ -714,9 +714,8 @@ export default function SearchLayout() {
                         <motion.div key={item.title}
                           initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: idx * 0.04 }}
-                          className="rounded-xl border border-[#e8eaed] dark:border-[#3c4043] bg-[#fafafa] dark:bg-[#28292a] px-4 py-3.5 flex gap-3 items-start"
+                          className="rounded-xl border border-[#e8eaed] dark:border-[#3c4043] bg-[#fafafa] dark:bg-[#28292a] px-4 py-3.5"
                         >
-                          <span className="text-xl mt-0.5 shrink-0 select-none">{item.icon}</span>
                           <div>
                             <p className="text-[13.5px] font-semibold text-[#202124] dark:text-[#e8eaed] mb-0.5">{item.title}</p>
                             <p className="text-[12.5px] text-[#5f6368] dark:text-[#9aa0a6] leading-relaxed">{item.desc}</p>
@@ -729,7 +728,7 @@ export default function SearchLayout() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <p className="text-[12px] text-[#1a73e8] dark:text-[#8ab4f8] leading-relaxed">
-                        <strong>Tip:</strong> Use <strong>AI Mode</strong> (✦ in the Home search bar) to ask anything about Anurag or this portfolio.
+                        <strong>Tip:</strong> Use <strong>AI Mode</strong> in the Home search bar to ask anything about Anurag or this portfolio.
                       </p>
                     </div>
                   </div>

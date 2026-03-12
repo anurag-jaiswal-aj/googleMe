@@ -11,6 +11,7 @@
  *   faviconLetter— single char shown inside favicon circle (default "A")
  *   children     — extra content rendered below the snippet
  */
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 export default function SearchResult({
@@ -19,15 +20,31 @@ export default function SearchResult({
   snippet,
   to,
   href,
+  onTitleClick,
   faviconBg = '#1a73e8',
   faviconLetter = 'A',
   children,
+  menuItems = [],
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
   const isExternal = !!href && !to;
   const isInternal = !!to;
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleOutsideClick = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [menuOpen]);
+
   const titleClass =
-    'block text-[20px] leading-[1.3] font-normal text-[#1a73e8] dark:text-[#8ab4f8] hover:underline cursor-pointer mb-1';
+    'block text-[20px] leading-[1.3] font-normal text-[#1a73e8] dark:text-[#8ab4f8] hover:underline cursor-pointer mb-1 text-left';
 
   return (
     <div className="max-w-[680px] mb-8">
@@ -47,13 +64,44 @@ export default function SearchResult({
           {url}
         </span>
 
-        {/* 3-dot menu (decorative) */}
-        <button className="ml-0.5 text-[#70757a] dark:text-[#9aa0a6] hover:text-[#202124] dark:hover:text-[#e8eaed]"
-                aria-label="More options" tabIndex={-1}>
-          <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
-          </svg>
-        </button>
+        {menuItems.length > 0 && (
+          <div className="relative ml-auto" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen((open) => !open)}
+              className="p-0.5 rounded-full text-[#70757a] dark:text-[#9aa0a6]
+                         hover:text-[#202124] dark:hover:text-[#e8eaed]
+                         hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
+              aria-label="More options"
+            >
+              <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+              </svg>
+            </button>
+
+            {menuOpen && (
+              <div className="absolute left-0 top-full mt-1 z-50 min-w-[150px] rounded-xl
+                              bg-white dark:bg-[#303134]
+                              border border-[#e8eaed] dark:border-[#5f6368]
+                              shadow-[0_4px_16px_rgba(0,0,0,0.15)] overflow-hidden">
+                {menuItems.map(({ label, icon, action }) => (
+                  <button
+                    key={label}
+                    onClick={() => {
+                      action();
+                      setMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 pl-4 pr-3 py-2.5 text-left
+                               text-[13px] text-[#202124] dark:text-[#e8eaed]
+                               hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
+                  >
+                    {icon && <span className="text-base leading-none">{icon}</span>}
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Title ──────────────────────────────────── */}
@@ -63,7 +111,10 @@ export default function SearchResult({
       {isExternal && (
         <a href={href} target="_blank" rel="noopener noreferrer" className={titleClass}>{title}</a>
       )}
-      {!isInternal && !isExternal && (
+      {!isInternal && !isExternal && onTitleClick && (
+        <button type="button" onClick={onTitleClick} className={titleClass}>{title}</button>
+      )}
+      {!isInternal && !isExternal && !onTitleClick && (
         <span className={titleClass}>{title}</span>
       )}
 
