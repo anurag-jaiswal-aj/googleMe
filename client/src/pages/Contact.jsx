@@ -25,24 +25,6 @@ const SOCIAL = [
     faviconLetter: 'G',
   },
   {
-    name: 'LeetCode',
-    url: 'leetcode.com › u › janurag582004',
-    title: 'Anurag — LeetCode Profile',
-    snippet: 'Solving data structures & algorithms problems. Check out Anurag\'s LeetCode progress — streaks, problem count, and contest ratings.',
-    href: 'https://leetcode.com/u/janurag582004/',
-    faviconBg: '#FFA116',
-    faviconLetter: 'L',
-  },
-  {
-    name: 'CodeChef',
-    url: 'codechef.com › users › janurag582004',
-    title: 'Anurag — CodeChef Profile',
-    snippet: 'Competitive programmer on CodeChef. View Anurag\'s ratings, solved problems, and contest participation history.',
-    href: 'https://www.codechef.com/users/janurag582004',
-    faviconBg: '#5B4638',
-    faviconLetter: 'CC',
-  },
-  {
     name: 'Medium',
     url: 'medium.com › @janurag582004',
     title: 'Anurag (@janurag582004) — Medium',
@@ -178,20 +160,20 @@ function ContactForm() {
         ) : (
           <form onSubmit={handleSubmit} noValidate>
             {/* Header strip */}
-            <div className="px-6 pt-5 pb-4 border-b border-[#f1f3f4] dark:border-[#3c4043]">
+            <div className="px-6 pt-3 pb-3 border-b border-[#f1f3f4] dark:border-[#3c4043]">
               <p className="text-sm text-[#5f6368] dark:text-[#9aa0a6]">
                 I typically respond within <span className="font-medium text-[#202124] dark:text-[#e8eaed]">24 hours</span>.
                 All fields marked <span className="text-[#c5221f]">*</span> are required.
               </p>
             </div>
 
-            <div className="px-6 py-5 space-y-4">
+            <div className="px-6 py-3 space-y-4">
               {/* Subject */}
               <div>
                 <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1.5">
                   What's this about?
                 </label>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1">
                   {SUBJECTS.map(s => (
                     <button key={s} type="button"
                       onClick={() => setForm(f => ({ ...f, subject: f.subject === s ? '' : s }))}
@@ -209,7 +191,7 @@ function ContactForm() {
               {/* Name + Email row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1.5">
+                  <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">
                     Your Name <span className="text-[#c5221f]">*</span>
                   </label>
                   <input type="text" name="name" value={form.name} onChange={handleChange}
@@ -218,7 +200,7 @@ function ContactForm() {
                   {errors.name && <p className="text-xs text-[#c5221f] mt-1">{errors.name}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1.5">
+                  <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">
                     Email Address <span className="text-[#c5221f]">*</span>
                   </label>
                   <input type="email" name="email" value={form.email} onChange={handleChange}
@@ -230,7 +212,7 @@ function ContactForm() {
 
               {/* Message */}
               <div>
-                <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1.5">
+                <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">
                   Message <span className="text-[#c5221f]">*</span>
                 </label>
                 <textarea name="message" value={form.message} onChange={handleChange}
@@ -248,8 +230,8 @@ function ContactForm() {
 
               {/* Attachments */}
               <div>
-                <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1.5">
-                  Attachments <span className="text-[#9aa0a6] font-normal">(optional · max 3 files · 5 MB each)</span>
+                <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">
+                  Attachments <span className="text-[#9aa0a6] font-normal">(Optional · max 3 files · 5 MB each)</span>
                 </label>
 
                 {/* Drop zone */}
@@ -329,7 +311,7 @@ function ContactForm() {
 }
 
 /* ── Page ─────────────────────────────────────────── */
-const PLATFORMS = ['LinkedIn', 'GitHub', 'LeetCode', 'CodeChef', 'Medium', 'Twitter / X'];
+const PLATFORMS = ['LinkedIn', 'GitHub', 'Medium', 'Twitter / X'];
 const SORT_OPTS = [
   { value: 'relevance', label: 'Relevance' },
   { value: 'az',        label: 'A → Z' },
