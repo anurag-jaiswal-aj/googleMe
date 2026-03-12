@@ -180,7 +180,6 @@ export default function Home() {
   // focus input when modal opens
   useEffect(() => {
     if (aiOpen) setTimeout(() => aiInputRef.current?.focus(), 80);
-    else { setAiMessages([]); setAiInput(''); setAiTyping(false); }
   }, [aiOpen]);
 
   const startVoiceSearch = () => {
@@ -1161,7 +1160,7 @@ export default function Home() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/50 dark:bg-black/70 p-0 sm:p-4"
+            className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/65 p-0 sm:p-4"
             onClick={(e) => { if (e.target === e.currentTarget) setAiOpen(false); }}
           >
             <motion.div
@@ -1169,21 +1168,20 @@ export default function Home() {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 48, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-              className="bg-white dark:bg-[#1e1f20] w-full sm:max-w-[520px]
-                         sm:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col overflow-hidden"
-              style={{ height: '72vh', maxHeight: 580 }}
+              className="bg-white dark:bg-[#202124] border border-[#dadce0] dark:border-[#3c4043]
+                         w-full sm:max-w-[640px] sm:rounded-2xl rounded-t-3xl
+                         shadow-[0_12px_40px_rgba(0,0,0,0.24)] flex flex-col overflow-hidden"
+              style={{ height: 'min(78vh, 640px)' }}
             >
-              {/* Gradient accent bar */}
-              <div className="h-[3px] shrink-0 bg-gradient-to-r from-[#4285F4] via-[#9C27B0] to-[#EA4335]" />
-
               {/* Header */}
-              <div className="flex items-center justify-between px-5 py-3.5 shrink-0">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#e8eaed] dark:border-[#3c4043] shrink-0">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#4285F4] to-[#9C27B0]
-                                  flex items-center justify-center shadow-sm shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-[#e8f0fe] dark:bg-[#1a3a5c]/45
+                                  border border-[#d2e3fc] dark:border-[#355a86]
+                                  flex items-center justify-center shrink-0">
                     <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24">
-                      <path fill="white" d="M12 2l2.09 6.26L20.5 10l-6.41 1.74L12 18l-2.09-6.26L3.5 10l6.41-1.74L12 2z"/>
-                      <path fill="rgba(255,255,255,0.65)" d="M19 2l.75 2.25L22 5l-2.25.75L19 8l-.75-2.25L16 5l2.25-.75L19 2z"/>
+                      <path fill="#1a73e8" d="M12 2l2.09 6.26L20.5 10l-6.41 1.74L12 18l-2.09-6.26L3.5 10l6.41-1.74L12 2z"/>
+                      <path fill="#5f9df5" d="M19 2l.75 2.25L22 5l-2.25.75L19 8l-.75-2.25L16 5l2.25-.75L19 2z"/>
                     </svg>
                   </div>
                   <div>
@@ -1217,19 +1215,17 @@ export default function Home() {
 
                 {/* Empty / welcome state */}
                 {aiMessages.length === 0 && !aiTyping && (
-                  <div className="flex flex-col items-center justify-center h-full gap-5 text-center px-2">
-                    <div className="relative">
-                      <div className="w-[60px] h-[60px] rounded-2xl bg-gradient-to-br from-[#4285F4] to-[#9C27B0]
-                                      flex items-center justify-center shadow-lg">
+                  <div className="flex flex-col items-center justify-start min-h-full pt-8 gap-4 text-center px-2">
+                    <div className="w-[56px] h-[56px] rounded-2xl bg-[#e8f0fe] dark:bg-[#1a3a5c]/45
+                                    border border-[#d2e3fc] dark:border-[#355a86]
+                                    flex items-center justify-center">
                         <svg className="w-7 h-7" viewBox="0 0 24 24">
-                          <path fill="white" d="M12 2l2.09 6.26L20.5 10l-6.41 1.74L12 18l-2.09-6.26L3.5 10l6.41-1.74L12 2z"/>
-                          <path fill="rgba(255,255,255,0.55)" d="M19 2l.75 2.25L22 5l-2.25.75L19 8l-.75-2.25L16 5l2.25-.75L19 2z"/>
+                          <path fill="#1a73e8" d="M12 2l2.09 6.26L20.5 10l-6.41 1.74L12 18l-2.09-6.26L3.5 10l6.41-1.74L12 2z"/>
+                          <path fill="#5f9df5" d="M19 2l.75 2.25L22 5l-2.25.75L19 8l-.75-2.25L16 5l2.25-.75L19 2z"/>
                         </svg>
-                      </div>
-                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#EA4335] shadow" />
                     </div>
                     <div>
-                      <p className="text-[15px] font-semibold text-[#202124] dark:text-[#e8eaed]">Ask me anything about Anurag</p>
+                      <p className="text-[28px] sm:text-[32px] font-normal text-[#202124] dark:text-[#e8eaed] leading-tight">How can I help?</p>
                       <p className="text-[12px] text-[#9aa0a6] mt-1">I know his work, skills, projects & more.</p>
                     </div>
                     <div className="flex flex-wrap gap-2 justify-center">
@@ -1248,11 +1244,11 @@ export default function Home() {
                         <button
                           key={q}
                           onClick={() => handleAiSend(q)}
-                          className="px-3.5 py-1.5 rounded-full
+                          className="px-3.5 py-1.5 rounded-full bg-white dark:bg-[#303134]
                                      border border-[#dadce0] dark:border-[#5f6368]
                                      text-[12.5px] text-[#202124] dark:text-[#e8eaed]
                                      hover:border-[#1a73e8] dark:hover:border-[#8ab4f8]
-                                     hover:bg-[#e8f0fe] dark:hover:bg-[#1a3a5c]/40
+                                     hover:bg-[#f8fbff] dark:hover:bg-[#1a3a5c]/40
                                      transition-colors"
                         >
                           {label}
@@ -1272,10 +1268,11 @@ export default function Home() {
                     className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     {msg.role === 'ai' && (
-                      <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#4285F4] to-[#9C27B0]
+                      <div className="w-6 h-6 rounded-lg bg-[#e8f0fe] dark:bg-[#1a3a5c]/45
+                                      border border-[#d2e3fc] dark:border-[#355a86]
                                       flex items-center justify-center shrink-0 mt-1">
                         <svg className="w-3 h-3" viewBox="0 0 24 24">
-                          <path fill="white" d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/>
+                          <path fill="#1a73e8" d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/>
                         </svg>
                       </div>
                     )}
@@ -1298,10 +1295,11 @@ export default function Home() {
                       exit={{ opacity: 0 }}
                       className="flex gap-2.5 justify-start"
                     >
-                      <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#4285F4] to-[#9C27B0]
+                      <div className="w-6 h-6 rounded-lg bg-[#e8f0fe] dark:bg-[#1a3a5c]/45
+                                      border border-[#d2e3fc] dark:border-[#355a86]
                                       flex items-center justify-center shrink-0 mt-1">
                         <svg className="w-3 h-3" viewBox="0 0 24 24">
-                          <path fill="white" d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/>
+                          <path fill="#1a73e8" d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/>
                         </svg>
                       </div>
                       <div className="bg-[#f1f3f4] dark:bg-[#2d2e30] px-4 py-3 rounded-2xl rounded-bl-sm flex items-center gap-1">
@@ -1323,7 +1321,8 @@ export default function Home() {
 
               {/* Input */}
               <div className="px-4 py-3 border-t border-[#e8eaed] dark:border-[#3c4043] shrink-0">
-                <div className="flex items-center gap-2 bg-[#f1f3f4] dark:bg-[#2d2e30] rounded-full pl-4 pr-1.5 py-1">
+                <div className="flex items-center gap-2 rounded-full border border-[#dadce0] dark:border-[#5f6368]
+                                bg-white dark:bg-[#303134] pl-4 pr-1.5 py-1.5">
                   <input
                     ref={aiInputRef}
                     type="text"
@@ -1615,7 +1614,7 @@ export default function Home() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
-              className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 dark:bg-black/70 p-4"
+              className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 dark:bg-black/65 p-4"
               onClick={e => { if (e.target === e.currentTarget) setHelpOpen(false); }}
             >
               <motion.div
@@ -1623,27 +1622,20 @@ export default function Home() {
                 animate={{ y: 0, opacity: 1, scale: 1 }}
                 exit={{ y: 32, opacity: 0, scale: 0.97 }}
                 transition={{ type: 'spring', stiffness: 340, damping: 30 }}
-                className="bg-white dark:bg-[#1e1f20] w-full max-w-[780px] rounded-2xl shadow-2xl
+                className="bg-white dark:bg-[#202124] border border-[#dadce0] dark:border-[#3c4043]
+                           w-full max-w-[780px] rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.24)]
                            flex flex-col overflow-hidden"
                 style={{ height: 'min(85vh, 600px)' }}
               >
-                {/* Top accent bar */}
-                <div className="h-[3px] shrink-0 bg-gradient-to-r from-[#4285F4] via-[#34A853] via-[#FBBC05] to-[#EA4335]" />
-
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-[#e8eaed] dark:border-[#3c4043] shrink-0">
                   <div className="flex items-center gap-3">
-                    <div className="flex gap-[3px]">
-                      {['#4285F4','#EA4335','#FBBC05','#34A853'].map((c,i) => (
-                        <span key={i} className="font-bold text-[15px]" style={{ color: c }}>
-                          {['A','n','u','r'][i]}
-                        </span>
-                      ))}
-                      {['#4285F4','#EA4335'].map((c,i) => (
-                        <span key={i+4} className="font-bold text-[15px]" style={{ color: c }}>
-                          {['a','g'][i]}
-                        </span>
-                      ))}
+                    <div className="w-8 h-8 rounded-full bg-[#e8f0fe] dark:bg-[#1a3a5c]/45
+                                    border border-[#d2e3fc] dark:border-[#355a86]
+                                    flex items-center justify-center">
+                      <svg className="w-4 h-4 text-[#1a73e8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                     </div>
                     <span className="text-[15px] font-medium text-[#202124] dark:text-[#e8eaed]">Portfolio Help Centre</span>
                   </div>
@@ -1710,7 +1702,7 @@ export default function Home() {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: idx * 0.04 }}
                           className="rounded-xl border border-[#e8eaed] dark:border-[#3c4043]
-                                     bg-[#fafafa] dark:bg-[#28292a]
+                                     bg-white dark:bg-[#2a2b2c]
                                      px-4 py-3.5"
                         >
                           <div>
@@ -1726,11 +1718,11 @@ export default function Home() {
                     </div>
 
                     {/* Bottom tip */}
-                    <div className="mt-5 px-4 py-3 rounded-xl bg-[#e8f0fe] dark:bg-[#28355c] flex gap-2.5 items-start">
-                      <svg className="w-4 h-4 mt-0.5 shrink-0 text-[#1a73e8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <div className="mt-5 px-4 py-3 rounded-xl bg-[#fef7e0] dark:bg-[#3b3524] border border-[#fce8b2] dark:border-[#6b5c2f] flex gap-2.5 items-start">
+                      <svg className="w-4 h-4 mt-0.5 shrink-0 text-[#b06000] dark:text-[#fbbc04]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <p className="text-[12px] text-[#1a73e8] dark:text-[#8ab4f8] leading-relaxed">
+                      <p className="text-[12px] text-[#8d4b00] dark:text-[#fbbc04] leading-relaxed">
                         <strong>Tip:</strong> Have more questions? Use <strong>AI Mode</strong> in the search bar to ask anything about Anurag or this portfolio.
                       </p>
                     </div>

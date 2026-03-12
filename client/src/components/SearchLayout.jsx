@@ -657,7 +657,7 @@ export default function SearchLayout() {
               key="help-backdrop"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
-              className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 dark:bg-black/70 p-4"
+              className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 dark:bg-black/65 p-4"
               onClick={e => { if (e.target === e.currentTarget) setHelpOpen(false); }}
             >
               <motion.div
@@ -665,16 +665,19 @@ export default function SearchLayout() {
                 animate={{ y: 0, opacity: 1, scale: 1 }}
                 exit={{ y: 32, opacity: 0, scale: 0.97 }}
                 transition={{ type: 'spring', stiffness: 340, damping: 30 }}
-                className="bg-white dark:bg-[#1e1f20] w-full max-w-[780px] rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                className="bg-white dark:bg-[#202124] border border-[#dadce0] dark:border-[#3c4043]
+                           w-full max-w-[780px] rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.24)]
+                           flex flex-col overflow-hidden"
                 style={{ height: 'min(85vh, 600px)' }}
               >
-                <div className="h-[3px] shrink-0 bg-gradient-to-r from-[#4285F4] via-[#34A853] via-[#FBBC05] to-[#EA4335]" />
                 <div className="flex items-center justify-between px-6 py-4 border-b border-[#e8eaed] dark:border-[#3c4043] shrink-0">
                   <div className="flex items-center gap-3">
-                    <div className="flex gap-[3px]">
-                      {['#4285F4','#EA4335','#FBBC05','#34A853','#4285F4','#EA4335'].map((c, i) => (
-                        <span key={i} className="font-bold text-[15px]" style={{ color: c }}>{['A','n','u','r','a','g'][i]}</span>
-                      ))}
+                    <div className="w-8 h-8 rounded-full bg-[#e8f0fe] dark:bg-[#1a3a5c]/45
+                                    border border-[#d2e3fc] dark:border-[#355a86]
+                                    flex items-center justify-center">
+                      <svg className="w-4 h-4 text-[#1a73e8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                     </div>
                     <span className="text-[15px] font-medium text-[#202124] dark:text-[#e8eaed]">Portfolio Help Centre</span>
                   </div>
@@ -715,7 +718,7 @@ export default function SearchLayout() {
                         <motion.div key={item.title}
                           initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: idx * 0.04 }}
-                          className="rounded-xl border border-[#e8eaed] dark:border-[#3c4043] bg-[#fafafa] dark:bg-[#28292a] px-4 py-3.5"
+                          className="rounded-xl border border-[#e8eaed] dark:border-[#3c4043] bg-white dark:bg-[#2a2b2c] px-4 py-3.5"
                         >
                           <div>
                             <p className="text-[13.5px] font-semibold text-[#202124] dark:text-[#e8eaed] mb-0.5">{item.title}</p>
@@ -724,11 +727,11 @@ export default function SearchLayout() {
                         </motion.div>
                       ))}
                     </div>
-                    <div className="mt-5 px-4 py-3 rounded-xl bg-[#e8f0fe] dark:bg-[#28355c] flex gap-2.5 items-start">
-                      <svg className="w-4 h-4 mt-0.5 shrink-0 text-[#1a73e8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <div className="mt-5 px-4 py-3 rounded-xl bg-[#fef7e0] dark:bg-[#3b3524] border border-[#fce8b2] dark:border-[#6b5c2f] flex gap-2.5 items-start">
+                      <svg className="w-4 h-4 mt-0.5 shrink-0 text-[#b06000] dark:text-[#fbbc04]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <p className="text-[12px] text-[#1a73e8] dark:text-[#8ab4f8] leading-relaxed">
+                      <p className="text-[12px] text-[#8d4b00] dark:text-[#fbbc04] leading-relaxed">
                         <strong>Tip:</strong> Use <strong>AI Mode</strong> in the Home search bar to ask anything about Anurag or this portfolio.
                       </p>
                     </div>
