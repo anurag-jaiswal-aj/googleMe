@@ -160,14 +160,14 @@ function ContactForm() {
         ) : (
           <form onSubmit={handleSubmit} noValidate>
             {/* Header strip */}
-            <div className="px-6 pt-3 pb-2 border-b border-[#f1f3f4] dark:border-[#3c4043]">
+            <div className="px-3 sm:px-6 pt-2 sm:pt-3 pb-1 sm:pb-2 border-b border-[#f1f3f4] dark:border-[#3c4043]">
               <p className="text-sm text-[#5f6368] dark:text-[#9aa0a6]">
                 I typically respond within <span className="font-medium text-[#202124] dark:text-[#e8eaed]">24 hours</span>.
                 All fields marked <span className="text-[#c5221f]">*</span> are required.
               </p>
             </div>
 
-            <div className="px-6 py-3 space-y-4">
+            <div className="px-3 sm:px-6 py-2 sm:py-3 space-y-4">
               {/* Subject */}
               <div>
                 <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1.5">
@@ -277,7 +277,7 @@ function ContactForm() {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-2 bg-[#f8f9fa] dark:bg-[#202124] border-t border-[#f1f3f4] dark:border-[#3c4043] flex items-center justify-between gap-3">
+            <div className="px-3 sm:px-6 py-2 bg-[#f8f9fa] dark:bg-[#202124] border-t border-[#f1f3f4] dark:border-[#3c4043] flex items-center justify-between gap-3">
               <p className="text-xs text-[#9aa0a6]">
                 Your message is saved securely and only used to respond to you.
               </p>

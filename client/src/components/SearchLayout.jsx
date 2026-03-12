@@ -136,10 +136,10 @@ export default function SearchLayout() {
       <header className="sticky top-0 z-50 bg-white dark:bg-[#202124]">
 
         {/* Row 1 — logo · search · actions */}
-        <div className="flex items-center gap-11 sm:gap-7 px-4 pt-6 pb-1.5">
+        <div className="flex items-center gap-3 sm:gap-7 px-3 sm:px-4 pt-4 sm:pt-6 pb-1.5">
 
           {/* Logo — links home */}
-          <Link to="/" className="shrink-0 select-none w-[90px] sm:w-[112px] ml-4">
+          <Link to="/" className="shrink-0 select-none w-[84px] sm:w-[112px] ml-0 sm:ml-4">
             <span className="text-[28px] sm:text-[32px] font-bold tracking-tight leading-none">
               {LOGO.map(({ char, color }, i) => (
                 <span key={i} style={{ color }}>{char}</span>
@@ -148,7 +148,7 @@ export default function SearchLayout() {
           </Link>
 
           {/* Search bar */}
-          <div ref={wrapperRef} className="relative flex-1 max-w-[584px]">
+          <div ref={wrapperRef} className="relative flex-1 min-w-0 max-w-[584px]">
             <div
               className={`flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#303134]
                 border rounded-full transition-all duration-150
@@ -657,7 +657,7 @@ export default function SearchLayout() {
               key="help-backdrop"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
-              className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 dark:bg-black/65 p-4"
+              className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/65 p-0 sm:p-4"
               onClick={e => { if (e.target === e.currentTarget) setHelpOpen(false); }}
             >
               <motion.div
@@ -666,9 +666,9 @@ export default function SearchLayout() {
                 exit={{ y: 32, opacity: 0, scale: 0.97 }}
                 transition={{ type: 'spring', stiffness: 340, damping: 30 }}
                 className="bg-white dark:bg-[#202124] border border-[#dadce0] dark:border-[#3c4043]
-                           w-full max-w-[780px] rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.24)]
+                           w-full sm:max-w-[780px] rounded-t-2xl sm:rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.24)]
                            flex flex-col overflow-hidden"
-                style={{ height: 'min(85vh, 600px)' }}
+                style={{ height: 'min(92vh, 680px)' }}
               >
                 <div className="flex items-center justify-between px-6 py-4 border-b border-[#e8eaed] dark:border-[#3c4043] shrink-0">
                   <div className="flex items-center gap-3">
@@ -688,11 +688,13 @@ export default function SearchLayout() {
                     </svg>
                   </button>
                 </div>
-                <div className="flex flex-1 overflow-hidden">
-                  <nav className="w-[160px] shrink-0 border-r border-[#e8eaed] dark:border-[#3c4043] overflow-y-auto py-3 flex flex-col gap-0.5">
+                <div className="flex flex-1 overflow-hidden flex-col sm:flex-row">
+                  <nav className="w-full sm:w-[180px] shrink-0 border-b sm:border-b-0 sm:border-r border-[#e8eaed] dark:border-[#3c4043]
+                                  overflow-x-auto sm:overflow-y-auto py-2 sm:py-3 px-2 sm:px-0 flex flex-row sm:flex-col gap-1 sm:gap-0.5">
                     {HELP_SECTIONS.map((s, i) => (
                       <button key={s.id} onClick={() => setHelpSection(i)}
-                        className={`flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium transition-colors text-left w-full
+                        className={`shrink-0 sm:shrink flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-[12px] sm:text-[13px]
+                          font-medium transition-colors text-left w-auto sm:w-full rounded-full sm:rounded-none
                           ${ helpSection === i
                             ? 'bg-[#e8f0fe] dark:bg-[#28355c] text-[#1a73e8] dark:text-[#8ab4f8]'
                             : 'text-[#202124] dark:text-[#e8eaed] hover:bg-[#f1f3f4] dark:hover:bg-[#2d2e30]'
@@ -704,7 +706,7 @@ export default function SearchLayout() {
                       </button>
                     ))}
                   </nav>
-                  <div className="flex-1 overflow-y-auto px-6 py-5">
+                  <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">
                     <div className="flex items-center gap-2.5 mb-5">
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                            style={{ background: sec.color + '1A', color: sec.color }}>{sec.icon}</div>

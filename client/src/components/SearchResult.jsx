@@ -60,7 +60,7 @@ export default function SearchResult({
         </div>
 
         {/* Breadcrumb */}
-        <span className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-snug">
+        <span className="min-w-0 flex-1 text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-snug truncate">
           {url}
         </span>
 

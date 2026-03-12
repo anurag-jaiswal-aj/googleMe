@@ -229,7 +229,7 @@ export default function Projects() {
           className="max-w-[680px] mt-4 border-t border-[#e8eaed] dark:border-[#3c4043] pt-6"
         >
           <p className="text-base font-medium text-[#202124] dark:text-[#e8eaed] mb-4">Related searches</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
               'Anurag GitHub profile',
               'Full-stack developer portfolio',

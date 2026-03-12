@@ -18,7 +18,7 @@ export default function NotFound() {
   return (
     <div className="min-h-screen bg-white dark:bg-[#202124] flex flex-col">
       {/* Mini header */}
-      <header className="flex items-center justify-between px-6 py-3 border-b border-[#e8eaed] dark:border-[#3c4043]">
+      <header className="flex items-center justify-between px-3 sm:px-6 py-2 sm:py-3 border-b border-[#e8eaed] dark:border-[#3c4043]">
         <Link to="/" className="text-2xl font-bold">
           {LOGO.map(({ char, color }, i) => <span key={i} style={{ color }}>{char}</span>)}
         </Link>
@@ -26,7 +26,7 @@ export default function NotFound() {
       </header>
 
       {/* Content */}
-      <main className="flex-1 flex items-start justify-center px-4 sm:px-[100px] pt-16">
+      <main className="flex-1 flex items-start justify-center px-4 sm:px-8 md:px-16 pt-12 sm:pt-16">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}

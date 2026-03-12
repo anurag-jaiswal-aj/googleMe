@@ -145,7 +145,7 @@ function ArticleReader({ post, onClose }) {
       {/* ── Navbar ── */}
       <div className="sticky top-0 z-10 bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-sm
                       border-b border-[#e8eaed] dark:border-[#333]">
-        <div className="max-w-[728px] mx-auto px-6 h-14 flex items-center justify-between gap-4">
+        <div className="max-w-[728px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
           {/* Logo */}
           <div className="flex items-center gap-2 shrink-0">
             <div className="w-7 h-7 rounded-full bg-[#00ab6c] flex items-center justify-center
@@ -177,7 +177,7 @@ function ArticleReader({ post, onClose }) {
       </div>
 
       {/* ── Article ── */}
-      <article className="max-w-[728px] mx-auto px-6 pt-12 pb-24">
+      <article className="max-w-[728px] mx-auto px-4 sm:px-6 pt-8 sm:pt-12 pb-16 sm:pb-24">
 
         {/* Tags */}
         {(post.tags||[]).length > 0 && (
@@ -505,7 +505,7 @@ export default function Blog() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
                     className="mt-8 max-w-[680px] border-t border-[#e8eaed] dark:border-[#3c4043] pt-6">
           <p className="text-base font-medium text-[#202124] dark:text-[#e8eaed] mb-4">People also search for</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {relatedSearches.map(title => {
               const post = posts.find(p => p.title === title);
               return (
