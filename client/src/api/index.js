@@ -23,7 +23,7 @@ const getApiBaseUrl = () => {
 
 const api = axios.create({
   baseURL: getApiBaseUrl(),
-  timeout: 60000,
+  timeout: 20000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -52,6 +52,7 @@ export const submitContact = async (data) => {
 
   try {
     const first = await api.post('/contact', fd, {
+      timeout: 20000,
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return first.data;
@@ -60,14 +61,14 @@ export const submitContact = async (data) => {
 
     // Render free tier may sleep; warm the backend then retry once.
     try {
-      await api.get('/health', { timeout: 120000 });
+      await api.get('/health', { timeout: 15000 });
     } catch {
       // Ignore wake-up ping failures and attempt one final submit.
     }
 
     const retryFd = buildContactFormData(data);
     const retry = await api.post('/contact', retryFd, {
-      timeout: 120000,
+      timeout: 20000,
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return retry.data;
