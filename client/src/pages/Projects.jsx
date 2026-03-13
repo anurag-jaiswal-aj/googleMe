@@ -3,55 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { fetchProjects } from '../api';
 import SearchResult from '../components/SearchResult';
 import FilterSort from '../components/FilterSort';
-
-/* ── Dummy fallback data ─────────────────────────────── */
-const DUMMY_PROJECTS = [
-  {
-    _id: '1',
-    title: 'gfolio — Google-style Portfolio',
-    description: 'A MERN stack portfolio inspired by Google Search. Features a fully responsive SERP UI, dark mode, AI search mode, animated suggestions, and a knowledge panel.',
-    techStack: ['React', 'Node.js', 'MongoDB', 'Express', 'TailwindCSS'],
-    repoUrl: 'https://github.com/anurag-2911/gfolio',
-    demoUrl: 'https://gfolio.vercel.app',
-    featured: true,
-  },
-  {
-    _id: '2',
-    title: 'DevBoard — Developer Dashboard',
-    description: 'A real-time developer productivity dashboard with GitHub stats integration, task tracking, and Pomodoro timer. Built with React and the GitHub REST API.',
-    techStack: ['React', 'Node.js', 'REST APIs'],
-    repoUrl: 'https://github.com/anurag-2911/devboard',
-    demoUrl: '',
-    featured: true,
-  },
-  {
-    _id: '3',
-    title: 'ShopCart — E-commerce Platform',
-    description: 'Full-stack e-commerce app with JWT auth, product catalog, cart management, Stripe payment integration, and an admin dashboard for order management.',
-    techStack: ['React', 'Node.js', 'Express', 'MongoDB'],
-    repoUrl: 'https://github.com/anurag-2911/shopcart',
-    demoUrl: 'https://shopcart-demo.vercel.app',
-    featured: false,
-  },
-  {
-    _id: '4',
-    title: 'ChatApp — Real-time Messaging',
-    description: 'Real-time group and private chat application using Socket.io, with rooms, typing indicators, online presence, and persistent message history.',
-    techStack: ['React', 'Node.js', 'Express', 'MongoDB'],
-    repoUrl: 'https://github.com/anurag-2911/chatapp',
-    demoUrl: '',
-    featured: false,
-  },
-  {
-    _id: '5',
-    title: 'CodeSnip — Snippet Manager',
-    description: 'A developer tool to save, tag, search, and share code snippets. Supports syntax highlighting for 30+ languages and team workspaces.',
-    techStack: ['React', 'Node.js', 'MongoDB'],
-    repoUrl: 'https://github.com/anurag-2911/codesnip',
-    demoUrl: 'https://codesnip.vercel.app',
-    featured: false,
-  },
-];
+import fallbackProjects from '../../../shared/projects.json';
 
 /* Slug a title to a GitHub-style URL path */
 const toSlug = str => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -107,11 +59,11 @@ export default function Projects() {
           return;
         }
 
-        setProjects(DUMMY_PROJECTS);
+        setProjects(fallbackProjects);
         setError('Projects API returned no records; showing fallback projects.');
       })
       .catch(() => {
-        setProjects(DUMMY_PROJECTS);
+        setProjects(fallbackProjects);
         setError('Projects API is unavailable; showing fallback projects.');
       })
       .finally(() => setLoading(false));

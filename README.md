@@ -109,6 +109,8 @@ npm run seed
 
 This inserts 4 sample projects into MongoDB.
 
+The seed source lives in `shared/projects.json`, which is also used by the frontend as a fallback dataset.
+
 ### 4. Run locally
 
 ```bash
@@ -131,7 +133,7 @@ Open the files below and replace the placeholder values:
 | `client/src/pages/Contact.jsx` | Your social profile URLs, email address |
 | `client/public/avatar.jpg` | Add your photo (any format, rename to `avatar.jpg`) |
 | `client/public/resume.pdf` | Add your actual resume PDF |
-| `server/seed.js` | Your real projects — title, description, tech stack, links |
+| `shared/projects.json` | Your real projects — title, description, tech stack, links, and `featured` selection |
 
 ---
 

@@ -1,0 +1,57 @@
+[
+  {
+    "_id": "project-gfolio",
+    "title": "gfolio - Google-style Portfolio",
+    "description": "A MERN stack portfolio inspired by Google Search. Features a fully responsive SERP UI, dark mode, AI search mode, animated suggestions, and a knowledge panel.",
+    "techStack": ["React", "Node.js", "MongoDB", "Express", "TailwindCSS"],
+    "repoUrl": "https://github.com/anurag-2911/gfolio",
+    "demoUrl": "https://gfolio.vercel.app",
+    "imageUrl": "",
+    "featured": true,
+    "order": 1
+  },
+  {
+    "_id": "project-devboard",
+    "title": "DevBoard - Developer Dashboard",
+    "description": "A real-time developer productivity dashboard with GitHub stats integration, task tracking, and Pomodoro timer. Built with React and the GitHub REST API.",
+    "techStack": ["React", "Node.js", "REST APIs"],
+    "repoUrl": "https://github.com/anurag-2911/devboard",
+    "demoUrl": "",
+    "imageUrl": "",
+    "featured": true,
+    "order": 2
+  },
+  {
+    "_id": "project-shopcart",
+    "title": "ShopCart - E-commerce Platform",
+    "description": "Full-stack e-commerce app with JWT auth, product catalog, cart management, Stripe payment integration, and an admin dashboard for order management.",
+    "techStack": ["React", "Node.js", "Express", "MongoDB"],
+    "repoUrl": "https://github.com/anurag-2911/shopcart",
+    "demoUrl": "https://shopcart-demo.vercel.app",
+    "imageUrl": "",
+    "featured": false,
+    "order": 3
+  },
+  {
+    "_id": "project-chatapp",
+    "title": "ChatApp - Real-time Messaging",
+    "description": "Real-time group and private chat application using Socket.io, with rooms, typing indicators, online presence, and persistent message history.",
+    "techStack": ["React", "Node.js", "Express", "MongoDB"],
+    "repoUrl": "https://github.com/anurag-2911/chatapp",
+    "demoUrl": "",
+    "imageUrl": "",
+    "featured": false,
+    "order": 4
+  },
+  {
+    "_id": "project-codesnip",
+    "title": "CodeSnip - Snippet Manager",
+    "description": "A developer tool to save, tag, search, and share code snippets. Supports syntax highlighting for 30+ languages and team workspaces.",
+    "techStack": ["React", "Node.js", "MongoDB"],
+    "repoUrl": "https://github.com/anurag-2911/codesnip",
+    "demoUrl": "https://codesnip.vercel.app",
+    "imageUrl": "",
+    "featured": false,
+    "order": 5
+  }
+]

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import SearchResult from '../components/SearchResult';
+import sharedProjects from '../../../shared/projects.json';
 
 /* ── Q&A accordion item ─────────────────────────────── */
 function QAResult({ url, question, answer, to, faviconBg, faviconLetter }) {
@@ -128,40 +129,16 @@ const QA = [
   },
 ];
 
-const PROJECTS = [
-  {
-    url: 'github.com › anurag-2911 › gfolio',
-    title: 'gfolio — Google-Inspired Portfolio',
-    snippet: 'A MERN stack portfolio reimagining Google Search for personal branding. Features a responsive SERP UI, dark mode, AI search mode, animated suggestions, and a knowledge panel. Built with React, Node.js, MongoDB, Express, and TailwindCSS.',
-    href: 'https://github.com/anurag-2911/gfolio',
-    faviconBg: '#24292e',
-    faviconLetter: 'G',
-  },
-  {
-    url: 'github.com › anurag-2911 › devboard',
-    title: 'DevBoard — Developer Dashboard',
-    snippet: 'Real-time developer productivity dashboard with GitHub stats integration, task tracking, and a Pomodoro timer. Connects to the GitHub REST API and renders live repo stats and contribution graphs.',
-    href: 'https://github.com/anurag-2911/devboard',
-    faviconBg: '#24292e',
-    faviconLetter: 'G',
-  },
-  {
-    url: 'github.com › anurag-2911 › shopcart',
-    title: 'ShopCart — Full-Stack E-Commerce Platform',
-    snippet: 'E-commerce app with JWT auth, product catalog, cart management, Stripe payment integration, and an admin dashboard for order management. Built with React, Node.js, Express, and MongoDB.',
-    href: 'https://github.com/anurag-2911/shopcart',
-    faviconBg: '#24292e',
-    faviconLetter: 'G',
-  },
-  {
-    url: 'github.com › anurag-2911 › chatapp',
-    title: 'ChatApp — Real-Time Messaging',
-    snippet: 'Real-time group and private chat using Socket.io, with rooms, typing indicators, online presence, and persistent message history stored in MongoDB.',
-    href: 'https://github.com/anurag-2911/chatapp',
-    faviconBg: '#24292e',
-    faviconLetter: 'G',
-  },
-];
+const toSlug = (str) => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+const PROJECTS = sharedProjects.map((project) => ({
+  url: `github.com › anurag-2911 › ${toSlug(project.title)}`,
+  title: `${project.title} | GitHub`,
+  snippet: project.description,
+  href: project.repoUrl || project.demoUrl || '#',
+  faviconBg: '#24292e',
+  faviconLetter: 'G',
+}));
 
 const POSTS = [
   {
