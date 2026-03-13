@@ -61,9 +61,10 @@ router.post('/', handleUpload, contactValidation, async (req, res, next) => {
     // Send email notification
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       const transporter = nodemailer.createTransport({
+        service: 'gmail',
         host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.EMAIL_PORT, 10) || 587,
-        secure: false,
+        port: parseInt(process.env.EMAIL_PORT, 10) || 465,
+        secure: true,
         connectionTimeout: 10000,
         greetingTimeout: 10000,
         socketTimeout: 15000,

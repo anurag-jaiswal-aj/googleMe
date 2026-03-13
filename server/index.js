@@ -11,6 +11,9 @@ const mediumRoutes  = require('./routes/medium');
 
 const app = express();
 
+// Render runs behind a proxy/CDN. This allows correct client IP detection.
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 
