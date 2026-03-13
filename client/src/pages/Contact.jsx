@@ -8,39 +8,39 @@ import FilterSort from '../components/FilterSort';
 const SOCIAL = [
   {
     name: 'LinkedIn',
-    url: 'linkedin.com › in › anurag-2911',
+    url: 'linkedin.com/in/anuragjaiswal5826',
     title: 'Anurag — LinkedIn',
     snippet: 'View professional profile on LinkedIn. B.Tech ISE student, Full-Stack Developer, open to job opportunities and collaborations.',
-    href: 'https://linkedin.com/in/anurag-2911',
-    faviconBg: '#0a66c2',
-    faviconLetter: 'in',
+    href: 'https://www.linkedin.com/in/anuragjaiswal5826/',
+    faviconBg: '#4285F4',
+    faviconLetter: 'L',
+  },
+  {
+    name: 'Twitter / X',
+    url: 'x.com/therightrag',
+    title: 'Anurag (@anurag_dev) on X',
+    snippet: 'Tweeting about web development, open source, and student life. Full-Stack Developer & B.Tech ISE.',
+    href: 'https://x.com/therightrag',
+    faviconBg: '#4285F4',
+    faviconLetter: 'X',
   },
   {
     name: 'GitHub',
-    url: 'github.com › anurag-2911',
-    title: 'Anurag (@anurag-2911) — GitHub',
+    url: 'github.com/anurag-jaiswal-aj',
+    title: 'Anurag (@anurag-jaiswal-aj) — GitHub',
     snippet: 'Full-Stack Developer · B.Tech ISE · Repositories, contributions, and open-source projects. Public work since 2022.',
-    href: 'https://github.com/anurag-2911',
-    faviconBg: '#24292e',
+    href: 'https://github.com/anurag-jaiswal-aj',
+    faviconBg: '#4285F4',
     faviconLetter: 'G',
   },
   {
     name: 'Medium',
-    url: 'medium.com › @janurag582004',
+    url: 'medium.com/janurag582004',
     title: 'Anurag (@janurag582004) — Medium',
     snippet: 'Technical articles on software engineering, documentation, and developer experiences. Published on Medium.',
     href: 'https://medium.com/@janurag582004',
-    faviconBg: '#00ab6c',
+    faviconBg: '#4285F4',
     faviconLetter: 'M',
-  },
-  {
-    name: 'Twitter / X',
-    url: 'x.com › anurag_dev',
-    title: 'Anurag (@anurag_dev) on X',
-    snippet: 'Tweeting about web development, open source, and student life. Full-Stack Developer & B.Tech ISE.',
-    href: 'https://twitter.com/anurag_dev',
-    faviconBg: '#1d9bf0',
-    faviconLetter: 'X',
   },
 ];
 
@@ -126,7 +126,7 @@ function ContactForm() {
       {/* URL breadcrumb */}
       <div className="flex items-center gap-2 mb-0.5">
         <div className="w-[18px] h-[18px] rounded-full bg-[#4285F4] flex items-center justify-center text-white text-[9px] font-bold shrink-0">A</div>
-        <span className="text-sm text-[#133780] dark:text-[#bdc1c6]">anurag.dev › contact</span>
+        <span className="text-sm text-[#133780] dark:text-[#bdc1c6]">anurag.dev/contact</span>
         <button className="ml-0.5 text-[#70757a]" tabIndex={-1} aria-label="More">
           <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
@@ -162,7 +162,7 @@ function ContactForm() {
             {/* Header strip */}
             <div className="px-3 sm:px-6 pt-2 sm:pt-3 pb-1 sm:pb-2 border-b border-[#f1f3f4] dark:border-[#3c4043]">
               <p className="text-sm text-[#5f6368] dark:text-[#9aa0a6]">
-                I typically respond within <span className="font-medium text-[#202124] dark:text-[#e8eaed]">24 hours</span>.
+                I typically respond within 24 hours.
                 All fields marked <span className="text-[#c5221f]">*</span> are required.
               </p>
             </div>

@@ -8,7 +8,7 @@ const POSTS = [
   {
     id: 1,
     title: 'Building a Google Search-Inspired Portfolio with MERN Stack',
-    url: 'anurag.dev › blog › mern-portfolio',
+    url: 'anurag.dev/blog/mern-portfolio',
     snippet: 'A deep-dive into how I designed and built this very portfolio — Google SERP layout, dark mode, AI search mode, animated suggestions, knowledge panel, and a Node.js + MongoDB backend. Every design decision explained.',
     date: 'Mar 15, 2026',
     readTime: '8 min read',
@@ -20,7 +20,7 @@ const POSTS = [
   {
     id: 2,
     title: 'React useEffect: The Complete Guide to Avoiding Infinite Loops',
-    url: 'anurag.dev › blog › react-useeffect-guide',
+    url: 'anurag.dev/blog/react-useeffect-guide',
     snippet: 'Most React bugs trace back to useEffect misuse. This guide covers dependency arrays, cleanup functions, stale closures, and the mental model you need to write effects that actually work.',
     date: 'Feb 28, 2026',
     readTime: '10 min read',
@@ -32,7 +32,7 @@ const POSTS = [
   {
     id: 3,
     title: 'TailwindCSS in 2026: Utility Patterns That Actually Save Time',
-    url: 'anurag.dev › blog › tailwind-patterns-2026',
+    url: 'anurag.dev/blog/tailwind-patterns-2026',
     snippet: 'Beyond the basics — component extraction, dark mode with CSS variables, responsive design without breakpoint chaos, and the custom plugins that made building this portfolio 3x faster.',
     date: 'Feb 10, 2026',
     readTime: '6 min read',
@@ -44,7 +44,7 @@ const POSTS = [
   {
     id: 4,
     title: 'REST vs GraphQL: A Developer\'s Honest Comparison',
-    url: 'anurag.dev › blog › rest-vs-graphql',
+    url: 'anurag.dev/blog/rest-vs-graphql',
     snippet: 'Not another theoretical comparison — this is what I learned after switching a real project from REST to GraphQL and back again. When each approach wins, and the hidden costs nobody talks about.',
     date: 'Jan 22, 2026',
     readTime: '7 min read',
@@ -56,7 +56,7 @@ const POSTS = [
   {
     id: 5,
     title: 'MongoDB Aggregation Pipelines: From Zero to Useful',
-    url: 'anurag.dev › blog › mongodb-aggregation',
+    url: 'anurag.dev/blog/mongodb-aggregation',
     snippet: 'Aggregation pipelines are the most powerful feature of MongoDB that most developers barely use. Real examples: group-by, lookup joins, computed fields, and building analytics dashboards.',
     date: 'Jan 5, 2026',
     readTime: '9 min read',
@@ -68,7 +68,7 @@ const POSTS = [
   {
     id: 6,
     title: 'Docker for Node.js: A Practical Introduction',
-    url: 'anurag.dev › blog › docker-nodejs',
+    url: 'anurag.dev/blog/docker-nodejs',
     snippet: 'Containerising a Node.js + MongoDB stack from scratch — Dockerfile, docker-compose, environment variables, multi-stage builds, and tips for keeping your images small.',
     date: 'Dec 18, 2025',
     readTime: '8 min read',
