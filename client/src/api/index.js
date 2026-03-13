@@ -31,16 +31,47 @@ const api = axios.create({
 
 export const fetchProjects = () => api.get('/projects').then((r) => r.data);
 
-export const submitContact = (data) => {
+const isTimeoutLikeError = (err) => {
+  const code = err?.code || '';
+  const msg = err?.message || '';
+  return code === 'ECONNABORTED' || /timeout|Network Error/i.test(msg);
+};
+
+const buildContactFormData = (data) => {
   const fd = new FormData();
   fd.append('name', data.name);
   fd.append('email', data.email);
   fd.append('message', data.message);
   if (data.subject) fd.append('subject', data.subject);
   (data.files || []).forEach(f => fd.append('attachments', f));
-  return api.post('/contact', fd, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }).then(r => r.data);
+  return fd;
+};
+
+export const submitContact = async (data) => {
+  const fd = buildContactFormData(data);
+
+  try {
+    const first = await api.post('/contact', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return first.data;
+  } catch (err) {
+    if (!isTimeoutLikeError(err)) throw err;
+
+    // Render free tier may sleep; warm the backend then retry once.
+    try {
+      await api.get('/health', { timeout: 120000 });
+    } catch {
+      // Ignore wake-up ping failures and attempt one final submit.
+    }
+
+    const retryFd = buildContactFormData(data);
+    const retry = await api.post('/contact', retryFd, {
+      timeout: 120000,
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return retry.data;
+  }
 };
 
 export default api;
