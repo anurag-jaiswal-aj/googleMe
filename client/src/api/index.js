@@ -1,7 +1,20 @@
 import axios from 'axios';
 
 const getApiBaseUrl = () => {
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  const configured = import.meta.env.VITE_API_URL;
+
+  if (configured) {
+    // Ignore accidental localhost config in deployed environments.
+    if (typeof window !== 'undefined') {
+      const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const pointsToLocalApi = /localhost|127\.0\.0\.1/.test(configured);
+      if (!isLocalHost && pointsToLocalApi) {
+        return 'https://googleme.onrender.com/api';
+      }
+    }
+    return configured;
+  }
+
   if (typeof window !== 'undefined' && window.location.hostname.endsWith('.vercel.app')) {
     return 'https://googleme.onrender.com/api';
   }
