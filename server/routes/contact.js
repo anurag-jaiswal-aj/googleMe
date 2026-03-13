@@ -60,43 +60,45 @@ router.post('/', handleUpload, contactValidation, async (req, res, next) => {
 
     // Send email notification
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      try {
-        const transporter = nodemailer.createTransport({
-          host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-          port: parseInt(process.env.EMAIL_PORT, 10) || 587,
-          secure: false,
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-          },
-        });
+      const transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.EMAIL_PORT, 10) || 587,
+        secure: false,
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
 
-        const subjectLine = subject
-          ? `[${subject}] New Portfolio Message from ${name}`
-          : `New Portfolio Message from ${name}`;
+      const subjectLine = subject
+        ? `[${subject}] New Portfolio Message from ${name}`
+        : `New Portfolio Message from ${name}`;
 
-        await transporter.sendMail({
-          from: `"Portfolio Contact" <${process.env.EMAIL_USER}>`,
-          to: process.env.EMAIL_TO || process.env.EMAIL_USER,
-          replyTo: email,
-          subject: subjectLine,
-          html: `
-            <h2>New Contact Form Submission</h2>
-            ${subject ? `<p><strong>Subject:</strong> ${subject}</p>` : ''}
-            <p><strong>Name:</strong> ${name}</p>
-            <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
-            <p><strong>Message:</strong></p>
-            <p>${message.replace(/\n/g, '<br/>')}</p>
-            ${attachments.length > 0 ? `<p><strong>Attachments:</strong> ${attachments.map(a => a.filename).join(', ')}</p>` : ''}
-            <hr/>
-            <small>Sent from portfolio contact form</small>
-          `,
-          attachments,
-        });
-      } catch (mailErr) {
-        // Log but don't fail the request — message was saved to DB
+      // Fire-and-forget: never block API response on SMTP latency.
+      transporter.sendMail({
+        from: `"Portfolio Contact" <${process.env.EMAIL_USER}>`,
+        to: process.env.EMAIL_TO || process.env.EMAIL_USER,
+        replyTo: email,
+        subject: subjectLine,
+        html: `
+          <h2>New Contact Form Submission</h2>
+          ${subject ? `<p><strong>Subject:</strong> ${subject}</p>` : ''}
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+          <p><strong>Message:</strong></p>
+          <p>${message.replace(/\n/g, '<br/>')}</p>
+          ${attachments.length > 0 ? `<p><strong>Attachments:</strong> ${attachments.map(a => a.filename).join(', ')}</p>` : ''}
+          <hr/>
+          <small>Sent from portfolio contact form</small>
+        `,
+        attachments,
+      }).catch((mailErr) => {
+        // Log but don't fail the request — message was saved to DB.
         console.error('Email send failed:', mailErr.message);
-      }
+      });
     }
 
     res.status(201).json({
