@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchProjects } from '../api';
 import SearchResult from '../components/SearchResult';
@@ -101,8 +101,19 @@ export default function Projects() {
 
   useEffect(() => {
     fetchProjects()
-      .then(setProjects)
-      .catch(() => setProjects(DUMMY_PROJECTS))
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setProjects(data);
+          return;
+        }
+
+        setProjects(DUMMY_PROJECTS);
+        setError('Projects API returned no records; showing fallback projects.');
+      })
+      .catch(() => {
+        setProjects(DUMMY_PROJECTS);
+        setError('Projects API is unavailable; showing fallback projects.');
+      })
       .finally(() => setLoading(false));
   }, []);
 
