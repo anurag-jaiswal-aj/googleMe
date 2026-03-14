@@ -383,7 +383,7 @@ export default function Home() {
           Gmail
         </a>
         <a
-          href="https://github.com/anurag-2911"
+          href="https://github.com/anurag-jaiswal-aj"
           target="_blank"
           rel="noopener noreferrer"
           className="text-sm text-[#202124] dark:text-[#e8eaed] hover:underline px-3 py-1.5 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
