@@ -14,7 +14,7 @@ const MEDIUM_RSS = 'https://medium.com/feed/@janurag582004';
 function estimateReadTime(html = '') {
   const text = html.replace(/<[^>]+>/g, ' ');
   const words = text.trim().split(/\s+/).length;
-  const mins = Math.max(1, Math.round(words / 200));
+  const mins = Math.max(1, Math.round(words/200));
   return `${mins} min read`;
 }
 
@@ -30,13 +30,13 @@ function extractSnippet(html = '') {
   return text.length > 160 ? text.slice(0, 157) + '…' : text;
 }
 
-// Clean URL → "medium.com/@janurag582004 › slug"
+// Clean URL → "medium.com/@janurag582004/slug"
 function cleanUrl(href = '') {
   try {
     const url = new URL(href);
     const parts = url.pathname.split('/').filter(Boolean); // ['@janurag582004', 'slug-abc123']
     const slug = parts[1] ? parts[1].replace(/-[a-f0-9]{10,}$/, '').replace(/-/g, ' ') : '';
-    return `medium.com/@janurag582004${slug ? ' › ' + slug : ''}`;
+    return `medium.com/@janurag582004${slug ? '/' + slug : ''}`;
   } catch {
     return 'medium.com/@janurag582004';
   }

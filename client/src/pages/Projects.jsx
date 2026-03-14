@@ -139,7 +139,7 @@ export default function Projects() {
           transition={{ delay: i * 0.06, duration: 0.3 }}
         >
           <SearchResult
-            url={`github.com › anurag-2911 › ${toSlug(project.title)}`}
+            url={`github.com/anurag-2911/${toSlug(project.title)}`}
             title={`${project.title} | GitHub`}
             snippet={project.description}
             href={project.repoUrl || project.demoUrl || '#'}
@@ -151,7 +151,7 @@ export default function Projects() {
               {project.techStack?.map(tech => <TechBadge key={tech} tech={tech} />)}
             </div>
 
-            {/* Repo / demo action links */}
+            {/* Repo/demo action links */}
             <div className="flex flex-wrap gap-4 mt-2.5">
               {project.repoUrl && (
                 <a href={project.repoUrl} target="_blank" rel="noopener noreferrer"

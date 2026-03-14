@@ -105,7 +105,7 @@ function PeopleAlsoAsk() {
 /* ── Data ───────────────────────────────────────────── */
 const QA = [
   {
-    url: 'anurag.dev › about',
+    url: 'anurag.dev/about',
     question: 'Who am I?',
     answer: 'I am a B.Tech Information Science & Engineering student at RV College of Engineering, Bengaluru. I am a full-stack developer specialising in the MERN stack — React, Node.js, Express and MongoDB. I am passionate about clean UI, developer tooling, and open-source. I interned at Infosys in 2024, building production features in React and Node.js, reducing API response time by 30%. Currently open to freelance and full-time opportunities.',
     to: '/about',
@@ -113,7 +113,7 @@ const QA = [
     faviconLetter: 'A',
   },
   {
-    url: 'anurag.dev › tools',
+    url: 'anurag.dev/tools',
     question: 'What technologies do I work with?',
     answer: 'JavaScript, TypeScript, Python. Frontend: React 18, Next.js, TailwindCSS, HTML5, CSS3. Backend: Node.js, Express, REST APIs, GraphQL. Databases: MongoDB, PostgreSQL, MySQL, Redis. DevOps: Docker, Git, GitHub Actions, Linux. Also experienced with Framer Motion, Vite, Jest, and Postman.',
     to: '/tools',
@@ -121,7 +121,7 @@ const QA = [
     faviconLetter: 'T',
   },
   {
-    url: 'anurag.dev › about',
+    url: 'anurag.dev/about',
     question: 'Where have I worked?',
     answer: 'I completed a Full-Stack Web Development internship at Infosys Ltd. (Bengaluru, May–Jul 2024), where I built and shipped three production features and improved API performance by 30%. I have also contributed to open-source projects on GitHub — fixing bugs, writing documentation, and submitting pull requests to active repositories. Check the About page for the full experience timeline.',
     to: '/about',
@@ -133,7 +133,7 @@ const QA = [
 const toSlug = (str) => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 const PROJECTS = sharedProjects.map((project) => ({
-  url: `github.com › anurag-2911 › ${toSlug(project.title)}`,
+  url: `github.com/anurag-2911/${toSlug(project.title)}`,
   title: `${project.title} | GitHub`,
   snippet: project.description,
   href: project.repoUrl || project.demoUrl || '#',
@@ -143,7 +143,7 @@ const PROJECTS = sharedProjects.map((project) => ({
 
 const POSTS = [
   {
-    url: 'anurag.dev › blog › mern-portfolio',
+    url: 'anurag.dev/blog/mern-portfolio',
     title: 'Building a Google Search-Inspired Portfolio with MERN Stack',
     snippet: 'A deep-dive into how this very portfolio was designed and built — Google SERP layout, dark mode, AI search mode, animated suggestions, knowledge panel, and a Node.js + MongoDB backend. Every design decision explained.',
     to: '/blog',
@@ -151,7 +151,7 @@ const POSTS = [
     faviconLetter: 'B',
   },
   {
-    url: 'anurag.dev › blog › react-useeffect-guide',
+    url: 'anurag.dev/blog/react-useeffect-guide',
     title: 'React useEffect: The Complete Guide to Avoiding Infinite Loops',
     snippet: 'Most React bugs trace back to useEffect misuse. Covers dependency arrays, cleanup functions, stale closures, and the mental model you need to write effects that actually work.',
     to: '/blog',
@@ -159,7 +159,7 @@ const POSTS = [
     faviconLetter: 'B',
   },
   {
-    url: 'anurag.dev › blog › mongodb-indexing',
+    url: 'anurag.dev/blog/mongodb-indexing',
     title: 'MongoDB Indexing Deep Dive — Speed Up Your Queries by 10×',
     snippet: 'Explains compound indexes, the ESR rule, covered queries, and index intersection. Includes real benchmark data showing before-and-after query times on a 2M-document collection.',
     to: '/blog',
@@ -170,7 +170,7 @@ const POSTS = [
 
 const SOCIALS = [
   {
-    url: 'linkedin.com › in › anurag-2911',
+    url: 'linkedin.com/in/anurag-2911',
     title: 'My LinkedIn Profile',
     snippet: 'Connect with me for professional opportunities and collaborations. View my work experience, skills, education, and recommendations.',
     href: LINKS.linkedin,
@@ -178,7 +178,7 @@ const SOCIALS = [
     faviconLetter: 'in',
   },
   {
-    url: 'github.com › anurag-2911',
+    url: 'github.com/anurag-2911',
     title: 'My GitHub Profile',
     snippet: 'Explore my open-source projects, repositories, and contribution activity. React, Node.js, MongoDB, Python and more.',
     href: LINKS.github,
@@ -186,7 +186,7 @@ const SOCIALS = [
     faviconLetter: 'G',
   },
   {
-    url: 'leetcode.com › u › anurag_jaiswal',
+    url: 'leetcode.com/u/anurag_jaiswal',
     title: 'LeetCode — anurag_jaiswal',
     snippet: 'Solving Data Structures & Algorithms problems with a focus on optimised solutions. Check my problem-solving activity, contest ratings, and submission history.',
     href: LINKS.leetcode,
@@ -194,7 +194,7 @@ const SOCIALS = [
     faviconLetter: 'L',
   },
   {
-    url: 'codechef.com › users › anurag_aj',
+    url: 'codechef.com/users/anurag_aj',
     title: 'CodeChef — anurag_aj',
     snippet: 'Competitive programming profile on CodeChef. Participate in monthly contests, long challenges, and short contests to sharpen algorithmic skills.',
     href: LINKS.codechef,
@@ -202,7 +202,7 @@ const SOCIALS = [
     faviconLetter: 'C',
   },
   {
-    url: 'codeforces.com › profile › anurag_aj',
+    url: 'codeforces.com/profile/anurag_aj',
     title: 'Codeforces — anurag_aj',
     snippet: 'Active competitive programmer on Codeforces. Working through rated rounds and problem sets covering graphs, DP, and combinatorics.',
     href: LINKS.codeforces,
@@ -210,7 +210,7 @@ const SOCIALS = [
     faviconLetter: 'CF',
   },
   {
-    url: 'hackerrank.com › profile › anurag_aj',
+    url: 'hackerrank.com/profile/anurag_aj',
     title: 'HackerRank — anurag_aj',
     snippet: 'Problem-solving and skill certifications on HackerRank. Completed challenges across Data Structures, Algorithms, SQL, and Python domains.',
     href: LINKS.hackerrank,
@@ -218,7 +218,7 @@ const SOCIALS = [
     faviconLetter: 'H',
   },
   {
-    url: 'Medium.com › profile › anurag_aj',
+    url: 'Medium.com/profile/anurag_aj',
     title: 'Medium — anurag_aj',
     snippet: 'Blogs on Medium. Completed challenges across Data Structures, Algorithms, SQL, and Python domains.',
     href: LINKS.medium,

@@ -10,9 +10,6 @@ export const LINKS = {
     mailto: 'mailto:janurag582004@gmail.com',
     resume: '/Resume_aj.pdf', 
 
-
-    codeforces: 'https://codeforces.com/profile/anurag_aj',
-    hackerrank: 'https://www.hackerrank.com/profile/anurag_aj',
     alternatePortfolio: 'https://html5up.net/read-only/demo',
 };
 

@@ -116,7 +116,7 @@ export default function Tools() {
           transition={{ delay: gi * 0.07 }}
         >
           <SearchResult
-            url={`anurag.dev › tools › ${group.category.toLowerCase().replace(/\s+/g, '-')}`}
+            url={`anurag.dev/tools/${group.category.toLowerCase().replace(/\s+/g, '-')}`}
             title={`${group.category} — Anurag's Tech Stack`}
             snippet={group.items.map(i => i.name).join(' · ')}
             faviconBg={group.color}
