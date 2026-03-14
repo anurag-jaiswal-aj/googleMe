@@ -10,8 +10,8 @@ const SOCIAL = [
   {
     name: 'LinkedIn',
     url: stripProtocol(LINKS.linkedin),
-    title: 'Anurag — LinkedIn',
-    snippet: 'View professional profile on LinkedIn. B.Tech ISE student, Full-Stack Developer, open to job opportunities and collaborations.',
+    title: 'LinkedIn Profile',
+    snippet: 'View my professional profile including experience, education, technical skills, and project work. Connect with me for networking, collaborations, and career opportunities in software development and related fields – I’m always open to connecting with fellow professionals, recruiters, and anyone interested in my work.',
     href: LINKS.linkedin,
     faviconBg: '#4285F4',
     faviconLetter: 'L',
@@ -19,8 +19,8 @@ const SOCIAL = [
   {
     name: 'Twitter / X',
     url: stripProtocol(LINKS.twitter),
-    title: 'Anurag (@anurag_dev) on X',
-    snippet: 'Tweeting about web development, open source, and student life. Full-Stack Developer & B.Tech ISE.',
+    title: 'Twitter / X Profile',
+    snippet: 'Posts about technology, coding, projects, and random thoughts. Occasionally sharing updates, opinions, and things I’m currently exploring in the world of software development and beyond – follow for insights and musings from my tech journey and daily life adventures.',
     href: LINKS.twitter,
     faviconBg: '#4285F4',
     faviconLetter: 'X',
@@ -28,8 +28,8 @@ const SOCIAL = [
   {
     name: 'GitHub',
     url: stripProtocol(LINKS.github),
-    title: 'Anurag (@anurag-jaiswal-aj) — GitHub',
-    snippet: 'Full-Stack Developer · B.Tech ISE · Repositories, contributions, and open-source projects. Public work since 2022.',
+    title: 'GitHub Profile',
+    snippet: 'Explore my open-source projects, code contributions, and collaborations. View repositories showcasing my work in software development, including personal projects, contributions to other open-source initiatives, and code samples that demonstrate my skills and interests in programming.',
     href: LINKS.github,
     faviconBg: '#4285F4',
     faviconLetter: 'G',
@@ -37,9 +37,8 @@ const SOCIAL = [
   {
     name: 'Medium',
     url: stripProtocol(LINKS.medium),
-    title: 'Anurag (@janurag582004) — Medium',
-    snippet: 'Technical articles on software engineering, documentation, and developer experiences. Published on Medium.',
-    href: LINKS.medium,
+    title: 'Medium Profile',
+    snippet: 'Read my writing on Medium covering technology, ideas, personal experiences, and topics I find interesting. I write about things I learn while building projects, exploring new concepts, and reflecting on experiences from my journey as a student and developer – follow for thoughtful articles and insights on software development, learning, and life.',
     faviconBg: '#4285F4',
     faviconLetter: 'M',
   },
@@ -136,7 +135,7 @@ function ContactForm() {
       </div>
 
       {/* Title */}
-      <h2 className="text-[20px] font-normal text-[#1a73e8] dark:text-[#8ab4f8] mb-1">Contact Anurag</h2>
+      <h2 className="text-[20px] font-normal text-[#1a73e8] dark:text-[#8ab4f8] mb-1">Contact Me</h2>
 
       {/* Card */}
       <div className="bg-white dark:bg-[#292a2d] rounded-2xl border border-[#dadce0] dark:border-[#5f6368] overflow-hidden shadow-sm">
