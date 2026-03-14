@@ -556,28 +556,28 @@ export default function SearchLayout() {
 
       {/* ── Content + sticky sidebar ────────────────────── */}
       <div className="flex flex-1">
-
-        {/* Page content */}
-        <div className="flex-1 min-w-0">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.25, ease: 'easeOut' }}
-            >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            className="flex flex-1"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+          >
+            {/* Page content */}
+            <div className="flex-1 min-w-0">
               <Outlet />
-            </motion.div>
-          </AnimatePresence>
-        </div>
+            </div>
 
-        {/* Sticky knowledge panel — scrolls up naturally when footer arrives */}
-        <div className="hidden lg:block w-[420px] shrink-0">
-          <div className="sticky top-[152px] w-[380px] pt-3 mb-6 max-h-[calc(100vh-168px)] overflow-y-auto ml-[-40px]">
-            <KnowledgePanel />
-          </div>
-        </div>
+            {/* Sticky knowledge panel — scrolls up naturally when footer arrives */}
+            <div className="hidden lg:block w-[420px] shrink-0">
+              <div className="sticky top-[152px] w-[380px] pt-3 mb-6 max-h-[calc(100vh-168px)] overflow-y-auto ml-[-40px]">
+                <KnowledgePanel />
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
 
       </div>
 
