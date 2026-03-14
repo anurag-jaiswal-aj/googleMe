@@ -263,7 +263,7 @@ function PostMenu({ post, onRead }) {
   ];
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative ml-auto shrink-0" ref={ref}>
       <button
         onClick={() => setOpen(o => !o)}
         className="ml-0.5 text-[#70757a] dark:text-[#9aa0a6] hover:text-[#202124] dark:hover:text-[#e8eaed]"
@@ -310,7 +310,7 @@ function PostCard({ post, onRead }) {
              style={{ backgroundColor: post.faviconBg || '#00ab6c' }}>
           {post.title[0]}
         </div>
-        <span className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-snug truncate max-w-[420px]">
+        <span className="min-w-0 flex-1 text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-snug truncate">
           {post.url}
         </span>
         <PostMenu post={post} onRead={onRead} />
