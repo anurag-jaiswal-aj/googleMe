@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import SearchResult from '../components/SearchResult';
 import FilterSort from '../components/FilterSort';
 import api from '../api';
+import { LINKS } from '../config/links';
 
 const POSTS = [
   {
@@ -223,7 +224,7 @@ function ArticleReader({ post, onClose }) {
           <p className="text-sm text-[#6b6b6b] dark:text-[#999] mb-4">
             For more such articles, follow me on Medium.
           </p>
-          <a href="https://medium.com/@janurag582004" target="_blank" rel="noopener noreferrer"
+           <a href={LINKS.medium} target="_blank" rel="noopener noreferrer"
              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full
                         bg-[#292929] dark:bg-[#e6e6e6] text-white dark:text-[#292929]
                         text-sm font-medium hover:bg-[#1a1a1a] dark:hover:bg-white transition-colors">

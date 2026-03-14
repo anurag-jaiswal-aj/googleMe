@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
+import { LINKS } from '../config/links';
 
 const LANGUAGES = [
   { label: 'हिन्दी', code: 'hi' },
@@ -55,7 +56,7 @@ export default function Home() {
     { icon: 'search', text: 'Anurag full-stack developer',  to: '/about' },
     { icon: 'search', text: 'Anurag open source',           to: '/projects' },
     { icon: 'search', text: 'Anurag MERN stack',            to: '/about' },
-    { icon: 'search', text: 'Anurag GitHub',                to: 'https://github.com/anurag-2911', external: true },
+    { icon: 'search', text: 'Anurag GitHub',                to: LINKS.github, external: true },
     { icon: 'search', text: 'Anurag contact',               to: '/contact' },
     { icon: 'search', text: 'Anurag resume',                to: '/contact' },
   ];
@@ -375,7 +376,7 @@ export default function Home() {
         {/* Right side */}
         <div className="flex items-center gap-1">
         <a
-          href="https://mail.google.com"
+          href={LINKS.gmailWeb}
           target="_blank"
           rel="noopener noreferrer"
           className="text-sm text-[#202124] dark:text-[#e8eaed] hover:underline px-3 py-1.5 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
@@ -383,7 +384,7 @@ export default function Home() {
           Gmail
         </a>
         <a
-          href="https://github.com/anurag-jaiswal-aj"
+          href={LINKS.github}
           target="_blank"
           rel="noopener noreferrer"
           className="text-sm text-[#202124] dark:text-[#e8eaed] hover:underline px-3 py-1.5 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
@@ -470,7 +471,7 @@ export default function Home() {
                     },
                     {
                       label: 'LinkedIn',
-                      action: () => { window.open('https://linkedin.com/in/anurag-2911', '_blank'); setAppsOpen(false); },
+                      action: () => { window.open(LINKS.linkedin, '_blank'); setAppsOpen(false); },
                       icon: (
                         <div className="w-12 h-12 rounded-[10px] bg-[#0A66C2] flex items-center justify-center">
                           <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -481,7 +482,7 @@ export default function Home() {
                     },
                     {
                       label: 'GitHub',
-                      action: () => { window.open('https://github.com/anurag-2911', '_blank'); setAppsOpen(false); },
+                      action: () => { window.open(LINKS.github, '_blank'); setAppsOpen(false); },
                       icon: (
                         <div className="w-12 h-12 rounded-xl bg-[#1b1f23] flex items-center justify-center">
                           <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -502,7 +503,7 @@ export default function Home() {
                     },
                     {
                       label: 'LeetCode',
-                      action: () => { window.open('https://leetcode.com/u/janurag582004/', '_blank'); setAppsOpen(false); },
+                      action: () => { window.open(LINKS.leetcode, '_blank'); setAppsOpen(false); },
                       icon: (
                         <div className="w-12 h-12 rounded-xl bg-[#FFA116] flex items-center justify-center">
                           <svg className="w-8 h-8" viewBox="0 0 24 24" fill="white">
@@ -513,7 +514,7 @@ export default function Home() {
                     },
                     {
                       label: 'CodeChef',
-                      action: () => { window.open('https://www.codechef.com/users/janurag582004', '_blank'); setAppsOpen(false); },
+                      action: () => { window.open(LINKS.codechef, '_blank'); setAppsOpen(false); },
                       icon: (
                         <div className="w-12 h-12 rounded-xl bg-[#5B4638] flex items-center justify-center">
                           <svg className="w-7 h-7" viewBox="0 0 24 24" fill="white">
@@ -569,10 +570,10 @@ export default function Home() {
                   <div className="text-center">
                     <p className="text-[15px] font-semibold text-[#202124] dark:text-[#e8eaed] leading-snug">Anurag</p>
                     <button
-                      onClick={() => { navigator.clipboard.writeText('janurag582004@gmail.com'); setCopiedEmail(true); setTimeout(() => setCopiedEmail(false), 2000); }}
+                      onClick={() => { navigator.clipboard.writeText(LINKS.email); setCopiedEmail(true); setTimeout(() => setCopiedEmail(false), 2000); }}
                       className="text-[12.5px] text-[#5f6368] dark:text-[#9aa0a6] leading-snug hover:underline cursor-pointer"
                     >
-                      {copiedEmail ? 'Copied!' : 'janurag582004@gmail.com'}
+                      {copiedEmail ? 'Copied!' : LINKS.email}
                     </button>
                   </div>
                   <button
@@ -590,7 +591,7 @@ export default function Home() {
                 {/* Alt Portfolio + Resume + Copy Email */}
                 <div className="py-1.5">
                   <a
-                    href="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+                    href={LINKS.resume}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full flex items-center gap-3 px-5 py-2.5
@@ -603,7 +604,7 @@ export default function Home() {
                     </svg>
                   </a>
                   <a
-                    href="https://html5up.net/read-only/demo"
+                    href={LINKS.alternatePortfolio}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full flex items-center gap-3 px-5 py-2.5
@@ -1746,11 +1747,11 @@ export default function Home() {
         <div className="px-6 py-4 flex flex-wrap items-center justify-between gap-4
                         text-sm text-[#70757a] dark:text-[#9aa0a6]">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <a href="https://github.com/anurag-2911" target="_blank" rel="noopener noreferrer"
+            <a href={LINKS.github} target="_blank" rel="noopener noreferrer"
                className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors">
               GitHub
             </a>
-            <a href="https://linkedin.com/in/anurag-2911" target="_blank" rel="noopener noreferrer"
+            <a href={LINKS.linkedin} target="_blank" rel="noopener noreferrer"
                className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors">
               LinkedIn
             </a>

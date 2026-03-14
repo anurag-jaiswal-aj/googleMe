@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import SearchResult from '../components/SearchResult';
 import sharedProjects from '../../../shared/projects.json';
+import { LINKS } from '../config/links';
 
 /* ── Q&A accordion item ─────────────────────────────── */
 function QAResult({ url, question, answer, to, faviconBg, faviconLetter }) {
@@ -172,7 +173,7 @@ const SOCIALS = [
     url: 'linkedin.com › in › anurag-2911',
     title: 'My LinkedIn Profile',
     snippet: 'Connect with me for professional opportunities and collaborations. View my work experience, skills, education, and recommendations.',
-    href: 'https://linkedin.com/in/anurag-2911',
+    href: LINKS.linkedin,
     faviconBg: '#0a66c2',
     faviconLetter: 'in',
   },
@@ -180,7 +181,7 @@ const SOCIALS = [
     url: 'github.com › anurag-2911',
     title: 'My GitHub Profile',
     snippet: 'Explore my open-source projects, repositories, and contribution activity. React, Node.js, MongoDB, Python and more.',
-    href: 'https://github.com/anurag-2911',
+    href: LINKS.github,
     faviconBg: '#24292e',
     faviconLetter: 'G',
   },
@@ -188,7 +189,7 @@ const SOCIALS = [
     url: 'leetcode.com › u › anurag_jaiswal',
     title: 'LeetCode — anurag_jaiswal',
     snippet: 'Solving Data Structures & Algorithms problems with a focus on optimised solutions. Check my problem-solving activity, contest ratings, and submission history.',
-    href: 'https://leetcode.com/u/anurag_jaiswal/',
+    href: LINKS.leetcode,
     faviconBg: '#FFA116',
     faviconLetter: 'L',
   },
@@ -196,7 +197,7 @@ const SOCIALS = [
     url: 'codechef.com › users › anurag_aj',
     title: 'CodeChef — anurag_aj',
     snippet: 'Competitive programming profile on CodeChef. Participate in monthly contests, long challenges, and short contests to sharpen algorithmic skills.',
-    href: 'https://www.codechef.com/users/anurag_aj',
+    href: LINKS.codechef,
     faviconBg: '#5B4638',
     faviconLetter: 'C',
   },
@@ -204,7 +205,7 @@ const SOCIALS = [
     url: 'codeforces.com › profile › anurag_aj',
     title: 'Codeforces — anurag_aj',
     snippet: 'Active competitive programmer on Codeforces. Working through rated rounds and problem sets covering graphs, DP, and combinatorics.',
-    href: 'https://codeforces.com/profile/anurag_aj',
+    href: LINKS.codeforces,
     faviconBg: '#1F8ACB',
     faviconLetter: 'CF',
   },
@@ -212,7 +213,7 @@ const SOCIALS = [
     url: 'hackerrank.com › profile › anurag_aj',
     title: 'HackerRank — anurag_aj',
     snippet: 'Problem-solving and skill certifications on HackerRank. Completed challenges across Data Structures, Algorithms, SQL, and Python domains.',
-    href: 'https://www.hackerrank.com/profile/anurag_aj',
+    href: LINKS.hackerrank,
     faviconBg: '#00EA64',
     faviconLetter: 'H',
   },
@@ -220,7 +221,7 @@ const SOCIALS = [
     url: 'Medium.com › profile › anurag_aj',
     title: 'Medium — anurag_aj',
     snippet: 'Blogs on Medium. Completed challenges across Data Structures, Algorithms, SQL, and Python domains.',
-    href: 'https://www.medium.com/profile/anurag_aj',
+    href: LINKS.medium,
     faviconBg: '#00632b',
     faviconLetter: 'M',
   }

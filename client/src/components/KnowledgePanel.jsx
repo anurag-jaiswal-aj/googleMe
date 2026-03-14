@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { LINKS } from '../config/links';
 
 const TOP_SKILLS = [
   { name: 'Machine Learning', pct: 88, color: '#4285F4' },
@@ -11,7 +12,7 @@ const TOP_SKILLS = [
 const CIRCLE_PROFILES = [
   {
     name: 'LinkedIn',
-    href: 'https://www.linkedin.com/in/anuragjaiswal5826/',
+    href: LINKS.linkedin,
     bg: '#0a66c2',
     icon: (
       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -21,7 +22,7 @@ const CIRCLE_PROFILES = [
   },
   {
     name: 'GitHub',
-    href: 'https://github.com/anurag-jaiswal-aj',
+    href: LINKS.github,
     bg: '#24292e',
     icon: (
       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -31,7 +32,7 @@ const CIRCLE_PROFILES = [
   },
   {
     name: 'LeetCode',
-    href: 'https://leetcode.com/u/therightrag/',
+    href: LINKS.leetcode,
     bg: '#FFA116',
     icon: (
       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -41,7 +42,7 @@ const CIRCLE_PROFILES = [
   },
   {
     name: 'CodeChef',
-    href: 'https://www.codechef.com/users/the_rightrag',
+    href: LINKS.codechef,
     bg: '#5B4638',
     icon: (
       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -56,7 +57,7 @@ const CARD_PROFILES = [
   {
     name: 'Twitter/X',
     handle: '@therightrag',
-    href: 'https://x.com/therightrag',
+    href: LINKS.twitter,
     color: '#1d9bf0',
     icon: (
       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -66,8 +67,8 @@ const CARD_PROFILES = [
   },
   {
     name: 'Email',
-    handle: 'janurag582004@gmail.com',
-    href: 'mailto:janurag582004@gmail.com',
+    handle: LINKS.email,
+    href: LINKS.mailto,
     color: '#EA4335',
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>

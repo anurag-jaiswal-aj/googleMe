@@ -4,41 +4,42 @@ import toast from 'react-hot-toast';
 import { submitContact } from '../api';
 import SearchResult from '../components/SearchResult';
 import FilterSort from '../components/FilterSort';
+import { LINKS, stripProtocol } from '../config/links';
 
 const SOCIAL = [
   {
     name: 'LinkedIn',
-    url: 'linkedin.com/in/anuragjaiswal5826',
+    url: stripProtocol(LINKS.linkedin),
     title: 'Anurag — LinkedIn',
     snippet: 'View professional profile on LinkedIn. B.Tech ISE student, Full-Stack Developer, open to job opportunities and collaborations.',
-    href: 'https://www.linkedin.com/in/anuragjaiswal5826/',
+    href: LINKS.linkedin,
     faviconBg: '#4285F4',
     faviconLetter: 'L',
   },
   {
     name: 'Twitter / X',
-    url: 'x.com/therightrag',
+    url: stripProtocol(LINKS.twitter),
     title: 'Anurag (@anurag_dev) on X',
     snippet: 'Tweeting about web development, open source, and student life. Full-Stack Developer & B.Tech ISE.',
-    href: 'https://x.com/therightrag',
+    href: LINKS.twitter,
     faviconBg: '#4285F4',
     faviconLetter: 'X',
   },
   {
     name: 'GitHub',
-    url: 'github.com/anurag-jaiswal-aj',
+    url: stripProtocol(LINKS.github),
     title: 'Anurag (@anurag-jaiswal-aj) — GitHub',
     snippet: 'Full-Stack Developer · B.Tech ISE · Repositories, contributions, and open-source projects. Public work since 2022.',
-    href: 'https://github.com/anurag-jaiswal-aj',
+    href: LINKS.github,
     faviconBg: '#4285F4',
     faviconLetter: 'G',
   },
   {
     name: 'Medium',
-    url: 'medium.com/janurag582004',
+    url: stripProtocol(LINKS.medium),
     title: 'Anurag (@janurag582004) — Medium',
     snippet: 'Technical articles on software engineering, documentation, and developer experiences. Published on Medium.',
-    href: 'https://medium.com/@janurag582004',
+    href: LINKS.medium,
     faviconBg: '#4285F4',
     faviconLetter: 'M',
   },
