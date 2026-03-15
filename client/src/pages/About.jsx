@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SearchResult from '../components/SearchResult';
 import FilterSort from '../components/FilterSort';
+import { ABOUT_QA } from '../data/allPageData';
 
 /* ── Dummy data ─────────────────────────────────────── */
 const SKILLS = [
@@ -141,6 +142,12 @@ export default function About() {
     link.remove();
   };
 
+  const aboutSummaryById = {
+    Bio: ABOUT_QA[0],
+    Skills: ABOUT_QA[1],
+    Experience: ABOUT_QA[2],
+  };
+
   const ALL = [
     { id: 'Bio', delay: 0.05 },
     { id: 'Education', delay: 0.10 },
@@ -166,7 +173,7 @@ export default function About() {
           <SearchResult
             url="anurag.dev/about/bio"
             title="About Me | Anurag Jaiswal"
-            snippet="Hi, I'm Anurag Jaiswal, an Information Science Engineering student passionate about Web Development, Machine Learning, and Data Structures & Algorithms."
+            snippet={aboutSummaryById.Bio.answer}
             onTitleClick={() => openSection('bio')}
             faviconBg="#4285F4"
             faviconLetter="A"
@@ -277,7 +284,7 @@ export default function About() {
           <SearchResult
             url="anurag.dev/about/skills"
             title="Skills & Technologies | My Tech Stack"
-            snippet="Full-stack skill set spanning JavaScript, React, Node.js, Express.js, MongoDB, MySQL, and Java. Experience building MERN applications and exploring Machine Learning with Python while strengthening problem-solving through Data Structures & Algorithms."
+            snippet={aboutSummaryById.Skills.answer}
             onTitleClick={() => openSection('skills')}
             faviconBg="#4285F4"
             faviconLetter="S"
@@ -330,7 +337,7 @@ export default function About() {
           <SearchResult
             url="anurag.dev/about/experience"
             title="Experience | Work & Internships"
-            snippet="Freelance developer and open-source contributor. Developed multiple full-stack applications using modern web technologies while contributing to open-source projects and building real-world web solutions."
+            snippet={aboutSummaryById.Experience.answer}
             onTitleClick={() => openSection('exp')}
             faviconBg="#4285F4"
             faviconLetter="E"

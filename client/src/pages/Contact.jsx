@@ -1,48 +1,15 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { submitContact } from '../api';
 import SearchResult from '../components/SearchResult';
 import FilterSort from '../components/FilterSort';
-import { LINKS, stripProtocol } from '../config/links';
+import { LINKS } from '../config/links';
+import { SOCIAL_PROFILES } from '../data/socialProfiles';
 
-const SOCIAL = [
-  {
-    name: 'LinkedIn',
-    url: stripProtocol(LINKS.linkedin),
-    title: 'LinkedIn Profile',
-    snippet: 'View my professional profile including experience, education, technical skills, and project work. Connect with me for networking, collaborations, and career opportunities in software development and related fields – I’m always open to connecting with fellow professionals, recruiters, and anyone interested in my work.',
-    href: LINKS.linkedin,
-    faviconBg: '#4285F4',
-    faviconLetter: 'L',
-  },
-  {
-    name: 'Twitter / X',
-    url: stripProtocol(LINKS.twitter),
-    title: 'Twitter / X Profile',
-    snippet: 'Posts about technology, coding, projects, and random thoughts. Occasionally sharing updates, opinions, and things I’m currently exploring in the world of software development and beyond – follow for insights and musings from my tech journey and daily life adventures.',
-    href: LINKS.twitter,
-    faviconBg: '#4285F4',
-    faviconLetter: 'X',
-  },
-  {
-    name: 'GitHub',
-    url: stripProtocol(LINKS.github),
-    title: 'GitHub Profile',
-    snippet: 'Explore my open-source projects, code contributions, and collaborations. View repositories showcasing my work in software development, including personal projects, contributions to other open-source initiatives, and code samples that demonstrate my skills and interests in programming.',
-    href: LINKS.github,
-    faviconBg: '#4285F4',
-    faviconLetter: 'G',
-  },
-  {
-    name: 'Medium',
-    url: stripProtocol(LINKS.medium),
-    title: 'Medium Profile',
-    snippet: 'Read my writing on Medium covering technology, ideas, personal experiences, and topics I find interesting. I write about things I learn while building projects, exploring new concepts, and reflecting on experiences from my journey as a student and developer – follow for thoughtful articles and insights on software development, learning, and life.',
-    faviconBg: '#4285F4',
-    faviconLetter: 'M',
-  },
-];
+const SOCIAL = SOCIAL_PROFILES.filter((profile) =>
+  ['LinkedIn', 'Twitter / X', 'GitHub', 'Medium'].includes(profile.name)
+);
 
 const SUBJECTS = ['Job Opportunity', 'Collaboration', 'Project Inquiry', 'General Question', 'Feedback', 'Other'];
 
@@ -69,7 +36,20 @@ function ContactForm() {
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const fileRef = useRef(null);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleOutsideClick = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [menuOpen]);
 
   const addFiles = (incoming) => {
     const valid = Array.from(incoming).filter(f => {
@@ -126,12 +106,52 @@ function ContactForm() {
       {/* URL breadcrumb */}
       <div className="flex items-center gap-2 mb-0.5">
         <div className="w-[18px] h-[18px] rounded-full bg-[#4285F4] flex items-center justify-center text-white text-[9px] font-bold shrink-0">A</div>
-        <span className="text-sm text-[#133780] dark:text-[#bdc1c6]">anurag.dev/contact</span>
-        <button className="ml-0.5 text-[#70757a]" tabIndex={-1} aria-label="More">
-          <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-          </svg>
-        </button>
+        <span className="min-w-0 flex-1 text-sm text-[#133780] dark:text-[#bdc1c6] truncate">anurag.dev/contact</span>
+        <div className="relative ml-auto" ref={menuRef}>
+          <button
+            onClick={() => setMenuOpen((open) => !open)}
+            className="p-0.5 rounded-full text-[#70757a] dark:text-[#9aa0a6]
+                       hover:text-[#202124] dark:hover:text-[#e8eaed]
+                       hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
+            aria-label="More options"
+          >
+            <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+            </svg>
+          </button>
+
+          {menuOpen && (
+            <div className="absolute left-0 top-full z-50 min-w-[170px] rounded-xl
+                            bg-white dark:bg-[#303134]
+                            border border-[#e8eaed] dark:border-[#5f6368]
+                            shadow-[0_4px_16px_rgba(0,0,0,0.15)] overflow-hidden">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/contact`);
+                  toast.success('Contact page link copied');
+                  setMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-3 pl-4 pr-3 py-2.5 text-left
+                           text-[13px] text-[#202124] dark:text-[#e8eaed]
+                           hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
+              >
+                Copy page link
+              </button>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(LINKS.email);
+                  toast.success('Email copied');
+                  setMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-3 pl-4 pr-3 py-2.5 text-left
+                           text-[13px] text-[#202124] dark:text-[#e8eaed]
+                           hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
+              >
+                Copy email
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Title */}
@@ -328,6 +348,20 @@ export default function Contact() {
     : SOCIAL.filter(s => filters.includes(s.name));
   if (sort === 'az') visibleSocial = [...visibleSocial].sort((a, b) => a.name.localeCompare(b.name));
 
+  const getMenuItems = (item) => [
+    {
+      label: 'Open profile',
+      action: () => window.open(item.href, '_blank', 'noopener,noreferrer'),
+    },
+    {
+      label: 'Copy profile link',
+      action: () => {
+        navigator.clipboard.writeText(item.href);
+        toast.success(`${item.name} link copied`);
+      },
+    },
+  ];
+
   return (
     <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
 
@@ -370,7 +404,8 @@ export default function Contact() {
                 snippet={item.snippet}
                 href={item.href}
                 faviconBg={item.faviconBg}
-                faviconLetter={item.faviconLetter}>
+                faviconLetter={item.faviconLetter}
+                menuItems={getMenuItems(item)}>
                 {/* 
                 <a href={item.href} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 mt-2 text-sm text-[#1a73e8] dark:text-[#8ab4f8] hover:underline">

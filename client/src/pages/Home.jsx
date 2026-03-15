@@ -1757,7 +1757,7 @@ export default function Home() {
             </a>
           </div>
           <div className="flex flex-wrap gap-x-6 gap-y-2">
-            {[{ label: t.about, to: '/about' }, { label: t.projects, to: '/projects' }, { label: t.contact, to: '/contact' }].map(({ label, to }) => (
+            {[{ label: t.about, to: '/about' }, { label: t.contact, to: '/contact' }].map(({ label, to }) => (
               <button key={to} onClick={() => navigate(to)}
                 className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors">
                 {label}

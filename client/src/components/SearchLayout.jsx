@@ -14,6 +14,16 @@ const TABS = [
   { label: 'Tools',    to: '/tools',    query: 'anurag tools stack' },
 ];
 
+const FOOTER_CYCLE = [
+  { label: 'Home', to: '/' },
+  { label: 'About', to: '/about' },
+  { label: 'Contact', to: '/contact' },
+  { label: 'Projects', to: '/projects' },
+  { label: 'Blog', to: '/blog' },
+  { label: 'Tools', to: '/tools' },
+  { label: 'All', to: '/all' },
+];
+
 const SUGGESTIONS = [
   { label: 'developer portfolio',  to: '/all'      },
   { label: 'about me',             to: '/about'    },
@@ -54,6 +64,12 @@ export default function SearchLayout() {
   const { isDark, toggle } = useTheme();
 
   const currentTab   = TABS.find(t => t.to === location.pathname);
+  const footerIndex = FOOTER_CYCLE.findIndex((item) => item.to === location.pathname);
+  const safeFooterIndex = footerIndex === -1 ? 0 : footerIndex;
+  const nextFooterLinks = [
+    FOOTER_CYCLE[(safeFooterIndex + 1) % FOOTER_CYCLE.length],
+    FOOTER_CYCLE[(safeFooterIndex + 2) % FOOTER_CYCLE.length],
+  ];
   const [query,      setQuery]      = useState(currentTab?.query ?? '');
   const [focused,    setFocused]    = useState(false);
   const [highlighted, setHighlighted] = useState(-1);
@@ -768,15 +784,12 @@ export default function SearchLayout() {
             </a>
           </div>
           <div className="flex flex-wrap gap-x-6 gap-y-2">
-            {['About', 'Projects', 'Contact'].map(label => {
-              const tab = TABS.find(t => t.label === label);
-              return (
-                <Link key={label} to={tab.to}
-                  className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors">
-                  {label}
-                </Link>
-              );
-            })}
+            {nextFooterLinks.map(({ label, to }) => (
+              <Link key={to} to={to}
+                className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors">
+                {label}
+              </Link>
+            ))}
           </div>
         </div>
       </footer>

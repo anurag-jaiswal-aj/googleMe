@@ -1,9 +1,13 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import SearchResult from '../components/SearchResult';
 import sharedProjects from '../../../shared/projects.json';
+import api from '../api';
 import { LINKS } from '../config/links';
+import { getBlogCards } from '../data/blogPosts';
+import { SOCIAL_PROFILES } from '../data/socialProfiles';
+import { getToolCards } from '../data/toolsData';
+import { ABOUT_QA, PEOPLE_ALSO_ASK } from '../data/allPageData';
 
 /* ── Q&A accordion item ─────────────────────────────── */
 function QAResult({ url, question, answer, to, faviconBg, faviconLetter }) {
@@ -43,24 +47,7 @@ function QAResult({ url, question, answer, to, faviconBg, faviconLetter }) {
 }
 
 /* ── People also ask accordion ───────────────────────── */
-const PAA = [
-  {
-    q: 'What is your professional background?',
-    a: 'I am a full-stack developer and B.Tech ISE student. I have experience in both freelance contracting and in-house internship roles. I build modern web applications with a focus on performance, clean code, and good UX.',
-  },
-  {
-    q: 'What technologies do you work with?',
-    a: 'JavaScript, TypeScript, Python. Frontend: React 18, Next.js, TailwindCSS. Backend: Node.js, Express, GraphQL, REST APIs. Databases: MongoDB, PostgreSQL, Redis. DevOps: Docker, Git, GitHub Actions, Linux.',
-  },
-  {
-    q: 'Where have you worked in the past?',
-    a: 'I completed a Full-Stack Web Development internship at Infosys Ltd. (Bengaluru, 2024) and have contributed to multiple open-source repositories on GitHub. Check the About page for the full timeline.',
-  },
-  {
-    q: 'What kind of work do you do?',
-    a: 'I am open to both freelance (contracting) and full-time opportunities. I specialise in building MERN stack web apps — from idea and design through to deployment. Whether it is a new product or an existing codebase that needs help, I can contribute.',
-  },
-];
+const PAA = PEOPLE_ALSO_ASK;
 
 function PeopleAlsoAsk() {
   const [openIdx, setOpenIdx] = useState(null);
@@ -103,32 +90,7 @@ function PeopleAlsoAsk() {
 }
 
 /* ── Data ───────────────────────────────────────────── */
-const QA = [
-  {
-    url: 'anurag.dev/about',
-    question: 'Who am I?',
-    answer: 'I am a B.Tech Information Science & Engineering student at RV College of Engineering, Bengaluru. I am a full-stack developer specialising in the MERN stack — React, Node.js, Express and MongoDB. I am passionate about clean UI, developer tooling, and open-source. I interned at Infosys in 2024, building production features in React and Node.js, reducing API response time by 30%. Currently open to freelance and full-time opportunities.',
-    to: '/about',
-    faviconBg: '#00BCD4',
-    faviconLetter: 'A',
-  },
-  {
-    url: 'anurag.dev/tools',
-    question: 'What technologies do I work with?',
-    answer: 'JavaScript, TypeScript, Python. Frontend: React 18, Next.js, TailwindCSS, HTML5, CSS3. Backend: Node.js, Express, REST APIs, GraphQL. Databases: MongoDB, PostgreSQL, MySQL, Redis. DevOps: Docker, Git, GitHub Actions, Linux. Also experienced with Framer Motion, Vite, Jest, and Postman.',
-    to: '/tools',
-    faviconBg: '#8B5CF6',
-    faviconLetter: 'T',
-  },
-  {
-    url: 'anurag.dev/about',
-    question: 'Where have I worked?',
-    answer: 'I completed a Full-Stack Web Development internship at Infosys Ltd. (Bengaluru, May–Jul 2024), where I built and shipped three production features and improved API performance by 30%. I have also contributed to open-source projects on GitHub — fixing bugs, writing documentation, and submitting pull requests to active repositories. Check the About page for the full experience timeline.',
-    to: '/about',
-    faviconBg: '#00BCD4',
-    faviconLetter: 'A',
-  },
-];
+const QA = ABOUT_QA;
 
 const toSlug = (str) => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
@@ -141,93 +103,8 @@ const PROJECTS = sharedProjects.map((project) => ({
   faviconLetter: 'G',
 }));
 
-const POSTS = [
-  {
-    url: 'anurag.dev/blog/mern-portfolio',
-    title: 'Building a Google Search-Inspired Portfolio with MERN Stack',
-    snippet: 'A deep-dive into how this very portfolio was designed and built — Google SERP layout, dark mode, AI search mode, animated suggestions, knowledge panel, and a Node.js + MongoDB backend. Every design decision explained.',
-    to: '/blog',
-    faviconBg: '#4285F4',
-    faviconLetter: 'B',
-  },
-  {
-    url: 'anurag.dev/blog/react-useeffect-guide',
-    title: 'React useEffect: The Complete Guide to Avoiding Infinite Loops',
-    snippet: 'Most React bugs trace back to useEffect misuse. Covers dependency arrays, cleanup functions, stale closures, and the mental model you need to write effects that actually work.',
-    to: '/blog',
-    faviconBg: '#34A853',
-    faviconLetter: 'B',
-  },
-  {
-    url: 'anurag.dev/blog/mongodb-indexing',
-    title: 'MongoDB Indexing Deep Dive — Speed Up Your Queries by 10×',
-    snippet: 'Explains compound indexes, the ESR rule, covered queries, and index intersection. Includes real benchmark data showing before-and-after query times on a 2M-document collection.',
-    to: '/blog',
-    faviconBg: '#FBBC05',
-    faviconLetter: 'B',
-  },
-];
-
-const SOCIALS = [
-  {
-    url: 'linkedin.com/in/anurag-2911',
-    title: 'My LinkedIn Profile',
-    snippet: 'Connect with me for professional opportunities and collaborations. View my work experience, skills, education, and recommendations.',
-    href: LINKS.linkedin,
-    faviconBg: '#0a66c2',
-    faviconLetter: 'in',
-  },
-  {
-    url: 'github.com/anurag-2911',
-    title: 'My GitHub Profile',
-    snippet: 'Explore my open-source projects, repositories, and contribution activity. React, Node.js, MongoDB, Python and more.',
-    href: LINKS.github,
-    faviconBg: '#24292e',
-    faviconLetter: 'G',
-  },
-  {
-    url: 'leetcode.com/u/anurag_jaiswal',
-    title: 'LeetCode — anurag_jaiswal',
-    snippet: 'Solving Data Structures & Algorithms problems with a focus on optimised solutions. Check my problem-solving activity, contest ratings, and submission history.',
-    href: LINKS.leetcode,
-    faviconBg: '#FFA116',
-    faviconLetter: 'L',
-  },
-  {
-    url: 'codechef.com/users/anurag_aj',
-    title: 'CodeChef — anurag_aj',
-    snippet: 'Competitive programming profile on CodeChef. Participate in monthly contests, long challenges, and short contests to sharpen algorithmic skills.',
-    href: LINKS.codechef,
-    faviconBg: '#5B4638',
-    faviconLetter: 'C',
-  },
-  {
-    url: 'codeforces.com/profile/anurag_aj',
-    title: 'Codeforces — anurag_aj',
-    snippet: 'Active competitive programmer on Codeforces. Working through rated rounds and problem sets covering graphs, DP, and combinatorics.',
-    href: LINKS.codeforces,
-    faviconBg: '#1F8ACB',
-    faviconLetter: 'CF',
-  },
-  {
-    url: 'hackerrank.com/profile/anurag_aj',
-    title: 'HackerRank — anurag_aj',
-    snippet: 'Problem-solving and skill certifications on HackerRank. Completed challenges across Data Structures, Algorithms, SQL, and Python domains.',
-    href: LINKS.hackerrank,
-    faviconBg: '#00EA64',
-    faviconLetter: 'H',
-  },
-  {
-    url: 'Medium.com/profile/anurag_aj',
-    title: 'Medium — anurag_aj',
-    snippet: 'Blogs on Medium. Completed challenges across Data Structures, Algorithms, SQL, and Python domains.',
-    href: LINKS.medium,
-    faviconBg: '#00632b',
-    faviconLetter: 'M',
-  }
-];
-
-const TOTAL = QA.length + PROJECTS.length + POSTS.length + SOCIALS.length;
+const TOOLS = getToolCards();
+const SOCIALS = SOCIAL_PROFILES;
 
 /* ── Section heading ─────────────────────────────────── */
 function SectionLabel({ label }) {
@@ -239,13 +116,158 @@ function SectionLabel({ label }) {
   );
 }
 
+function ArticleReader({ post, onClose }) {
+  const scrollRef = useRef(null);
+
+  const sanitise = (html = '') =>
+    html
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/href="(\/[^"]+)"/g, 'href="https://medium.com$1"')
+      .replace(/<img[^>]*src=["']["'][^>]*>/gi, '')
+      .replace(/<img(?![^>]*src=["']https?:)[^>]*>/gi, '')
+      .replace(/<img[^>]*medium\.com\/_\/stat[^>]*>/gi, '')
+      .replace(/<img[^>]*\s(?:width|height)=[\"']1[\"'][^>]*>/gi, '')
+      .replace(/<figure[^>]*>[\s]*<img[^>]*src=["']["'][^>]*>[\s\S]*?<\/figure>/gi, '')
+      .replace(/<figure[^>]*class="[^"]*graf--layoutOutsetLeft[^"]*"[\s\S]*?<\/figure>/gi, '')
+      .replace(/<div class="[^"]*section-content[^"]*">/gi, '')
+      .replace(/<div class="[^"]*section-inner[^"]*">/gi, '');
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    const onKey = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [onClose]);
+
+  return (
+    <motion.div
+      key="reader-backdrop"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+      className="fixed inset-0 z-50 bg-white dark:bg-[#1a1a1a] overflow-y-auto"
+      ref={scrollRef}
+    >
+      <div className="sticky top-0 z-10 bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-sm border-b border-[#e8eaed] dark:border-[#333]">
+        <div className="max-w-[728px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="w-7 h-7 rounded-full bg-[#00ab6c] flex items-center justify-center text-white text-xs font-bold">M</div>
+            <span className="text-sm font-medium text-[#292929] dark:text-[#e6e6e6] hidden sm:block">Medium</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <a
+              href={post.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-[#6b6b6b] dark:text-[#999] px-3 py-1.5 rounded-full border border-[#e8eaed] dark:border-[#444] hover:border-[#292929] dark:hover:border-[#888] transition-colors"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+              </svg>
+              View on Medium
+            </a>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-full text-[#6b6b6b] dark:text-[#999] hover:bg-[#f2f2f2] dark:hover:bg-[#333] transition-colors"
+              aria-label="Close reader"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <article className="max-w-[728px] mx-auto px-4 sm:px-6 pt-8 sm:pt-12 pb-16 sm:pb-24">
+        {(post.tags || []).length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            {post.tags.map((tag) => (
+              <span
+                key={tag}
+                className="text-xs px-3 py-1 rounded-full bg-[#f2f2f2] dark:bg-[#2a2a2a] text-[#6b6b6b] dark:text-[#999]"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <h1
+          style={{ fontFamily: "'Georgia', 'Charter', serif" }}
+          className="text-[42px] font-bold leading-[1.18] tracking-[-0.5px] text-[#292929] dark:text-[#e6e6e6] mb-4"
+        >
+          {post.title}
+        </h1>
+
+        <div className="flex items-center gap-3 py-5 mb-2 border-t border-b border-[#e8eaed] dark:border-[#333]">
+          <div className="w-10 h-10 rounded-full bg-[#1a73e8] flex items-center justify-center text-white text-base font-semibold shrink-0">A</div>
+          <div>
+            <p className="text-sm font-medium text-[#292929] dark:text-[#e6e6e6]">Anurag</p>
+            <p className="text-xs text-[#6b6b6b] dark:text-[#999]">{post.date} · {post.readTime}</p>
+          </div>
+        </div>
+
+        <div className="mt-8 medium-body" dangerouslySetInnerHTML={{ __html: sanitise(post.content || '') }} />
+
+        <div className="mt-8 pt-6 border-t border-[#e8eaed] dark:border-[#333] text-center">
+          <p className="text-sm text-[#6b6b6b] dark:text-[#999] mb-4">For more such articles, follow me on Medium.</p>
+          <a
+            href={LINKS.medium}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#292929] dark:bg-[#e6e6e6] text-white dark:text-[#292929] text-sm font-medium hover:bg-[#1a1a1a] dark:hover:bg-white transition-colors"
+          >
+            <div className="w-4 h-4 rounded-full bg-[#00ab6c] flex items-center justify-center text-white text-[9px] font-bold">M</div>
+            Follow on Medium
+          </a>
+        </div>
+      </article>
+    </motion.div>
+  );
+}
+
 export default function All() {
+  const [blogPosts, setBlogPosts] = useState(
+    getBlogCards(3).map((post) => ({
+      ...post,
+      href: LINKS.medium,
+      content: '',
+      tags: [],
+      date: '',
+      readTime: '',
+    }))
+  );
+  const [reading, setReading] = useState(null);
+
+  useEffect(() => {
+    api.get('/medium')
+      .then((response) => {
+        if (!Array.isArray(response.data) || response.data.length === 0) return;
+        setBlogPosts(response.data.slice(0, 3));
+      })
+      .catch(() => {});
+  }, []);
+
+  const total = QA.length + PROJECTS.length + blogPosts.length + TOOLS.length + SOCIALS.length;
+
   return (
     <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
 
+      <AnimatePresence>
+        {reading && <ArticleReader post={reading} onClose={() => setReading(null)} />}
+      </AnimatePresence>
+
       {/* Stats */}
       <p className="text-sm text-[#133780] dark:text-[#bdc1c6] mb-4">
-        About {TOTAL.toLocaleString()} results (0.67 seconds)
+        About {total.toLocaleString()} results (0.67 seconds)
       </p>
 
       {/* Divider */}
@@ -290,11 +312,30 @@ export default function All() {
 
       {/* Blog */}
       <SectionLabel label="From the blog" />
-      {POSTS.map((r, i) => (
-        <motion.div key={r.title}
+      {blogPosts.map((post, i) => (
+        <motion.div key={post.id || post.title}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: (QA.length + PROJECTS.length + i) * 0.05, duration: 0.28 }}>
+          <SearchResult
+            url={post.url}
+            title={post.title}
+            snippet={post.snippet}
+            to={post.content ? undefined : '/blog'}
+            onTitleClick={post.content ? () => setReading(post) : undefined}
+            faviconBg={post.faviconBg || '#4285F4'}
+            faviconLetter="B"
+          />
+        </motion.div>
+      ))}
+
+      {/* Tools */}
+      <SectionLabel label="Tools & technologies" />
+      {TOOLS.map((r, i) => (
+        <motion.div key={r.title}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: (QA.length + PROJECTS.length + blogPosts.length + i) * 0.05, duration: 0.28 }}>
           <SearchResult
             url={r.url}
             title={r.title}
@@ -312,7 +353,7 @@ export default function All() {
         <motion.div key={r.title}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: (QA.length + PROJECTS.length + POSTS.length + i) * 0.05, duration: 0.28 }}>
+          transition={{ delay: (QA.length + PROJECTS.length + blogPosts.length + TOOLS.length + i) * 0.05, duration: 0.28 }}>
           <SearchResult
             url={r.url}
             title={r.title}
