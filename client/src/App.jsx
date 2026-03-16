@@ -7,6 +7,7 @@ import Projects from './pages/Projects';
 import Contact from './pages/Contact';
 import Blog from './pages/Blog';
 import Tools from './pages/Tools';
+import Admin from './pages/Admin';
 import NotFound from './pages/NotFound';
 
 export default function App() {
@@ -24,6 +25,9 @@ export default function App() {
         <Route path="/blog"     element={<Blog />} />
         <Route path="/tools"    element={<Tools />} />
       </Route>
+
+      {/* Admin — standalone page */}
+      <Route path="/admin" element={<Admin />} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -324,7 +324,7 @@ export default function Blog() {
   const relatedSearches = posts.slice(0, 6).map(p => p.title);
 
   return (
-    <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
+    <div className="max-w-[680px] mx-auto px-4 sm:px-8 pt-3 pb-10">
 
       {/* Reader modal */}
       <AnimatePresence>
@@ -386,7 +386,7 @@ export default function Blog() {
 
       {/* Google-style pagination */}
       {!loading && totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-center gap-1">
+        <div className="mt-8 flex items-center justify-center gap-1 w-full">
           {/* Prev */}
           <button
             onClick={() => { setPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
