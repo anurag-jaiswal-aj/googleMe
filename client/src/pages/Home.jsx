@@ -383,6 +383,7 @@ export default function Home() {
         >
           Gmail
         </a>
+          {/*
         <a
           href={LINKS.github}
           target="_blank"
@@ -391,6 +392,8 @@ export default function Home() {
         >
           GitHub
         </a>
+        */}
+        
         {/* Apps grid */}
         <div className="relative ml-2 mr-2" ref={appsRef}>
           <button
