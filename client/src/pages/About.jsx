@@ -1,94 +1,14 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import SearchResult from '../components/SearchResult';
-import FilterSort from '../components/FilterSort';
-import { ABOUT_QA } from '../data/allPageData';
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import SearchResult from "../components/SearchResult";
+import FilterSort from "../components/FilterSort";
+import { ABOUT_QA } from "../data/allPageData";
+import { SKILLS, EDUCATION, EXPERIENCE } from "../data/aboutData";
 
-/* ── Dummy data ─────────────────────────────────────── */
-const SKILLS = [
-  {
-    cat: 'Languages',
-    list: ['JavaScript', 'Python', 'Java', 'C++', 'C']
-  },
-
-  {
-    cat: 'Frontend',
-    list: ['React', 'HTML5', 'CSS3', 'TailwindCSS', 'Bootstrap']
-  },
-
-  {
-    cat: 'Backend',
-    list: ['Node.js', 'Express.js', 'REST APIs', 'JDBC']
-  },
-
-  {
-    cat: 'Database',
-    list: ['MongoDB', 'MySQL', 'Supabase']
-  },
-
-  {
-    cat: 'Machine Learning',
-    list: ['NumPy', 'Pandas', 'Scikit-learn', 'Matplotlib']
-  },
-
-  {
-    cat: 'Tools',
-    list: ['Git', 'GitHub', 'Linux', 'VS Code']
-  }
-];
-
-const EDUCATION = [
-  {
-    year: '2023 – Present',
-    degree: 'Bachelor of Engineering in Information Science & Engineering',
-    school: 'JSS Academy of Technical Education, Bengaluru',
-    detail: '3rd Year · CGPA 9.1 ',
-    color: '#4285F4',
-  },
-  {
-    year: '2022 – 2023',
-    degree: 'Pre-University',
-    school: 'J.B.P.I.C, Ambedkar Nagar',
-    detail: 'PCM · 91%',
-    color: '#4285F4',
-  },
-  {
-    year: '2020 – 2021',
-    degree: 'High School',
-    school: 'J.B.P.I.C, Ambedkar Nagar',
-    detail: 'CS · 90%',
-    color: '#4285F4',
-  },
-];
-
-const EXPERIENCE = [
-  {
-    period: '2024 – Present',
-    role: 'Freelance Web Developer',
-    company: 'Independent',
-    detail: 'Developed and delivered custom web applications for clients using React, Node.js, MongoDB, and MySQL. Built responsive interfaces, backend APIs, and scalable full-stack solutions.',
-    color: '#4285F4',
-  },
-  {
-    period: '2023 – Present',
-    role: 'Open-Source Contributor',
-    company: 'Independent',
-    detail: 'Contributed to open-source repositories through bug fixes, feature improvements, and documentation updates. Collaborated with developers through pull requests and issue discussions.',
-    color: '#4285F4',
-  },
-  {
-    period: '2023 – Present',
-    role: 'Personal Projects Developer',
-    company: 'Independent',
-    detail: 'Built multiple full-stack and machine learning projects using MERN stack, Java, MongoDB, MySQL, and Python. Worked on data analysis, ML models, and scalable web applications.',
-    color: '#4285F4',
-  },
-];
-
-const SECTIONS = ['Bio', 'Skills', 'Education', 'Experience'];
+const SECTIONS = ["Bio", "Skills", "Education", "Experience"];
 const SORT_OPTS = [
-  { value: 'relevance', label: 'Relevance' },
-  { value: 'az', label: 'A \u2192 Z' },
+  { value: "relevance", label: "Relevance" },
+  { value: "az", label: "A \u2192 Z" },
 ];
 
 /* ── Sitelinks strip ────────────────────────────────── */
@@ -96,14 +16,17 @@ function Sitelinks({ links, onLinkClick }) {
   return (
     <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-0">
       {links.map(({ label, to, key }) => (
-        <a key={label} href={to}
-          onClick={event => {
-            if (to.startsWith('#')) {
+        <a
+          key={label}
+          href={to}
+          onClick={(event) => {
+            if (to.startsWith("#")) {
               onLinkClick?.(event, { label, to, key });
             }
           }}
           className="text-sm text-[#1a73e8] dark:text-[#8ab4f8] hover:underline py-1.5
-                      border-b border-[#e8eaed] dark:border-[#3c4043] truncate">
+                      border-b border-[#e8eaed] dark:border-[#3c4043] truncate"
+        >
           {label}
         </a>
       ))}
@@ -114,29 +37,36 @@ function Sitelinks({ links, onLinkClick }) {
 /* ── Page ───────────────────────────────────────────── */
 export default function About() {
   const [filters, setFilters] = useState([]);
-  const [sort, setSort] = useState('relevance');
+  const [sort, setSort] = useState("relevance");
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
-  const [expanded, setExpanded] = useState({ bio: false, skills: false, edu: false, exp: false });
+  const [expanded, setExpanded] = useState({
+    bio: false,
+    skills: false,
+    edu: false,
+    exp: false,
+  });
   const openSection = (key) => {
     if (!key) return;
     setExpanded({
-      bio: key === 'bio',
-      skills: key === 'skills',
-      edu: key === 'edu',
-      exp: key === 'exp',
+      bio: key === "bio",
+      skills: key === "skills",
+      edu: key === "edu",
+      exp: key === "exp",
     });
   };
   const handleSectionLink = (event, sectionId) => {
     if (!sectionId) return;
     event.preventDefault();
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document
+      .getElementById(sectionId)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const downloadResume = () => {
-    const link = document.createElement('a');
-    link.href = '/Resume_aj.pdf';
-    link.download = 'Resume_aj.pdf';
+    const link = document.createElement("a");
+    link.href = "/Resume_aj.pdf";
+    link.download = "Resume_aj.pdf";
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -149,20 +79,20 @@ export default function About() {
   };
 
   const ALL = [
-    { id: 'Bio', delay: 0.05 },
-    { id: 'Education', delay: 0.10 },
-    { id: 'Skills', delay: 0.15 },
-    { id: 'Experience', delay: 0.20 },
+    { id: "Bio", delay: 0.05 },
+    { id: "Education", delay: 0.1 },
+    { id: "Skills", delay: 0.15 },
+    { id: "Experience", delay: 0.2 },
   ];
 
-  let visible = filters.length === 0
-    ? ALL
-    : ALL.filter(r => filters.includes(r.id));
+  let visible =
+    filters.length === 0 ? ALL : ALL.filter((r) => filters.includes(r.id));
 
-  if (sort === 'az') visible = [...visible].sort((a, b) => a.id.localeCompare(b.id));
+  if (sort === "az")
+    visible = [...visible].sort((a, b) => a.id.localeCompare(b.id));
 
   const renderResult = ({ id, delay }) => {
-    if (id === 'Bio') {
+    if (id === "Bio") {
       return (
         <motion.div
           key={id}
@@ -174,12 +104,12 @@ export default function About() {
             url="anurag.dev/about/bio"
             title="About Me | Anurag Jaiswal"
             snippet={aboutSummaryById.Bio.answer}
-            onTitleClick={() => openSection('bio')}
+            onTitleClick={() => openSection("bio")}
             faviconBg="#4285F4"
             faviconLetter="A"
             menuItems={[
               {
-                label: 'Download Resume',
+                label: "Download Resume",
                 action: downloadResume,
               },
             ]}
@@ -188,37 +118,52 @@ export default function About() {
               {expanded.bio && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
+                  animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
                   className="overflow-hidden"
                 >
                   <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-relaxed mt-2">
-                    I enjoy building scalable full-stack web applications and exploring how machine learning can power intelligent, data-driven systems. My work involves developing applications using JavaScript, the MERN stack, Python, MongoDB, and MySQL, while also experimenting with machine learning models and data analysis.
+                    I enjoy building scalable full-stack web applications and
+                    exploring how machine learning can power intelligent,
+                    data-driven systems. My work involves developing
+                    applications using JavaScript, the MERN stack, Python,
+                    MongoDB, and MySQL, while also experimenting with machine
+                    learning models and data analysis.
                   </p>
                   <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-relaxed mt-2">
-                    Alongside development and ML, I actively strengthen my problem-solving skills through Data Structures and Algorithms, focusing on writing efficient and optimized solutions.
+                    Alongside development and ML, I actively strengthen my
+                    problem-solving skills through Data Structures and
+                    Algorithms, focusing on writing efficient and optimized
+                    solutions.
                   </p>
                   <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-relaxed mt-2">
-                    I enjoy learning new technologies, building projects, and continuously improving my ability to create scalable, intelligent software systems.
+                    I enjoy learning new technologies, building projects, and
+                    continuously improving my ability to create scalable,
+                    intelligent software systems.
                   </p>
                 </motion.div>
               )}
             </AnimatePresence>
-            <Sitelinks links={[
-              { label: 'Skills', to: '#skills', key: 'skills' },
-              { label: 'Education', to: '#education', key: 'edu' },
-              { label: 'Experience', to: '#experience', key: 'exp' },
-              { label: 'Projects', to: '/projects' },
-              { label: 'Contact', to: '/contact' },
-              { label: 'Blog', to: '/blog' },
-            ]} onLinkClick={(event, link) => handleSectionLink(event, link.to.slice(1))} />
+            <Sitelinks
+              links={[
+                { label: "Skills", to: "#skills", key: "skills" },
+                { label: "Education", to: "#education", key: "edu" },
+                { label: "Experience", to: "#experience", key: "exp" },
+                { label: "Projects", to: "/projects" },
+                { label: "Contact", to: "/contact" },
+                { label: "Blog", to: "/blog" },
+              ]}
+              onLinkClick={(event, link) =>
+                handleSectionLink(event, link.to.slice(1))
+              }
+            />
           </SearchResult>
         </motion.div>
       );
     }
 
-    if (id === 'Education') {
+    if (id === "Education") {
       return (
         <motion.div
           key={id}
@@ -232,12 +177,12 @@ export default function About() {
             url="anurag.dev/about/education"
             title="Education | Academic Timeline"
             snippet="Bachelor of Engineering in Information Science & Engineering at JSS Academy of Technical Education, Bengaluru with a CGPA of 9.1. Pursued Pre-University in PCM and High School from J.B.P.I.C with 91% and 90% respectively."
-            onTitleClick={() => openSection('edu')}
+            onTitleClick={() => openSection("edu")}
             faviconBg="#4285F4"
             faviconLetter="E"
             menuItems={[
               {
-                label: 'Download Resume',
+                label: "Download Resume",
                 action: downloadResume,
               },
             ]}
@@ -246,22 +191,33 @@ export default function About() {
               {expanded.edu && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
+                  animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
                   className="overflow-hidden"
                 >
                   <div className="mt-3 space-y-4">
-                    {EDUCATION.map(({ year, degree, school, detail, color }, i) => (
-                      <div key={i} className="flex items-start gap-3">
-                        <div className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: color }} />
-                        <div>
-                          <p className="text-sm font-medium text-[#202124] dark:text-[#e8eaed]">{degree} ({year})</p>
-                          <p className="text-sm text-[#1a73e8] dark:text-[#8ab4f8]">{school}</p>
-                          <p className="text-xs text-[#133780] dark:text-[#bdc1c6] mt-0.5">{detail}</p>
+                    {EDUCATION.map(
+                      ({ year, degree, school, detail, color }, i) => (
+                        <div key={i} className="flex items-start gap-3">
+                          <div
+                            className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0"
+                            style={{ backgroundColor: color }}
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-[#202124] dark:text-[#e8eaed]">
+                              {degree} ({year})
+                            </p>
+                            <p className="text-sm text-[#1a73e8] dark:text-[#8ab4f8]">
+                              {school}
+                            </p>
+                            <p className="text-xs text-[#133780] dark:text-[#bdc1c6] mt-0.5">
+                              {detail}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ),
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -271,7 +227,7 @@ export default function About() {
       );
     }
 
-    if (id === 'Skills') {
+    if (id === "Skills") {
       return (
         <motion.div
           key={id}
@@ -285,12 +241,12 @@ export default function About() {
             url="anurag.dev/about/skills"
             title="Skills & Technologies | My Tech Stack"
             snippet={aboutSummaryById.Skills.answer}
-            onTitleClick={() => openSection('skills')}
+            onTitleClick={() => openSection("skills")}
             faviconBg="#4285F4"
             faviconLetter="S"
             menuItems={[
               {
-                label: 'Download Resume',
+                label: "Download Resume",
                 action: downloadResume,
               },
             ]}
@@ -299,19 +255,27 @@ export default function About() {
               {expanded.skills && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
+                  animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
                   className="overflow-hidden"
                 >
                   <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
                     {SKILLS.map(({ cat, list }) => (
-                      <div key={cat} className="border-l-2 border-[#dadce0] dark:border-[#3c4043] pl-3">
+                      <div
+                        key={cat}
+                        className="border-l-2 border-[#dadce0] dark:border-[#3c4043] pl-3"
+                      >
                         <p className="text-xs font-semibold text-[#133780] dark:text-[#bdc1c6] mb-1.5 uppercase tracking-wide">
                           {cat}
                         </p>
-                        {list.map(s => (
-                          <p key={s} className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-[1.7]">{s}</p>
+                        {list.map((s) => (
+                          <p
+                            key={s}
+                            className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-[1.7]"
+                          >
+                            {s}
+                          </p>
                         ))}
                       </div>
                     ))}
@@ -324,7 +288,7 @@ export default function About() {
       );
     }
 
-    if (id === 'Experience') {
+    if (id === "Experience") {
       return (
         <motion.div
           key={id}
@@ -338,12 +302,12 @@ export default function About() {
             url="anurag.dev/about/experience"
             title="Experience | Work & Internships"
             snippet={aboutSummaryById.Experience.answer}
-            onTitleClick={() => openSection('exp')}
+            onTitleClick={() => openSection("exp")}
             faviconBg="#4285F4"
             faviconLetter="E"
             menuItems={[
               {
-                label: 'Download Resume',
+                label: "Download Resume",
                 action: downloadResume,
               },
             ]}
@@ -352,23 +316,36 @@ export default function About() {
               {expanded.exp && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
+                  animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
                   className="overflow-hidden"
                 >
                   <div className="mt-3 space-y-4">
-                    {EXPERIENCE.map(({ period, role, company, detail, color }, i) => (
-                      <div key={i} className="flex items-start gap-3">
-                        <div className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: color }} />
-                        <div>
-                          <p className="text-sm font-medium text-[#202124] dark:text-[#e8eaed]">{role}</p>
-                          <p className="text-sm text-[#1a73e8] dark:text-[#8ab4f8]">{company}</p>
-                          <p className="text-xs text-[#133780] dark:text-[#bdc1c6] mt-0.5">{period}</p>
-                          <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] mt-1 leading-relaxed">{detail}</p>
+                    {EXPERIENCE.map(
+                      ({ period, role, company, detail, color }, i) => (
+                        <div key={i} className="flex items-start gap-3">
+                          <div
+                            className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0"
+                            style={{ backgroundColor: color }}
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-[#202124] dark:text-[#e8eaed]">
+                              {role}
+                            </p>
+                            <p className="text-sm text-[#1a73e8] dark:text-[#8ab4f8]">
+                              {company}
+                            </p>
+                            <p className="text-xs text-[#133780] dark:text-[#bdc1c6] mt-0.5">
+                              {period}
+                            </p>
+                            <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] mt-1 leading-relaxed">
+                              {detail}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ),
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -383,7 +360,6 @@ export default function About() {
 
   return (
     <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
-
       {/* Stats + controls */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <p className="text-sm text-[#133780] dark:text-[#bdc1c6]">
@@ -414,7 +390,6 @@ export default function About() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
         >
-
           {visible.map(renderResult)}
 
           {/* People also ask */}
@@ -425,31 +400,36 @@ export default function About() {
           >
             <div className="max-w-[680px] border border-[#dadce0] dark:border-[#3c4043] rounded-xl overflow-hidden mb-1">
               <div className="px-5 py-3 border-b border-[#e8eaed] dark:border-[#3c4043]">
-                <p className="text-base font-medium text-[#202124] dark:text-[#e8eaed]">People also ask</p>
+                <p className="text-base font-medium text-[#202124] dark:text-[#e8eaed]">
+                  People also ask
+                </p>
               </div>
               {[
                 {
-                  q: 'Are you available for freelance work?',
-                  a: 'Yes. I am open to freelance projects, collaborations, and internship opportunities related to web development, backend systems, and machine learning. You can reach out through the Contact page.',
+                  q: "Are you available for freelance work?",
+                  a: "Yes. I am open to freelance projects, collaborations, and internship opportunities related to web development, backend systems, and machine learning. You can reach out through the Contact page.",
                 },
                 {
-                  q: 'Do you work on Machine Learning projects?',
-                  a: 'Yes. I explore machine learning concepts and build ML experiments using Python with libraries such as NumPy, Pandas, Scikit-learn, and Matplotlib.',
+                  q: "Do you work on Machine Learning projects?",
+                  a: "Yes. I explore machine learning concepts and build ML experiments using Python with libraries such as NumPy, Pandas, Scikit-learn, and Matplotlib.",
                 },
                 {
-                  q: 'Do you practice Data Structures & Algorithms?',
-                  a: 'Yes. I regularly practice Data Structures & Algorithms to improve my problem-solving skills and to design efficient and optimized solutions.',
+                  q: "Do you practice Data Structures & Algorithms?",
+                  a: "Yes. I regularly practice Data Structures & Algorithms to improve my problem-solving skills and to design efficient and optimized solutions.",
                 },
                 {
-                  q: 'How do you approach learning new technologies?',
-                  a: 'I usually learn new technologies by building small projects and experimenting with practical implementations to understand how systems work in real-world scenarios.',
+                  q: "How do you approach learning new technologies?",
+                  a: "I usually learn new technologies by building small projects and experimenting with practical implementations to understand how systems work in real-world scenarios.",
                 },
                 {
-                  q: 'What are you currently learning or exploring?',
-                  a: 'I am currently exploring advanced Machine Learning concepts, improving backend architecture knowledge, and strengthening my problem-solving skills through DSA.',
+                  q: "What are you currently learning or exploring?",
+                  a: "I am currently exploring advanced Machine Learning concepts, improving backend architecture knowledge, and strengthening my problem-solving skills through DSA.",
                 },
               ].map(({ q, a }, i) => (
-                <div key={q} className="border-b last:border-b-0 border-[#e8eaed] dark:border-[#3c4043]">
+                <div
+                  key={q}
+                  className="border-b last:border-b-0 border-[#e8eaed] dark:border-[#3c4043]"
+                >
                   <button
                     onClick={() => setOpenFaq(openFaq === i ? null : i)}
                     className="w-full flex items-center justify-between px-5 py-3 cursor-pointer text-left
@@ -459,24 +439,33 @@ export default function About() {
                     {q}
                     <svg
                       className={`w-4 h-4 shrink-0 text-[#70757a] transition-transform duration-200 ${
-                        openFaq === i ? 'rotate-180' : ''
+                        openFaq === i ? "rotate-180" : ""
                       }`}
-                      fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
                     </svg>
                   </button>
                   <AnimatePresence initial={false}>
                     {openFaq === i && (
                       <motion.div
                         initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
+                        animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2, ease: 'easeInOut' }}
+                        transition={{ duration: 0.2, ease: "easeInOut" }}
                         className="overflow-hidden"
                       >
-                        <div className="px-5 pb-4 pt-3 text-sm text-[#133780] dark:text-[#bdc1c6] leading-relaxed
-                                        border-t border-[#e8eaed] dark:border-[#3c4043]">
+                        <div
+                          className="px-5 pb-4 pt-3 text-sm text-[#133780] dark:text-[#bdc1c6] leading-relaxed
+                                        border-t border-[#e8eaed] dark:border-[#3c4043]"
+                        >
                           {a}
                         </div>
                       </motion.div>
@@ -486,7 +475,6 @@ export default function About() {
               ))}
             </div>
           </motion.div>
-
         </motion.div>
       </AnimatePresence>
     </div>
