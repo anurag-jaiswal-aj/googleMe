@@ -42,27 +42,8 @@ function cleanUrl(href = '') {
   }
 }
 
-// Auto-generate tags from title when Medium categories are empty
-const KEYWORD_TAG_MAP = [
-  { keys: ['react', 'hooks', 'component', 'jsx', 'next.js', 'frontend'],     tag: 'React' },
-  { keys: ['node', 'express', 'backend', 'server', 'api'],                   tag: 'Node.js' },
-  { keys: ['mongodb', 'database', 'mongoose', 'sql', 'postgres'],            tag: 'Database' },
-  { keys: ['docker', 'devops', 'ci/cd', 'deploy', 'kubernetes'],             tag: 'DevOps' },
-  { keys: ['javascript', 'typescript', 'js', 'ts'],                          tag: 'JavaScript' },
-  { keys: ['css', 'tailwind', 'style', 'design', 'ui', 'ux'],                tag: 'CSS' },
-  { keys: ['ai', 'machine learning', 'openai', 'gpt', 'llm'],                tag: 'AI' },
-  { keys: ['productivity', 'focus', 'notion', 'tool', 'workflow', 'setup'],  tag: 'Productivity' },
-  { keys: ['learn', 'skill', 'career', 'coding', 'programming'],             tag: 'Learning' },
-  { keys: ['documentation', 'writing', 'communication'],                     tag: 'Writing' },
-  { keys: ['mindful', 'boredom', 'comfort', 'quiet', 'life'],                tag: 'Mindfulness' },
-  { keys: ['software', 'engineer', 'think', 'forgotten', 'moment'],          tag: 'Engineering' },
-];
-
-function autoTags(title = '', categories = []) {
-  if (categories.length) return categories.slice(0, 4);
-  const lower = title.toLowerCase();
-  const found = KEYWORD_TAG_MAP.filter(({ keys }) => keys.some(k => lower.includes(k))).map(({ tag }) => tag);
-  return found.length ? found.slice(0, 3) : ['Article'];
+function autoTags(categories = []) {
+  return categories.slice(0, 4);
 }
 
 let cache = null;
@@ -95,7 +76,7 @@ router.get('/', async (req, res) => {
         date: pubDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         readTime: estimateReadTime(content),
         thumbnail: extractThumbnail(content),
-        tags: autoTags(item.title, item.categories),
+        tags: autoTags(item.categories),
         content,                        // full HTML for in-portfolio reader
         faviconBg: '#00ab6c',
       };

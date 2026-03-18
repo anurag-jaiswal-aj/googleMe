@@ -207,12 +207,12 @@ export default function Home() {
   };
 
   const AI_REPLIES = {
-    who: "Anurag is a full-stack developer specialising in the MERN stack — React, Node.js, Express & MongoDB. He loves clean UI and fast developer tooling. Visit the About section for the full story!",
+    who: "Anurag is a full-stack developer specialising in the MERN stack: React, Node.js, Express and MongoDB. He loves clean UI and fast developer tooling. Visit the About section for the full story!",
     projects:
       "Anurag has shipped several web apps and open-source projects. Head to the Projects section for deep-dives, or check out his GitHub for the source code.",
-    hire: "Anurag is open to freelance and full-time opportunities! Drop him a message through the Contact page — there's an email form and links to all his socials.",
+    hire: "Anurag is open to freelance and full-time opportunities. Drop him a message through the Contact page, there's an email form and links to all his socials.",
     stack:
-      "Primary stack: React, Node.js, Express, MongoDB, TailwindCSS. He's also comfortable with TypeScript, Docker, REST & GraphQL APIs, and Vite.",
+      "Primary stack: React, Node.js, Express, MongoDB, TailwindCSS. He's also comfortable with TypeScript, Docker, REST and GraphQL APIs, and Vite.",
     blog: "Anurag writes about web development, design systems, and side-project journeys. Browse the Blog section to catch his latest posts.",
     experience:
       "Anurag has hands-on experience building full-stack web applications, working with REST APIs, and contributing to team projects. Check the Projects section for detailed case studies.",
@@ -221,9 +221,9 @@ export default function Home() {
     education:
       "Anurag is studying Information Science & Engineering. He complements his academics with self-driven learning in modern web dev, system design, and software engineering.",
     contact:
-      "Reach Anurag through the Contact page — there's a direct email form and links to all his social profiles. He typically responds within 24 hours.",
+      "Reach Anurag through the Contact page. There's a direct email form and links to all his social profiles. He typically responds within 24 hours.",
     github:
-      "All of Anurag's code lives on GitHub. You'll find the link in the top-right corner of every page — feel free to explore and star his repos!",
+      "All of Anurag's code lives on GitHub. You'll find the link in the top-right corner of every page, feel free to explore and star his repos!",
     greet:
       "Hey! I'm an AI assistant built into Anurag's portfolio. Ask me about his background, projects, tech stack, blog, or how to get in touch!",
   };
@@ -506,9 +506,7 @@ export default function Home() {
         {/* Right side */}
         <div className="flex items-center gap-1">
           <a
-            href={LINKS.gmailWeb}
-            target="_blank"
-            rel="noopener noreferrer"
+            href={LINKS.mailto}
             className="text-sm text-[#202124] dark:text-[#e8eaed] hover:underline px-3 py-1.5 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
           >
             Gmail
@@ -1671,7 +1669,7 @@ export default function Home() {
                     </svg>
                   </button>
                   <p className="text-center text-xs text-[#70757a] py-2">
-                    Image loaded — visual search coming soon
+                    Image loaded, visual search coming soon
                   </p>
                 </div>
               ) : (
@@ -2035,7 +2033,7 @@ export default function Home() {
                   {
                     title: "Search Bar",
                     icon: "🔍",
-                    desc: "Type any keyword — name, skill, project, or topic — to search across the entire portfolio. Press Enter or click the Search button to see results.",
+                    desc: "Type any keyword like name, skill, project, or topic to search across the entire portfolio. Press Enter or click the Search button to see results.",
                   },
                   {
                     title: "Smart Suggestions",
@@ -2045,7 +2043,7 @@ export default function Home() {
                   {
                     title: "I'm Feeling Lucky",
                     icon: "🎲",
-                    desc: "Clicks to the most relevant page for your query instantly — just like Google's famous button.",
+                    desc: "Clicks to the most relevant page for your query instantly, just like Google's famous button.",
                   },
                   {
                     title: "Voice Search (Mic)",
@@ -2059,7 +2057,7 @@ export default function Home() {
                   },
                   {
                     title: "AI Mode",
-                    desc: "Click the sparkle icon in the search bar to open AI Mode — a conversational assistant that answers any question about Anurag, his skills, projects, and experience.",
+                    desc: "Click the sparkle icon in the search bar to open AI Mode, a conversational assistant that answers any question about Anurag, his skills, projects, and experience.",
                   },
                   {
                     title: "Apps Grid",
@@ -2073,7 +2071,7 @@ export default function Home() {
                   {
                     title: "Weather & Clock",
                     icon: "🌤",
-                    desc: "The top-left widget shows the current local time and live weather (temperature + condition) fetched automatically using your location — no API key needed.",
+                    desc: "The top-left widget shows the current local time and live weather (temperature + condition) fetched automatically using your location, no API key needed.",
                   },
                   {
                     title: "Language Switcher",
@@ -2104,12 +2102,12 @@ export default function Home() {
                   {
                     title: "Skills & Tech Stack",
                     icon: "⚙️",
-                    desc: "Browse the complete list of technologies: React, Node.js, MongoDB, TypeScript, Docker, AWS, and more — displayed as interactive skill cards.",
+                    desc: "Browse the complete list of technologies: React, Node.js, MongoDB, TypeScript, Docker, AWS, and more, displayed as interactive skill cards.",
                   },
                   {
                     title: "Experience Timeline",
                     icon: "📅",
-                    desc: "A chronological timeline of work experience, internships, and key milestones — displayed in a Google-style card layout.",
+                    desc: "A chronological timeline of work experience, internships, and key milestones, displayed in a Google-style card layout.",
                   },
                   {
                     title: "Education",
@@ -2176,7 +2174,7 @@ export default function Home() {
                   {
                     title: "Medium Articles",
                     icon: "📝",
-                    desc: "The Blog page fetches Anurag's real published articles from Medium (via RSS feed) and displays them as Google search results — 8 articles per page.",
+                    desc: "The Blog page fetches Anurag's real published articles from Medium (via RSS feed) and displays them as Google search results, 6 articles per page.",
                   },
                   {
                     title: "Pagination",
@@ -2186,7 +2184,7 @@ export default function Home() {
                   {
                     title: "Article Reader",
                     icon: "📰",
-                    desc: "Click any article title to open the full-screen Medium-style reader with proper typography (Georgia serif, 20px text, 1.8 line-height) — no need to leave the portfolio.",
+                    desc: "Click any article title to open the full-screen Medium-style reader with proper typography (Georgia serif, 20px text, 1.8 line-height), no need to leave the portfolio.",
                   },
                   {
                     title: "3-Dot Article Menu",
@@ -2217,7 +2215,7 @@ export default function Home() {
                   {
                     title: "Contact Form",
                     icon: "📬",
-                    desc: "Fill out the contact form — choose a subject chip, enter your name & email, write a message, and hit Send. The message is saved to the database and emailed to Anurag.",
+                    desc: "Fill out the contact form, choose a subject chip, enter your name and email, write a message, and hit Send. The message is saved to the database and emailed to Anurag.",
                   },
                   {
                     title: "File Attachments",
@@ -2232,7 +2230,7 @@ export default function Home() {
                   {
                     title: "Social Profiles",
                     icon: "🌐",
-                    desc: "Below the form, find quick links to LinkedIn, GitHub, Medium, and Twitter/X — styled as Google search result cards.",
+                    desc: "Below the form, find quick links to LinkedIn, GitHub, Medium, and Twitter/X, styled as Google search result cards.",
                   },
                 ],
               },
@@ -2253,12 +2251,12 @@ export default function Home() {
                   {
                     title: "Developer Tools",
                     icon: "🛠️",
-                    desc: "The Tools page hosts a collection of utility tools built by Anurag — including converters, formatters, generators, and other developer helpers.",
+                    desc: "The Tools page hosts a collection of utility tools built by Anurag, including converters, formatters, generators, and other developer helpers.",
                   },
                   {
                     title: "Use Freely",
                     icon: "✅",
-                    desc: "All tools are free to use directly in the browser — no login required. Each tool is self-contained and runs entirely on the client side.",
+                    desc: "All tools are free to use directly in the browser, no login required. Each tool is self-contained and runs entirely on the client side.",
                   },
                 ],
               },
@@ -2284,7 +2282,7 @@ export default function Home() {
                   {
                     title: "CodeChef",
                     icon: "🍴",
-                    desc: "Click the CodeChef tile in the Apps Grid to visit Anurag's CodeChef profile — ratings, solved problems, and contest history.",
+                    desc: "Click the CodeChef tile in the Apps Grid to visit Anurag's CodeChef profile, ratings, solved problems, and contest history.",
                   },
                   {
                     title: "GitHub",

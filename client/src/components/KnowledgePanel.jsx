@@ -111,7 +111,8 @@ export default function KnowledgePanel() {
           <div className="relative shrink-0">
             <div
               className="w-16 h-16 rounded-full overflow-hidden bg-[#4285F4]
-                            flex items-center justify-center shadow-md"
+                            flex items-center justify-center shadow-md
+                            ring-[3px] ring-[#EA4335] ring-offset-2 ring-offset-white dark:ring-offset-[#202124]"
             >
               <img
                 src="/avatar.jpg"

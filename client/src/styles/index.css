@@ -243,3 +243,7 @@
 .dark .medium-body hr {
   border-top-color: rgb(60, 60, 60);
 }
+
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

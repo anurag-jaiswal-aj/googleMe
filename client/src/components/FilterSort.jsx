@@ -44,7 +44,7 @@ export default function FilterSort({
 
   const dropdownCls = `absolute left-0 top-[calc(100%+6px)] z-50 min-w-[188px]
     bg-white dark:bg-[#303134] border border-[#dadce0] dark:border-[#5f6368]
-    rounded-2xl shadow-lg overflow-hidden py-1`;
+    rounded-2xl shadow-lg overflow-y-auto max-h-[168px] py-1 scrollbar-hide`;
 
   const btnBase = `flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm border transition-all`;
   const btnActive = `bg-[#e8f0fe] dark:bg-[#1a2744] border-[#1a73e8] dark:border-[#8ab4f8] text-[#1a73e8] dark:text-[#8ab4f8] font-medium`;

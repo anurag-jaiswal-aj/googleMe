@@ -28,9 +28,9 @@ const TAG_COLOR = {
 };
 
 const SORT_OPTS = [
-  { value: 'relevance', label: 'Relevance' },
-  { value: 'newest',    label: 'Newest first' },
-  { value: 'shortest',  label: 'Shortest read' },
+  { value: 'newest',   label: 'Newest first' },
+  { value: 'oldest',   label: 'Oldest first' },
+  { value: 'shortest', label: 'Shortest read' },
 ];
 
 /* ── Article Reader Modal ───────────────────────── */
@@ -257,30 +257,32 @@ function PostCard({ post, onRead }) {
       <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-[1.58]">{post.snippet}</p>
 
       {/* Meta row */}
-      <div className="flex flex-wrap items-center gap-2 mt-1.5">
-        <span className="text-xs text-[#133780] dark:text-[#bdc1c6] flex items-center gap-1">
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-          </svg>
-          {post.date}
-        </span>
-        <span className="text-[#dadce0] dark:text-[#5f6368]">·</span>
-        <span className="text-xs text-[#133780] dark:text-[#bdc1c6] flex items-center gap-1">
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-          {post.readTime}
-        </span>
+      <div className="flex flex-col gap-1 mt-1.5">
         {(post.tags || []).length > 0 && (
-          <span className="flex flex-wrap gap-1 ml-1">
+          <div className="flex flex-wrap gap-1">
             {post.tags.map(tag => (
               <span key={tag} className={`text-xs px-2 py-0 rounded-full leading-5 ${TAG_COLOR[tag] || 'bg-[#f1f3f4] dark:bg-[#303134] text-[#5f6368] dark:text-[#9aa0a6]'}`}>
                 {tag}
               </span>
             ))}
-          </span>
+          </div>
         )}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-[#133780] dark:text-[#bdc1c6] flex items-center gap-1">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            {post.date}
+          </span>
+          <span className="text-[#dadce0] dark:text-[#5f6368]">·</span>
+          <span className="text-xs text-[#133780] dark:text-[#bdc1c6] flex items-center gap-1">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            {post.readTime}
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -290,16 +292,21 @@ export default function Blog() {
   const [posts,       setPosts]       = useState(POSTS);
   const [loading,     setLoading]     = useState(true);
   const [activeTag,   setActiveTag]   = useState('All');
-  const [sort,        setSort]        = useState('relevance');
+  const [sort, setSort] = useState('newest');
   const [filterOpen,  setFilterOpen]  = useState(false);
   const [sortOpen,    setSortOpen]    = useState(false);
   const [reading,     setReading]     = useState(null); // post being read in modal
   const [page,        setPage]        = useState(1);
-  const PER_PAGE = 8;
+  const PER_PAGE = 6;
 
   useEffect(() => {
     api.get('/medium')
-      .then(r => { if (r.data?.length) setPosts(r.data); })
+      .then(r => {
+        if (r.data?.length) {
+          // stamp original feed order so "relevance" can restore it
+          setPosts(r.data.map((p, i) => ({ ...p, _feedIndex: i })));
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -311,6 +318,7 @@ export default function Blog() {
 
   let filtered = activeTag === 'All' ? posts : posts.filter(p => (p.tags || []).includes(activeTag));
   if (sort === 'newest')   filtered = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
+  if (sort === 'oldest')   filtered = [...filtered].sort((a, b) => new Date(a.date) - new Date(b.date));
   if (sort === 'shortest') filtered = [...filtered].sort((a, b) => parseInt(a.readTime) - parseInt(b.readTime));
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
@@ -320,8 +328,9 @@ export default function Blog() {
   const handleTagChange = vals => { setActiveTag(vals.length ? vals[vals.length - 1] : 'All'); setPage(1); };
   const handleSortChange = val => { setSort(val); setPage(1); };
 
-  // "People also search for" — derived from real post titles (always all posts, not paginated)
-  const relatedSearches = posts.slice(0, 6).map(p => p.title);
+  // "People also search for" — posts NOT on the current page
+  const paginatedIds = new Set(paginated.map(p => p.id));
+  const relatedSearches = filtered.filter(p => !paginatedIds.has(p.id)).slice(0, 6).map(p => p.title);
 
   return (
     <div className="max-w-[680px] mx-auto px-4 sm:px-8 pt-3 pb-10">

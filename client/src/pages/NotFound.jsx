@@ -35,7 +35,7 @@ export default function NotFound() {
         >
           {/* Stats line */}
           <p className="text-sm text-[#133780] dark:text-[#bdc1c6] mb-4">
-            Your search — <span className="italic">{pathname}</span> — did not match any documents.
+            Your search for <span className="italic">{pathname}</span> did not match any documents.
           </p>
           <div className="h-px bg-[#e8eaed] dark:bg-[#3c4043] mb-6" />
 

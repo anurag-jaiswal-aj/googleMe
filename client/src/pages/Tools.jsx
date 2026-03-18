@@ -66,7 +66,7 @@ export default function Tools() {
         >
           <SearchResult
             url={`anurag.dev/tools/${group.category.toLowerCase().replace(/\s+/g, '-')}`}
-            title={`${group.category} — Anurag's Tech Stack`}
+            title={`${group.category} - Anurag's Tech Stack`}
             snippet={group.items.map(i => i.name).join(' · ')}
             faviconBg={group.color}
             faviconLetter={group.category[0]}

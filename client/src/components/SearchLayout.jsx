@@ -1023,7 +1023,7 @@ export default function SearchLayout() {
                   {
                     title: "Search Bar",
                     icon: "🔍",
-                    desc: "Type any keyword — name, skill, project, or topic — to search across the portfolio. Press Enter or use the search button to navigate.",
+                    desc: "Type any keyword like name, skill, project, or topic to search across the portfolio. Press Enter or use the search button to navigate.",
                   },
                   {
                     title: "Smart Suggestions",
@@ -1038,7 +1038,7 @@ export default function SearchLayout() {
                   {
                     title: "AI Mode",
                     icon: "✦",
-                    desc: "Click the sparkle icon in the Home search bar to open AI Mode — a conversational assistant that answers anything about Anurag.",
+                    desc: "Click the sparkle icon in the Home search bar to open AI Mode, a conversational assistant that answers anything about Anurag.",
                   },
                   {
                     title: "Apps Grid",
@@ -1053,7 +1053,7 @@ export default function SearchLayout() {
                   {
                     title: "Weather & Clock",
                     icon: "🌤",
-                    desc: "The Home page top-left shows live time and weather fetched from your location automatically — no API key needed.",
+                    desc: "The Home page top-left shows live time and weather fetched from your location automatically, no API key needed.",
                   },
                   {
                     title: "Language Switcher",
@@ -1084,7 +1084,7 @@ export default function SearchLayout() {
                   {
                     title: "Skills & Tech Stack",
                     icon: "⚙️",
-                    desc: "Browse all technologies: React, Node.js, MongoDB, TypeScript, Docker, AWS, and more — shown as interactive skill cards.",
+                    desc: "Browse all technologies: React, Node.js, MongoDB, TypeScript, Docker, AWS, and more, shown as interactive skill cards.",
                   },
                   {
                     title: "Experience Timeline",
@@ -1156,7 +1156,7 @@ export default function SearchLayout() {
                   {
                     title: "Medium Articles",
                     icon: "📝",
-                    desc: "Real published articles fetched from Anurag's Medium RSS feed — 8 per page, displayed as Google search results.",
+                    desc: "Real published articles fetched from Anurag's Medium RSS feed, 6 per page, displayed as Google search results.",
                   },
                   {
                     title: "Pagination",
@@ -1166,7 +1166,7 @@ export default function SearchLayout() {
                   {
                     title: "Article Reader",
                     icon: "📰",
-                    desc: "Click any title to open full-screen Medium-style reader with proper typography — no need to leave the portfolio.",
+                    desc: "Click any title to open full-screen Medium-style reader with proper typography, no need to leave the portfolio.",
                   },
                   {
                     title: "3-Dot Article Menu",
@@ -1238,7 +1238,7 @@ export default function SearchLayout() {
                   {
                     title: "CodeChef",
                     icon: "🍴",
-                    desc: "Apps Grid → CodeChef tile opens Anurag's CodeChef profile — ratings, solved problems, and contest history.",
+                    desc: "Apps Grid -> CodeChef tile opens Anurag's CodeChef profile, ratings, solved problems, and contest history.",
                   },
                   {
                     title: "GitHub",

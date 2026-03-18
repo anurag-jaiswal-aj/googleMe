@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { submitContact } from '../api';
 import SearchResult from '../components/SearchResult';
@@ -337,7 +338,15 @@ const SORT_OPTS = [
   { value: 'az',        label: 'A → Z' },
 ];
 
+const PEOPLE_ALSO_SEARCH = [
+  { label: 'Anurag projects and open source work', to: '/projects' },
+  { label: 'Anurag skills and tech stack',         to: '/tools' },
+  { label: 'About Anurag, bio and background',    to: '/about' },
+  { label: 'Anurag blog posts and articles',       to: '/blog' },
+];
+
 export default function Contact() {
+  const navigate = useNavigate();
   const [filters,    setFilters]    = useState([]);
   const [sort,       setSort]       = useState('relevance');
   const [filterOpen, setFilterOpen] = useState(false);
@@ -421,6 +430,27 @@ export default function Contact() {
           ))}
         </motion.div>
       </AnimatePresence>
+
+      {/* People also search for */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+                  className="mt-8 max-w-[680px] border-t border-[#e8eaed] dark:border-[#3c4043] pt-6">
+        <p className="text-base font-medium text-[#202124] dark:text-[#e8eaed] mb-4">People also search for</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {PEOPLE_ALSO_SEARCH.map(({ label, to, href }) => (
+            <button key={label}
+              onClick={() => to ? navigate(to) : window.open(href, '_blank', 'noopener,noreferrer')}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-full text-left
+                         border border-[#dadce0] dark:border-[#5f6368]
+                         text-sm text-[#202124] dark:text-[#e8eaed]
+                         hover:bg-[#f8f9fa] dark:hover:bg-[#3c4043] transition-colors">
+              <svg className="w-4 h-4 text-[#70757a] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+              </svg>
+              <span className="truncate">{label}</span>
+            </button>
+          ))}
+        </div>
+      </motion.div>
     </div>
   );
 }

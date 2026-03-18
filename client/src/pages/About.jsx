@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import toast from "react-hot-toast";
 import SearchResult from "../components/SearchResult";
 import FilterSort from "../components/FilterSort";
 import { ABOUT_QA } from "../data/allPageData";
 import { SKILLS, EDUCATION, EXPERIENCE } from "../data/aboutData";
+import { LINKS } from "../config/links";
 
 const SECTIONS = ["Bio", "Skills", "Education", "Experience"];
 const SORT_OPTS = [
@@ -72,6 +74,24 @@ export default function About() {
     link.remove();
   };
 
+  const aboutMenuItems = [
+    {
+      label: "Download Resume",
+      action: downloadResume,
+    },
+    {
+      label: "Copy page link",
+      action: () => {
+        navigator.clipboard.writeText(`${window.location.origin}/about`);
+        toast.success("Page link copied");
+      },
+    },
+    {
+      label: "View on LinkedIn",
+      action: () => window.open(LINKS.linkedin, "_blank", "noopener,noreferrer"),
+    },
+  ];
+
   const aboutSummaryById = {
     Bio: ABOUT_QA[0],
     Skills: ABOUT_QA[1],
@@ -107,12 +127,7 @@ export default function About() {
             onTitleClick={() => openSection("bio")}
             faviconBg="#4285F4"
             faviconLetter="A"
-            menuItems={[
-              {
-                label: "Download Resume",
-                action: downloadResume,
-              },
-            ]}
+            menuItems={aboutMenuItems}
           >
             <AnimatePresence initial={false}>
               {expanded.bio && (
@@ -180,12 +195,7 @@ export default function About() {
             onTitleClick={() => openSection("edu")}
             faviconBg="#4285F4"
             faviconLetter="E"
-            menuItems={[
-              {
-                label: "Download Resume",
-                action: downloadResume,
-              },
-            ]}
+            menuItems={aboutMenuItems}
           >
             <AnimatePresence initial={false}>
               {expanded.edu && (
@@ -244,12 +254,7 @@ export default function About() {
             onTitleClick={() => openSection("skills")}
             faviconBg="#4285F4"
             faviconLetter="S"
-            menuItems={[
-              {
-                label: "Download Resume",
-                action: downloadResume,
-              },
-            ]}
+            menuItems={aboutMenuItems}
           >
             <AnimatePresence initial={false}>
               {expanded.skills && (
@@ -305,12 +310,7 @@ export default function About() {
             onTitleClick={() => openSection("exp")}
             faviconBg="#4285F4"
             faviconLetter="E"
-            menuItems={[
-              {
-                label: "Download Resume",
-                action: downloadResume,
-              },
-            ]}
+            menuItems={aboutMenuItems}
           >
             <AnimatePresence initial={false}>
               {expanded.exp && (
