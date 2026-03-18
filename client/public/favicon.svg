@@ -1,3 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <text y=".9em" font-size="90">🅰</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <mask id="m">
+      <rect width="48" height="48" fill="black"/>
+      <!-- A as a stroked path for uniform thickness -->
+      <path
+        d="M24 5 L42 43 M24 5 L6 43 M11 31 L37 31"
+        stroke="white"
+        stroke-width="7"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"
+      />
+    </mask>
+    <clipPath id="tl"><rect x="0"  y="0"  width="24" height="24"/></clipPath>
+    <clipPath id="tr"><rect x="24" y="0"  width="24" height="24"/></clipPath>
+    <clipPath id="bl"><rect x="0"  y="24" width="24" height="24"/></clipPath>
+    <clipPath id="br"><rect x="24" y="24" width="24" height="24"/></clipPath>
+  </defs>
+
+  <rect width="48" height="48" fill="white"/>
+
+  <g mask="url(#m)">
+    <rect x="0"  y="0"  width="24" height="24" fill="#4285F4"/>
+    <rect x="24" y="0"  width="24" height="24" fill="#EA4335"/>
+    <rect x="0"  y="24" width="24" height="24" fill="#FBBC05"/>
+    <rect x="24" y="24" width="24" height="24" fill="#34A853"/>
+  </g>
 </svg>

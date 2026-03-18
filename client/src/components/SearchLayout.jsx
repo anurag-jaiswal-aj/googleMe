@@ -149,11 +149,12 @@ export default function SearchLayout() {
     setQuery(tab?.label ?? "");
   }, [location.pathname]);
 
-  const filtered = SUGGESTIONS.filter((s) =>
-    s.label.toLowerCase().includes(query.toLowerCase()),
-  );
-  const showDropdown =
-    focused && query.trim().length > 0 && filtered.length > 0;
+  const filtered = query.trim()
+    ? SUGGESTIONS.filter((s) =>
+        s.label.toLowerCase().includes(query.toLowerCase()),
+      )
+    : SUGGESTIONS;
+  const showDropdown = focused && filtered.length > 0;
 
   const handleSelect = useCallback(
     (to) => {
