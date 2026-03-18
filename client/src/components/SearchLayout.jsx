@@ -121,6 +121,22 @@ export default function SearchLayout() {
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [helpSection, setHelpSection] = useState(0);
+  const [micOpen, setMicOpen] = useState(false);
+  const [micState, setMicState] = useState("idle");
+  const [micTranscript, setMicTranscript] = useState("");
+  const [micError, setMicError] = useState("");
+  const [lensOpen, setLensOpen] = useState(false);
+  const [lensImage, setLensImage] = useState(null);
+  const [lensDrag, setLensDrag] = useState(false);
+  const [lensUrl, setLensUrl] = useState("");
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiInput, setAiInput] = useState("");
+  const [aiMessages, setAiMessages] = useState([]);
+  const [aiTyping, setAiTyping] = useState(false);
+  const recognitionRef = useRef(null);
+  const lensFileRef = useRef(null);
+  const aiEndRef = useRef(null);
+  const aiInputRef = useRef(null);
   const inputRef = useRef(null);
   const wrapperRef = useRef(null);
   const appsRef = useRef(null);
@@ -172,6 +188,78 @@ export default function SearchLayout() {
     const route = fuzzyRoute(query) ?? filtered[0]?.to;
     if (route) handleSelect(route);
   };
+
+  const AI_REPLIES = {
+    who: "Anurag is a full-stack developer specialising in the MERN stack: React, Node.js, Express and MongoDB. He loves clean UI and fast developer tooling. Visit the About section for the full story!",
+    projects: "Anurag has shipped several web apps and open-source projects. Head to the Projects section for deep-dives, or check out his GitHub for the source code.",
+    hire: "Anurag is open to freelance and full-time opportunities. Drop him a message through the Contact page, there's an email form and links to all his socials.",
+    stack: "Primary stack: React, Node.js, Express, MongoDB, TailwindCSS. He's also comfortable with TypeScript, Docker, REST and GraphQL APIs, and Vite.",
+    blog: "Anurag writes about web development, design systems, and side-project journeys. Browse the Blog section to catch his latest posts.",
+    experience: "Anurag has hands-on experience building full-stack web applications, working with REST APIs, and contributing to team projects. Check the Projects section for detailed case studies.",
+    opensource: "Yes! Anurag actively contributes to open-source projects and publishes all his own work on GitHub. Visit his profile to explore repositories and contributions.",
+    education: "Anurag is studying Information Science and Engineering. He complements his academics with self-driven learning in modern web dev, system design, and software engineering.",
+    contact: "Reach Anurag through the Contact page. There's a direct email form and links to all his social profiles. He typically responds within 24 hours.",
+    github: "All of Anurag's code lives on GitHub. You'll find the link in the top-right corner of every page, feel free to explore and star his repos!",
+    greet: "Hey! I'm an AI assistant built into Anurag's portfolio. Ask me about his background, projects, tech stack, blog, or how to get in touch!",
+  };
+
+  const getAiReply = (input) => {
+    const q = input.toLowerCase();
+    if (/\b(hello|hi|hey|howdy)\b/.test(q)) return AI_REPLIES.greet;
+    if (/education|studying|degree|university|college|academic/.test(q)) return AI_REPLIES.education;
+    if (/who|about|yourself|introduce|bio|background/.test(q)) return AI_REPLIES.who;
+    if (/open.?source|contribut/.test(q)) return AI_REPLIES.opensource;
+    if (/project|built|portfolio|app|code/.test(q)) return AI_REPLIES.projects;
+    if (/github/.test(q)) return AI_REPLIES.github;
+    if (/blog|article|post|writ/.test(q)) return AI_REPLIES.blog;
+    if (/hire|freelance|opportunit|availab/.test(q)) return AI_REPLIES.hire;
+    if (/contact|email|touch|reach|message|connect/.test(q)) return AI_REPLIES.contact;
+    if (/skill|tech|stack|language|framework|tool|work with|use/.test(q)) return AI_REPLIES.stack;
+    if (/experience|work history|career/.test(q)) return AI_REPLIES.experience;
+    return "Hmm, not sure about that one. Try one of the suggestion chips or ask about Anurag's projects, stack, blog, or contact info!";
+  };
+
+  const handleAiSend = (preset) => {
+    const text = (preset ?? aiInput).trim();
+    if (!text || aiTyping) return;
+    setAiInput("");
+    setAiMessages((m) => [...m, { role: "user", text }]);
+    setAiTyping(true);
+    setTimeout(() => {
+      setAiTyping(false);
+      setAiMessages((m) => [...m, { role: "ai", text: getAiReply(text) }]);
+    }, 720);
+  };
+
+  useEffect(() => { aiEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [aiMessages, aiTyping]);
+  useEffect(() => { if (aiOpen) setTimeout(() => aiInputRef.current?.focus(), 80); }, [aiOpen]);
+
+  const startVoiceSearch = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { setMicError("SpeechRecognition API not found. Try Chrome or Edge."); setMicState("error"); setMicOpen(true); return; }
+    if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch (_) {} }
+    const recognition = new SR();
+    recognitionRef.current = recognition;
+    recognition.lang = "en-US";
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognition.maxAlternatives = 1;
+    setMicTranscript(""); setMicError(""); setMicState("listening"); setMicOpen(true);
+    recognition.onresult = (e) => {
+      const transcript = Array.from(e.results).map((r) => r[0].transcript).join("");
+      setMicTranscript(transcript);
+      if (e.results[e.results.length - 1].isFinal) { setMicState("result"); setQuery(transcript); }
+    };
+    recognition.onerror = (e) => {
+      if (e.error === "no-speech") return;
+      else if (e.error === "not-allowed" || e.error === "service-not-allowed") { setMicError("Microphone access denied. Please allow mic access and try again."); setMicState("error"); }
+      else { setMicError(`Something went wrong (${e.error}). Try again.`); setMicState("error"); }
+    };
+    recognition.onend = () => { setMicState((s) => (s === "listening" ? "idle" : s)); };
+    try { recognition.start(); } catch (err) { setMicError(`Could not start: ${err.message}`); setMicState("error"); }
+  };
+
+  const stopVoice = () => { recognitionRef.current?.abort(); setMicOpen(false); setMicState("idle"); };
 
   useEffect(() => {
     const handler = (e) => {
@@ -288,6 +376,86 @@ export default function SearchLayout() {
                   </svg>
                 </button>
               )}
+
+              {/* Divider */}
+              <div className="w-px h-5 bg-[#dadce0] dark:bg-[#5f6368] shrink-0 mx-0.5" />
+
+              {/* Mic */}
+              <div className="relative group/mic">
+                <button
+                  onClick={startVoiceSearch}
+                  className="p-1.5 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
+                  aria-label="Voice search"
+                  tabIndex={-1}
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <defs>
+                      <clipPath id="serp-mic-clip">
+                        <path d="M12 3C10.34 3 9 4.34 9 6v6c0 1.66 1.34 3 3 3s3-1.34 3-3V6c0-1.66-1.34-3-3-3z"/>
+                      </clipPath>
+                    </defs>
+                    <rect x="9" y="3" width="3" height="4.5" fill="#4285F4" clipPath="url(#serp-mic-clip)"/>
+                    <rect x="12" y="3" width="3" height="4.5" fill="#EA4335" clipPath="url(#serp-mic-clip)"/>
+                    <rect x="9" y="7.5" width="3" height="4.5" fill="#FBBC05" clipPath="url(#serp-mic-clip)"/>
+                    <rect x="12" y="7.5" width="3" height="4.5" fill="#34A853" clipPath="url(#serp-mic-clip)"/>
+                    <path fill="#4285F4" d="M6 11a6 6 0 0012 0h-1.5a4.5 4.5 0 01-9 0H6z"/>
+                    <path fill="#4285F4" d="M11.25 17v2.5h1.5V17h-1.5z"/>
+                    <path fill="#4285F4" d="M8.5 19.5h7v1h-7z"/>
+                  </svg>
+                </button>
+                <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover/mic:opacity-100 transition-opacity duration-150">
+                  <div className="bg-[#202124] dark:bg-[#e8eaed] text-white dark:text-[#202124] text-xs font-medium px-2.5 py-1 rounded-md whitespace-nowrap shadow-lg">Voice search</div>
+                  <div className="w-2 h-2 bg-[#202124] dark:bg-[#e8eaed] rotate-45 absolute left-1/2 -translate-x-1/2 -bottom-1"/>
+                </div>
+              </div>
+
+              {/* Lens */}
+              <div className="relative group/lens">
+                <button
+                  onClick={() => { setLensImage(null); setLensUrl(""); setLensOpen(true); }}
+                  className="p-1.5 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
+                  aria-label="Search by image"
+                  tabIndex={-1}
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M3 3h7v2H5v5H3V3z"/>
+                    <path fill="#EA4335" d="M21 3h-7v2h5v5h2V3z"/>
+                    <path fill="#FBBC05" d="M3 21h7v-2H5v-5H3v7z"/>
+                    <path fill="#34A853" d="M21 21h-7v-2h5v-5h2v7z"/>
+                    <circle cx="12" cy="12" r="3.5" fill="none" stroke="#4285F4" strokeWidth="1.5"/>
+                  </svg>
+                </button>
+                <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover/lens:opacity-100 transition-opacity duration-150">
+                  <div className="bg-[#202124] dark:bg-[#e8eaed] text-white dark:text-[#202124] text-xs font-medium px-2.5 py-1 rounded-md whitespace-nowrap shadow-lg">Search by image</div>
+                  <div className="w-2 h-2 bg-[#202124] dark:bg-[#e8eaed] rotate-45 absolute left-1/2 -translate-x-1/2 -bottom-1"/>
+                </div>
+              </div>
+
+              {/* AI */}
+              <div className="relative group/ai">
+                <button
+                  onClick={() => setAiOpen(true)}
+                  className="p-1.5 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
+                  aria-label="AI Mode"
+                  tabIndex={-1}
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 28 28" fill="none">
+                    <defs>
+                      <linearGradient id="serp-gem-a" x1="0.5" y1="0" x2="0.5" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6"/>
+                        <stop offset="50%" stopColor="#8b5cf6"/>
+                        <stop offset="100%" stopColor="#3b82f6"/>
+                      </linearGradient>
+                    </defs>
+                    <path d="M14 2C14 2 15.3 9.5 20 14C15.3 18.5 14 26 14 26C14 26 12.7 18.5 8 14C12.7 9.5 14 2 14 2Z" fill="url(#serp-gem-a)"/>
+                    <path d="M2 14C2 14 9.5 15.3 14 20C18.5 15.3 26 14 26 14C26 14 18.5 12.7 14 8C9.5 12.7 2 14 2 14Z" fill="url(#serp-gem-a)"/>
+                  </svg>
+                </button>
+                <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover/ai:opacity-100 transition-opacity duration-150">
+                  <div className="bg-[#202124] dark:bg-[#e8eaed] text-white dark:text-[#202124] text-xs font-medium px-2.5 py-1 rounded-md whitespace-nowrap shadow-lg">AI Mode</div>
+                  <div className="w-2 h-2 bg-[#202124] dark:bg-[#e8eaed] rotate-45 absolute left-1/2 -translate-x-1/2 -bottom-1"/>
+                </div>
+              </div>
             </div>
 
             {/* Dropdown suggestions */}
@@ -484,20 +652,6 @@ export default function SearchLayout() {
                           ),
                         },
                         {
-                          label: "LinkedIn",
-                          action: () => {
-                            window.open(LINKS.linkedin, "_blank");
-                            setAppsOpen(false);
-                          },
-                          icon: (
-                            <div className="w-12 h-12 rounded-xl bg-[#0A66C2] flex items-center justify-center">
-                              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                              </svg>
-                            </div>
-                          ),
-                        },
-                        {
                           label: "Twitter",
                           action: () => {
                             window.open(LINKS.twitter, "_blank");
@@ -507,6 +661,20 @@ export default function SearchLayout() {
                             <div className="w-12 h-12 rounded-xl bg-black flex items-center justify-center">
                               <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                              </svg>
+                            </div>
+                          ),
+                        },
+                        {
+                          label: "LinkedIn",
+                          action: () => {
+                            window.open(LINKS.linkedin, "_blank");
+                            setAppsOpen(false);
+                          },
+                          icon: (
+                            <div className="w-12 h-12 rounded-xl bg-[#0A66C2] flex items-center justify-center">
+                              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
                               </svg>
                             </div>
                           ),
@@ -1400,6 +1568,290 @@ export default function SearchLayout() {
           </div>
         </div>
       </footer>
+
+      {/* ── Voice search modal ─────────────────────────── */}
+      <AnimatePresence>
+        {micOpen && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white dark:bg-[#202124]"
+          >
+            <button onClick={stopVoice} className="absolute top-5 right-5 p-2 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors">
+              <svg className="w-6 h-6 text-[#5f6368] dark:text-[#9aa0a6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+            <p className="text-2xl text-[#5f6368] dark:text-[#9aa0a6] mb-12 select-none text-center px-6">
+              {micState === "listening" && "Listening…"}
+              {micState === "result" && (micTranscript || "Didn't catch that")}
+              {micState === "error" && (micError || "Something went wrong")}
+              {micState === "idle" && "Tap the mic to speak"}
+            </p>
+            <button
+              onClick={() => micState === "listening" ? stopVoice() : micState !== "retrying" && startVoiceSearch()}
+              className={`relative w-24 h-24 rounded-full flex items-center justify-center shadow-lg transition-all
+                ${micState === "listening" ? "bg-[#EA4335] scale-110" : "bg-[#f1f3f4] dark:bg-[#303134] hover:shadow-xl"}`}
+            >
+              {micState === "listening" && <span className="absolute inset-0 rounded-full animate-ping bg-[#EA4335] opacity-30"/>}
+              <svg className="w-12 h-12" viewBox="0 0 24 24">
+                {micState === "listening" ? (
+                  <path fill="white" d="M12 3C10.34 3 9 4.34 9 6v6c0 1.66 1.34 3 3 3s3-1.34 3-3V6c0-1.66-1.34-3-3-3zM6 11a6 6 0 0012 0h-1.5a4.5 4.5 0 01-9 0H6zM11.25 17v2.5h1.5V17h-1.5zM8.5 19.5h7v1h-7z"/>
+                ) : (
+                  <>
+                    <defs><clipPath id="serp-modal-mic-clip"><path d="M12 3C10.34 3 9 4.34 9 6v6c0 1.66 1.34 3 3 3s3-1.34 3-3V6c0-1.66-1.34-3-3-3z"/></clipPath></defs>
+                    <rect x="9" y="3" width="3" height="4.5" fill="#4285F4" clipPath="url(#serp-modal-mic-clip)"/>
+                    <rect x="12" y="3" width="3" height="4.5" fill="#EA4335" clipPath="url(#serp-modal-mic-clip)"/>
+                    <rect x="9" y="7.5" width="3" height="4.5" fill="#FBBC05" clipPath="url(#serp-modal-mic-clip)"/>
+                    <rect x="12" y="7.5" width="3" height="4.5" fill="#34A853" clipPath="url(#serp-modal-mic-clip)"/>
+                    <path fill="#4285F4" d="M6 11a6 6 0 0012 0h-1.5a4.5 4.5 0 01-9 0H6z"/>
+                    <path fill="#4285F4" d="M11.25 17v2.5h1.5V17h-1.5z"/>
+                    <path fill="#4285F4" d="M8.5 19.5h7v1h-7z"/>
+                  </>
+                )}
+              </svg>
+            </button>
+            {micState === "result" && micTranscript && (
+              <button onClick={() => { setMicOpen(false); navigate("/about"); }}
+                className="mt-10 px-6 py-2.5 rounded-full bg-[#1a73e8] text-white text-sm font-medium hover:bg-[#1557b0] transition-colors">
+                Search "{micTranscript}"
+              </button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Lens modal ─────────────────────────────────── */}
+      <AnimatePresence>
+        {lensOpen && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 dark:bg-black/75 p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) setLensOpen(false); }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 12 }}
+              className="bg-white dark:bg-[#202124] rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+            >
+              <div className="flex items-center justify-between px-5 pt-5 pb-3">
+                <h2 className="text-lg font-medium text-[#202124] dark:text-[#e8eaed]">Search by image</h2>
+                <button onClick={() => setLensOpen(false)} className="p-1.5 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors">
+                  <svg className="w-5 h-5 text-[#5f6368]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+              <div className="px-5 pb-3">
+                <div className="flex gap-2">
+                  <input type="text" value={lensUrl} onChange={(e) => setLensUrl(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && lensUrl.trim()) setLensImage(lensUrl.trim()); }}
+                    placeholder="Paste image URL"
+                    className="flex-1 px-3 py-2 rounded-lg border border-[#dadce0] dark:border-[#5f6368] bg-transparent text-sm text-[#202124] dark:text-[#e8eaed] placeholder:text-[#9aa0a6] outline-none focus:border-[#1a73e8]"/>
+                  <button onClick={() => { if (lensUrl.trim()) setLensImage(lensUrl.trim()); }}
+                    className="px-4 py-2 rounded-lg bg-[#1a73e8] text-white text-sm font-medium hover:bg-[#1557b0] transition-colors">Search</button>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 px-5 pb-3">
+                <div className="flex-1 h-px bg-[#e8eaed] dark:bg-[#3c4043]"/>
+                <span className="text-xs text-[#70757a] dark:text-[#9aa0a6]">OR</span>
+                <div className="flex-1 h-px bg-[#e8eaed] dark:bg-[#3c4043]"/>
+              </div>
+              {lensImage ? (
+                <div className="mx-5 mb-5 relative rounded-xl overflow-hidden border border-[#dadce0] dark:border-[#5f6368]">
+                  <img src={lensImage} alt="preview" className="w-full max-h-64 object-contain bg-[#f8f9fa] dark:bg-[#303134]"/>
+                  <button onClick={() => { setLensImage(null); setLensUrl(""); }}
+                    className="absolute top-2 right-2 p-1 rounded-full bg-white dark:bg-[#303134] shadow hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors">
+                    <svg className="w-4 h-4 text-[#5f6368]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                  <p className="text-center text-xs text-[#70757a] py-2">Image loaded, visual search coming soon</p>
+                </div>
+              ) : (
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setLensDrag(true); }}
+                  onDragLeave={() => setLensDrag(false)}
+                  onDrop={(e) => { e.preventDefault(); setLensDrag(false); const file = e.dataTransfer.files[0]; if (file && file.type.startsWith("image/")) setLensImage(URL.createObjectURL(file)); }}
+                  onClick={() => lensFileRef.current?.click()}
+                  className={`mx-5 mb-5 rounded-xl border-2 border-dashed cursor-pointer flex flex-col items-center justify-center gap-3 py-10 transition-colors
+                    ${lensDrag ? "border-[#1a73e8] bg-[#e8f0fe] dark:bg-[#1e3a5f]" : "border-[#dadce0] dark:border-[#5f6368] hover:border-[#1a73e8] hover:bg-[#f8f9fa] dark:hover:bg-[#303134]"}`}
+                >
+                  <svg className="w-10 h-10" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M3 3h7v2H5v5H3V3z"/>
+                    <path fill="#EA4335" d="M21 3h-7v2h5v5h2V3z"/>
+                    <path fill="#FBBC05" d="M3 21h7v-2H5v-5H3v7z"/>
+                    <path fill="#34A853" d="M21 21h-7v-2h5v-5h2v7z"/>
+                    <circle cx="12" cy="12" r="3.5" fill="none" stroke="#4285F4" strokeWidth="1.5"/>
+                  </svg>
+                  <p className="text-sm text-[#5f6368] dark:text-[#9aa0a6] text-center">
+                    Drag an image here<br/>
+                    <span className="text-[#1a73e8] dark:text-[#8ab4f8] font-medium">or click to upload</span>
+                  </p>
+                </div>
+              )}
+              <input ref={lensFileRef} type="file" accept="image/*" className="hidden"
+                onChange={(e) => { const file = e.target.files?.[0]; if (file) setLensImage(URL.createObjectURL(file)); e.target.value = ""; }}/>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── AI Mode modal ──────────────────────────────── */}
+      <AnimatePresence>
+        {aiOpen && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/65 p-0 sm:p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) setAiOpen(false); }}
+          >
+            <motion.div
+              initial={{ y: 48, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 48, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 380, damping: 32 }}
+              className="bg-white dark:bg-[#202124] border border-[#dadce0] dark:border-[#3c4043] w-full sm:max-w-[640px] sm:rounded-2xl rounded-t-3xl shadow-[0_12px_40px_rgba(0,0,0,0.24)] flex flex-col overflow-hidden"
+              style={{ height: "min(78vh, 640px)" }}
+            >
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#e8eaed] dark:border-[#3c4043] shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-[#e8f0fe] dark:bg-[#1a3a5c]/45 border border-[#d2e3fc] dark:border-[#355a86] flex items-center justify-center shrink-0">
+                    <svg className="w-[18px] h-[18px]" viewBox="0 0 28 28" fill="none">
+                      <defs>
+                        <linearGradient id="serp-gem-hdr" x1="0.5" y1="0" x2="0.5" y2="1">
+                          <stop offset="0%" stopColor="#3b82f6"/>
+                          <stop offset="50%" stopColor="#8b5cf6"/>
+                          <stop offset="100%" stopColor="#3b82f6"/>
+                        </linearGradient>
+                      </defs>
+                      <path d="M14 2C14 2 15.3 9.5 20 14C15.3 18.5 14 26 14 26C14 26 12.7 18.5 8 14C12.7 9.5 14 2 14 2Z" fill="url(#serp-gem-hdr)"/>
+                      <path d="M2 14C2 14 9.5 15.3 14 20C18.5 15.3 26 14 26 14C26 14 18.5 12.7 14 8C9.5 12.7 2 14 2 14Z" fill="url(#serp-gem-hdr)"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-[13.5px] font-semibold text-[#202124] dark:text-[#e8eaed] leading-tight">AI Mode</p>
+                    <p className="text-[11px] text-[#9aa0a6] leading-tight">Powered by Anurag's portfolio</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  {aiMessages.length > 0 && (
+                    <button onClick={() => setAiMessages([])} className="px-2.5 py-1 rounded-full text-[12px] font-medium text-[#5f6368] dark:text-[#9aa0a6] hover:bg-[#f1f3f4] dark:hover:bg-[#2d2e30] transition-colors">Clear</button>
+                  )}
+                  <button onClick={() => setAiOpen(false)} className="p-1.5 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#2d2e30] transition-colors">
+                    <svg className="w-[18px] h-[18px] text-[#5f6368]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-4 pb-3 space-y-3">
+                {aiMessages.length === 0 && !aiTyping && (
+                  <div className="flex flex-col items-center justify-start min-h-full pt-8 gap-4 text-center px-2">
+                    <div className="w-[56px] h-[56px] rounded-2xl bg-[#e8f0fe] dark:bg-[#1a3a5c]/45 border border-[#d2e3fc] dark:border-[#355a86] flex items-center justify-center">
+                      <svg className="w-7 h-7" viewBox="0 0 28 28" fill="none">
+                        <defs>
+                          <linearGradient id="serp-gem-welcome" x1="0.5" y1="0" x2="0.5" y2="1">
+                            <stop offset="0%" stopColor="#3b82f6"/>
+                            <stop offset="50%" stopColor="#8b5cf6"/>
+                            <stop offset="100%" stopColor="#3b82f6"/>
+                          </linearGradient>
+                        </defs>
+                        <path d="M14 2C14 2 15.3 9.5 20 14C15.3 18.5 14 26 14 26C14 26 12.7 18.5 8 14C12.7 9.5 14 2 14 2Z" fill="url(#serp-gem-welcome)"/>
+                        <path d="M2 14C2 14 9.5 15.3 14 20C18.5 15.3 26 14 26 14C26 14 18.5 12.7 14 8C9.5 12.7 2 14 2 14Z" fill="url(#serp-gem-welcome)"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-[28px] sm:text-[32px] font-normal text-[#202124] dark:text-[#e8eaed] leading-tight">How can I help?</p>
+                      <p className="text-[12px] text-[#9aa0a6] mt-1">I know his work, skills, projects and more.</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {[
+                        { label: "Who is he?", q: "Who is Anurag?" },
+                        { label: "Projects", q: "What projects has he built?" },
+                        { label: "Hire him", q: "Is Anurag available to hire?" },
+                        { label: "Tech stack", q: "What is his tech stack?" },
+                        { label: "Blog", q: "Does he have a blog?" },
+                        { label: "Experience", q: "What is his experience?" },
+                        { label: "Open source", q: "Does he contribute to open source?" },
+                        { label: "Education", q: "What is his educational background?" },
+                        { label: "Contact", q: "How can I contact Anurag?" },
+                        { label: "GitHub", q: "Where can I find his GitHub?" },
+                      ].map(({ label, q }) => (
+                        <button key={q} onClick={() => handleAiSend(q)}
+                          className="px-3.5 py-1.5 rounded-full bg-white dark:bg-[#303134] border border-[#dadce0] dark:border-[#5f6368] text-[12.5px] text-[#202124] dark:text-[#e8eaed] hover:border-[#1a73e8] dark:hover:border-[#8ab4f8] hover:bg-[#f8fbff] dark:hover:bg-[#1a3a5c]/40 transition-colors">
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {aiMessages.map((msg, i) => (
+                  <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }}
+                    className={`flex gap-2.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    {msg.role === "ai" && (
+                      <div className="w-6 h-6 rounded-lg bg-[#e8f0fe] dark:bg-[#1a3a5c]/45 border border-[#d2e3fc] dark:border-[#355a86] flex items-center justify-center shrink-0 mt-1">
+                        <svg className="w-3 h-3" viewBox="0 0 28 28" fill="none">
+                          <defs>
+                            <linearGradient id="serp-gem-bubble" x1="0.5" y1="0" x2="0.5" y2="1">
+                              <stop offset="0%" stopColor="#3b82f6"/>
+                              <stop offset="50%" stopColor="#8b5cf6"/>
+                              <stop offset="100%" stopColor="#3b82f6"/>
+                            </linearGradient>
+                          </defs>
+                          <path d="M14 2C14 2 15.3 9.5 20 14C15.3 18.5 14 26 14 26C14 26 12.7 18.5 8 14C12.7 9.5 14 2 14 2Z" fill="url(#serp-gem-bubble)"/>
+                          <path d="M2 14C2 14 9.5 15.3 14 20C18.5 15.3 26 14 26 14C26 14 18.5 12.7 14 8C9.5 12.7 2 14 2 14Z" fill="url(#serp-gem-bubble)"/>
+                        </svg>
+                      </div>
+                    )}
+                    <div className={`max-w-[78%] px-3.5 py-2.5 text-[13px] leading-relaxed
+                      ${msg.role === "user" ? "bg-[#1a73e8] text-white rounded-2xl rounded-br-sm" : "bg-[#f1f3f4] dark:bg-[#2d2e30] text-[#202124] dark:text-[#e8eaed] rounded-2xl rounded-bl-sm"}`}>
+                      {msg.text}
+                    </div>
+                  </motion.div>
+                ))}
+                <AnimatePresence>
+                  {aiTyping && (
+                    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex gap-2.5 justify-start">
+                      <div className="w-6 h-6 rounded-lg bg-[#e8f0fe] dark:bg-[#1a3a5c]/45 border border-[#d2e3fc] dark:border-[#355a86] flex items-center justify-center shrink-0 mt-1">
+                        <svg className="w-3 h-3" viewBox="0 0 28 28" fill="none">
+                          <defs>
+                            <linearGradient id="serp-gem-typing" x1="0.5" y1="0" x2="0.5" y2="1">
+                              <stop offset="0%" stopColor="#3b82f6"/>
+                              <stop offset="50%" stopColor="#8b5cf6"/>
+                              <stop offset="100%" stopColor="#3b82f6"/>
+                            </linearGradient>
+                          </defs>
+                          <path d="M14 2C14 2 15.3 9.5 20 14C15.3 18.5 14 26 14 26C14 26 12.7 18.5 8 14C12.7 9.5 14 2 14 2Z" fill="url(#serp-gem-typing)"/>
+                          <path d="M2 14C2 14 9.5 15.3 14 20C18.5 15.3 26 14 26 14C26 14 18.5 12.7 14 8C9.5 12.7 2 14 2 14Z" fill="url(#serp-gem-typing)"/>
+                        </svg>
+                      </div>
+                      <div className="bg-[#f1f3f4] dark:bg-[#2d2e30] px-4 py-3 rounded-2xl rounded-bl-sm flex items-center gap-1">
+                        {[0, 1, 2].map((d) => (
+                          <motion.span key={d} className="w-1.5 h-1.5 rounded-full bg-[#9aa0a6] block"
+                            animate={{ y: [0, -5, 0] }} transition={{ duration: 0.55, delay: d * 0.15, repeat: Infinity }}/>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <div ref={aiEndRef}/>
+              </div>
+
+              <div className="px-4 py-3 border-t border-[#e8eaed] dark:border-[#3c4043] shrink-0">
+                <div className="flex items-center gap-2 rounded-full border border-[#dadce0] dark:border-[#5f6368] bg-white dark:bg-[#303134] pl-4 pr-1.5 py-1.5">
+                  <input ref={aiInputRef} type="text" value={aiInput} onChange={(e) => setAiInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleAiSend(); }}
+                    placeholder="Ask about Anurag…" disabled={aiTyping}
+                    className="flex-1 bg-transparent py-1.5 text-[13.5px] text-[#202124] dark:text-[#e8eaed] placeholder:text-[#9aa0a6] outline-none disabled:opacity-50"/>
+                  <button onClick={() => handleAiSend()} disabled={!aiInput.trim() || aiTyping}
+                    className="p-2 rounded-full bg-[#1a73e8] text-white disabled:opacity-35 disabled:cursor-default hover:bg-[#1557b0] transition-all shrink-0">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -617,23 +617,23 @@ export default function Home() {
                         ),
                       },
                       {
-                        label: "LinkedIn",
-                        action: () => { window.open(LINKS.linkedin, "_blank"); setAppsOpen(false); },
-                        icon: (
-                          <div className="w-12 h-12 rounded-xl bg-[#0A66C2] flex items-center justify-center">
-                            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                            </svg>
-                          </div>
-                        ),
-                      },
-                      {
                         label: "Twitter",
                         action: () => { window.open(LINKS.twitter, "_blank"); setAppsOpen(false); },
                         icon: (
                           <div className="w-12 h-12 rounded-xl bg-black flex items-center justify-center">
                             <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                            </svg>
+                          </div>
+                        ),
+                      },
+                      {
+                        label: "LinkedIn",
+                        action: () => { window.open(LINKS.linkedin, "_blank"); setAppsOpen(false); },
+                        icon: (
+                          <div className="w-12 h-12 rounded-xl bg-[#0A66C2] flex items-center justify-center">
+                            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
                             </svg>
                           </div>
                         ),
@@ -1113,13 +1113,10 @@ export default function Home() {
                 >
                   <svg className="w-6 h-6" viewBox="0 0 28 28" fill="none">
                     <defs>
-                      <linearGradient id="gem-a" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor="#4285F4" />
-                        <stop offset="100%" stopColor="#0d47a1" />
-                      </linearGradient>
-                      <linearGradient id="gem-b" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#9C27B0" />
-                        <stop offset="100%" stopColor="#4285F4" />
+                      <linearGradient id="gem-a" x1="0.5" y1="0" x2="0.5" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" />
+                        <stop offset="50%" stopColor="#8b5cf6" />
+                        <stop offset="100%" stopColor="#3b82f6" />
                       </linearGradient>
                     </defs>
                     <path
@@ -1128,7 +1125,7 @@ export default function Home() {
                     />
                     <path
                       d="M2 14C2 14 9.5 15.3 14 20C18.5 15.3 26 14 26 14C26 14 18.5 12.7 14 8C9.5 12.7 2 14 2 14Z"
-                      fill="url(#gem-b)"
+                      fill="url(#gem-a)"
                     />
                   </svg>
                 </button>
@@ -1659,15 +1656,16 @@ export default function Home() {
                                   border border-[#d2e3fc] dark:border-[#355a86]
                                   flex items-center justify-center shrink-0"
                   >
-                    <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24">
-                      <path
-                        fill="#1a73e8"
-                        d="M12 2l2.09 6.26L20.5 10l-6.41 1.74L12 18l-2.09-6.26L3.5 10l6.41-1.74L12 2z"
-                      />
-                      <path
-                        fill="#5f9df5"
-                        d="M19 2l.75 2.25L22 5l-2.25.75L19 8l-.75-2.25L16 5l2.25-.75L19 2z"
-                      />
+                    <svg className="w-[18px] h-[18px]" viewBox="0 0 28 28" fill="none">
+                      <defs>
+                        <linearGradient id="gem-modal-hdr" x1="0.5" y1="0" x2="0.5" y2="1">
+                          <stop offset="0%" stopColor="#3b82f6"/>
+                          <stop offset="50%" stopColor="#8b5cf6"/>
+                          <stop offset="100%" stopColor="#3b82f6"/>
+                        </linearGradient>
+                      </defs>
+                      <path d="M14 2C14 2 15.3 9.5 20 14C15.3 18.5 14 26 14 26C14 26 12.7 18.5 8 14C12.7 9.5 14 2 14 2Z" fill="url(#gem-modal-hdr)"/>
+                      <path d="M2 14C2 14 9.5 15.3 14 20C18.5 15.3 26 14 26 14C26 14 18.5 12.7 14 8C9.5 12.7 2 14 2 14Z" fill="url(#gem-modal-hdr)"/>
                     </svg>
                   </div>
                   <div>
@@ -1720,15 +1718,16 @@ export default function Home() {
                                     border border-[#d2e3fc] dark:border-[#355a86]
                                     flex items-center justify-center"
                     >
-                      <svg className="w-7 h-7" viewBox="0 0 24 24">
-                        <path
-                          fill="#1a73e8"
-                          d="M12 2l2.09 6.26L20.5 10l-6.41 1.74L12 18l-2.09-6.26L3.5 10l6.41-1.74L12 2z"
-                        />
-                        <path
-                          fill="#5f9df5"
-                          d="M19 2l.75 2.25L22 5l-2.25.75L19 8l-.75-2.25L16 5l2.25-.75L19 2z"
-                        />
+                      <svg className="w-7 h-7" viewBox="0 0 28 28" fill="none">
+                        <defs>
+                          <linearGradient id="gem-modal-welcome" x1="0.5" y1="0" x2="0.5" y2="1">
+                            <stop offset="0%" stopColor="#3b82f6"/>
+                            <stop offset="50%" stopColor="#8b5cf6"/>
+                            <stop offset="100%" stopColor="#3b82f6"/>
+                          </linearGradient>
+                        </defs>
+                        <path d="M14 2C14 2 15.3 9.5 20 14C15.3 18.5 14 26 14 26C14 26 12.7 18.5 8 14C12.7 9.5 14 2 14 2Z" fill="url(#gem-modal-welcome)"/>
+                        <path d="M2 14C2 14 9.5 15.3 14 20C18.5 15.3 26 14 26 14C26 14 18.5 12.7 14 8C9.5 12.7 2 14 2 14Z" fill="url(#gem-modal-welcome)"/>
                       </svg>
                     </div>
                     <div>
@@ -1793,11 +1792,16 @@ export default function Home() {
                                       border border-[#d2e3fc] dark:border-[#355a86]
                                       flex items-center justify-center shrink-0 mt-1"
                       >
-                        <svg className="w-3 h-3" viewBox="0 0 24 24">
-                          <path
-                            fill="#1a73e8"
-                            d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"
-                          />
+                        <svg className="w-3 h-3" viewBox="0 0 28 28" fill="none">
+                          <defs>
+                            <linearGradient id="gem-bubble" x1="0.5" y1="0" x2="0.5" y2="1">
+                              <stop offset="0%" stopColor="#3b82f6"/>
+                              <stop offset="50%" stopColor="#8b5cf6"/>
+                              <stop offset="100%" stopColor="#3b82f6"/>
+                            </linearGradient>
+                          </defs>
+                          <path d="M14 2C14 2 15.3 9.5 20 14C15.3 18.5 14 26 14 26C14 26 12.7 18.5 8 14C12.7 9.5 14 2 14 2Z" fill="url(#gem-bubble)"/>
+                          <path d="M2 14C2 14 9.5 15.3 14 20C18.5 15.3 26 14 26 14C26 14 18.5 12.7 14 8C9.5 12.7 2 14 2 14Z" fill="url(#gem-bubble)"/>
                         </svg>
                       </div>
                     )}
@@ -1828,11 +1832,16 @@ export default function Home() {
                                       border border-[#d2e3fc] dark:border-[#355a86]
                                       flex items-center justify-center shrink-0 mt-1"
                       >
-                        <svg className="w-3 h-3" viewBox="0 0 24 24">
-                          <path
-                            fill="#1a73e8"
-                            d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"
-                          />
+                        <svg className="w-3 h-3" viewBox="0 0 28 28" fill="none">
+                          <defs>
+                            <linearGradient id="gem-typing" x1="0.5" y1="0" x2="0.5" y2="1">
+                              <stop offset="0%" stopColor="#3b82f6"/>
+                              <stop offset="50%" stopColor="#8b5cf6"/>
+                              <stop offset="100%" stopColor="#3b82f6"/>
+                            </linearGradient>
+                          </defs>
+                          <path d="M14 2C14 2 15.3 9.5 20 14C15.3 18.5 14 26 14 26C14 26 12.7 18.5 8 14C12.7 9.5 14 2 14 2Z" fill="url(#gem-typing)"/>
+                          <path d="M2 14C2 14 9.5 15.3 14 20C18.5 15.3 26 14 26 14C26 14 18.5 12.7 14 8C9.5 12.7 2 14 2 14Z" fill="url(#gem-typing)"/>
                         </svg>
                       </div>
                       <div className="bg-[#f1f3f4] dark:bg-[#2d2e30] px-4 py-3 rounded-2xl rounded-bl-sm flex items-center gap-1">
