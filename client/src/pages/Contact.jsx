@@ -7,6 +7,7 @@ import SearchResult from '../components/SearchResult';
 import FilterSort from '../components/FilterSort';
 import { LINKS } from '../config/links';
 import { SOCIAL_PROFILES } from '../data/socialProfiles';
+import { useImagesPageEnabled } from '../hooks/useImagesPageEnabled';
 
 const SOCIAL = SOCIAL_PROFILES.filter((profile) =>
   ['LinkedIn', 'Twitter / X', 'GitHub', 'Medium'].includes(profile.name)
@@ -353,6 +354,7 @@ const PEOPLE_ALSO_SEARCH = [
 
 export default function Contact() {
   const navigate = useNavigate();
+  const imagesEnabled = useImagesPageEnabled();
   const [filters,    setFilters]    = useState([]);
   const [sort,       setSort]       = useState('relevance');
   const [filterOpen, setFilterOpen] = useState(false);
@@ -452,7 +454,10 @@ export default function Contact() {
                   className="mt-8 max-w-[680px] border-t border-[#e8eaed] dark:border-[#3c4043] pt-6">
         <p className="text-base font-medium text-[#202124] dark:text-[#e8eaed] mb-4">People also search for</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {PEOPLE_ALSO_SEARCH.map(({ label, to, href }) => (
+          {[
+            ...PEOPLE_ALSO_SEARCH.slice(0, imagesEnabled ? 3 : 4),
+            ...(imagesEnabled ? [{ label: 'Images and gallery', to: '/images' }] : []),
+          ].map(({ label, to, href }) => (
             <button key={label}
               onClick={() => to ? navigate(to) : window.open(href, '_blank', 'noopener,noreferrer')}
               className="flex items-center gap-2 px-4 py-2.5 rounded-full text-left

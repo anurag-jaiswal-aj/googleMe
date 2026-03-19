@@ -10,6 +10,7 @@ const contactRoutes  = require('./routes/contact');
 const mediumRoutes   = require('./routes/medium');
 const feedbackRoutes = require('./routes/feedback');
 const githubRoutes   = require('./routes/github');
+const imagesRoutes   = require('./routes/images');
 
 const app = express();
 
@@ -46,7 +47,7 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // Body parsing
-app.use(express.json({ limit: '10kb' }));
+app.use(express.json({ limit: '10mb' }));
 
 // Routes
 app.use('/api/projects', projectRoutes);
@@ -54,6 +55,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/medium', mediumRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/github', githubRoutes);
+app.use('/api/images', imagesRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

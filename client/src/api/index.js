@@ -81,6 +81,12 @@ export const fetchGithubRepos = () => api.get('/github/repos').then((r) => r.dat
 export const saveGithubSelection = (selectedRepos) =>
   api.post('/github/selection', { selectedRepos }).then((r) => r.data);
 
+export const fetchImages = () => api.get('/images').then((r) => r.data);
+export const uploadImage = (formData) =>
+  api.post('/images', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 30000 }).then((r) => r.data);
+export const updateImage = (id, data) => api.patch(`/images/${id}`, data).then((r) => r.data);
+export const deleteImage = (id) => api.delete(`/images/${id}`).then((r) => r.data);
+
 export const submitFeedback = async (data) => {
   const fd = new FormData();
   fd.append('type', data.type);

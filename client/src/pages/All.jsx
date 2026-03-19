@@ -15,6 +15,7 @@ import { getBlogCards } from "../data/blogPosts";
 import { SOCIAL_PROFILES } from "../data/socialProfiles";
 import { getToolCards } from "../data/toolsData";
 import { ABOUT_QA, PEOPLE_ALSO_ASK } from "../data/allPageData";
+import { useImagesPageEnabled } from "../hooks/useImagesPageEnabled";
 
 /* ── People also ask accordion ───────────────────────── */
 const PAA = PEOPLE_ALSO_ASK;
@@ -372,6 +373,7 @@ function ArticleReader({ post, onClose }) {
 
 export default function All() {
   const navigate = useNavigate();
+  const imagesEnabled = useImagesPageEnabled();
   const [expandedQA, setExpandedQA] = useState(null);
   const [expandedProject, setExpandedProject] = useState(null);
   const [liveProjects, setLiveProjects] = useState([]);
@@ -661,6 +663,22 @@ export default function All() {
             to={r.to}
             faviconBg={r.faviconBg}
             faviconLetter={r.faviconLetter}
+            menuItems={[
+              {
+                label: 'Copy link',
+                icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
+                action: () => navigator.clipboard.writeText(`${window.location.origin}/tools`),
+              },
+              {
+                label: 'Share',
+                icon: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z',
+                action: () => {
+                  const url = `${window.location.origin}/tools`;
+                  if (navigator.share) navigator.share({ title: r.title, url });
+                  else navigator.clipboard.writeText(url);
+                },
+              },
+            ]}
           />
         </motion.div>
       ))}
@@ -723,7 +741,9 @@ export default function All() {
             { label: 'Projects and open source work', to: '/projects' },
             { label: 'Skills and tech stack', to: '/tools' },
             { label: 'Blog posts and articles', to: '/blog' },
-            { label: 'Get in touch', to: '/contact' },
+            imagesEnabled
+              ? { label: 'Images and gallery', to: '/images' }
+              : { label: 'Get in touch', to: '/contact' },
           ].map(({ label, to }) => (
             <a key={label} href={to}
                className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#dadce0] dark:border-[#5f6368]

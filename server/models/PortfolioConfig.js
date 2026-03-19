@@ -1,7 +1,11 @@
 const mongoose = require('mongoose');
 
 const repoEntrySchema = new mongoose.Schema(
-  { name: { type: String, required: true }, featured: { type: Boolean, default: false } },
+  {
+    name:      { type: String, required: true },
+    featured:  { type: Boolean, default: false },
+    extraTags: { type: [String], default: [] },
+  },
   { _id: false }
 );
 

@@ -1,4 +1,5 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import SearchLayout from './components/SearchLayout';
 import Home from './pages/Home';
 import All from './pages/All';
@@ -7,12 +8,21 @@ import Projects from './pages/Projects';
 import Contact from './pages/Contact';
 import Blog from './pages/Blog';
 import Tools from './pages/Tools';
+import Images from './pages/Images';
 import Admin from './pages/Admin';
 import NotFound from './pages/NotFound';
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+}
+
 export default function App() {
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
       {/* Home — standalone Google-homepage style */}
       <Route path="/" element={<Home />} />
 
@@ -24,6 +34,7 @@ export default function App() {
         <Route path="/contact"  element={<Contact />} />
         <Route path="/blog"     element={<Blog />} />
         <Route path="/tools"    element={<Tools />} />
+        <Route path="/images"   element={<Images />} />
       </Route>
 
       {/* Admin — standalone page */}
@@ -31,5 +42,6 @@ export default function App() {
 
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </>
   );
 }

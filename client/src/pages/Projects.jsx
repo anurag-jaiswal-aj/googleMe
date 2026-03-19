@@ -4,6 +4,7 @@ import { fetchProjects } from '../api';
 import SearchResult from '../components/SearchResult';
 import FilterSort from '../components/FilterSort';
 import fallbackProjects from '../../../shared/projects.json';
+import { useImagesPageEnabled } from '../hooks/useImagesPageEnabled';
 
 /* Slug a title to a GitHub-style URL path */
 const toSlug = str => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -36,6 +37,7 @@ function SkeletonResult() {
 }
 
 export default function Projects() {
+  const imagesEnabled = useImagesPageEnabled();
   const [projects, setProjects]   = useState([]);
   const [loading,  setLoading]    = useState(true);
   const [filters,  setFilters]    = useState([]);
@@ -43,7 +45,9 @@ export default function Projects() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortOpen,   setSortOpen]   = useState(false);
   const [expandedId, setExpandedId] = useState(null);
+  const [page,       setPage]       = useState(1);
   const [elapsed]                 = useState(() => (Math.random() * 0.4 + 0.2).toFixed(2));
+  const PER_PAGE = 6;
 
   useEffect(() => {
     fetchProjects()
@@ -60,14 +64,19 @@ export default function Projects() {
     ? projects
     : projects.filter(p => filters.every(f => p.techStack?.includes(f)));
 
-  // relevance = admin-defined order; featured = featured first, then admin order
   if (sort === 'relevance') displayed = [...displayed].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   if (sort === 'az')        displayed = [...displayed].sort((a, b) => a.title.localeCompare(b.title));
   if (sort === 'za')        displayed = [...displayed].sort((a, b) => b.title.localeCompare(a.title));
   if (sort === 'featured')  displayed = [...displayed].sort((a, b) => {
     if (b.featured !== a.featured) return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
-    return (a.order ?? 0) - (b.order ?? 0); // tie-break by admin order
+    return (a.order ?? 0) - (b.order ?? 0);
   });
+
+  const totalPages = Math.ceil(displayed.length / PER_PAGE);
+  const paginated  = displayed.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  const handleFilterChange = (val) => { setFilters(val); setPage(1); };
+  const handleSortChange   = (val) => { setSort(val);    setPage(1); };
 
   return (
     <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
@@ -85,7 +94,7 @@ export default function Projects() {
           <FilterSort
             filterOptions={allTech}
             filters={filters}
-            onFilterChange={setFilters}
+            onFilterChange={handleFilterChange}
             sortOptions={[
               { value: 'relevance', label: 'Relevance' },
               { value: 'az',        label: 'A \u2192 Z' },
@@ -93,7 +102,7 @@ export default function Projects() {
               { value: 'featured',  label: 'Featured first' },
             ]}
             sort={sort}
-            onSortChange={setSort}
+            onSortChange={handleSortChange}
             filterOpen={filterOpen}
             setFilterOpen={setFilterOpen}
             sortOpen={sortOpen}
@@ -121,7 +130,7 @@ export default function Projects() {
         </div>
       )}
 
-      {!loading && displayed.map((project, i) => (
+      {!loading && paginated.map((project, i) => (
         <motion.div
           key={project._id}
           initial={{ opacity: 0, y: 10 }}
@@ -218,6 +227,45 @@ export default function Projects() {
         </motion.div>
       ))}
 
+      {/* Pagination */}
+      {!loading && totalPages > 1 && (
+        <div className="max-w-[680px] mt-8 flex items-center justify-center gap-1">
+          <button
+            onClick={() => { setPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            disabled={page === 1}
+            className="flex items-center gap-1 px-4 py-2 text-sm text-[#1a73e8] dark:text-[#8ab4f8]
+                       hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] rounded disabled:opacity-30
+                       disabled:pointer-events-none transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/>
+            </svg>
+            Previous
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+            <button key={n}
+              onClick={() => { setPage(n); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className={`w-9 h-9 rounded-full text-sm font-medium transition-colors
+                ${n === page
+                  ? 'bg-[#1a73e8] text-white'
+                  : 'text-[#1a73e8] dark:text-[#8ab4f8] hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043]'
+                }`}>
+              {n}
+            </button>
+          ))}
+          <button
+            onClick={() => { setPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            disabled={page === totalPages}
+            className="flex items-center gap-1 px-4 py-2 text-sm text-[#1a73e8] dark:text-[#8ab4f8]
+                       hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] rounded disabled:opacity-30
+                       disabled:pointer-events-none transition-colors">
+            Next
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Related searches */}
       {!loading && displayed.length > 0 && (
         <motion.div
@@ -230,12 +278,13 @@ export default function Projects() {
               'Background and bio',
               'Skills and tech stack',
               'Blog posts and articles',
-              'Get in touch',
+              imagesEnabled ? 'Images and gallery' : 'Get in touch',
             ].map(term => (
               <a key={term} href={
                 term.includes('Background') ? '/about' :
                 term.includes('Skills') ? '/tools' :
-                term.includes('Blog') ? '/blog' : '/contact'
+                term.includes('Blog') ? '/blog' :
+                term.includes('Images') ? '/images' : '/contact'
               }
                    className="flex items-center gap-2 px-3 py-2.5 rounded-full border border-[#dadce0] dark:border-[#5f6368]
                               text-sm text-[#202124] dark:text-[#e8eaed] hover:bg-[#f8f9fa] dark:hover:bg-[#3c4043] transition-colors">

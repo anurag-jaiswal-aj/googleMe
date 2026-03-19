@@ -6,6 +6,7 @@ import FilterSort from "../components/FilterSort";
 import { ABOUT_QA } from "../data/allPageData";
 import { SKILLS, EDUCATION, EXPERIENCE, CERTIFICATIONS } from "../data/aboutData";
 import { LINKS } from "../config/links";
+import { useImagesPageEnabled } from "../hooks/useImagesPageEnabled";
 
 const SECTIONS = ["Bio", "Skills", "Education", "Experience", "Certifications"];
 const SORT_OPTS = [
@@ -38,6 +39,7 @@ function Sitelinks({ links, onLinkClick }) {
 
 /* ── Page ───────────────────────────────────────────── */
 export default function About() {
+  const imagesEnabled = useImagesPageEnabled();
   const [filters, setFilters] = useState([]);
   const [sort, setSort] = useState("relevance");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -560,7 +562,9 @@ export default function About() {
             { label: 'Open source projects and GitHub', to: '/projects' },
             { label: 'Skills and tech stack', to: '/tools' },
             { label: 'Blog posts and articles', to: '/blog' },
-            { label: 'Get in touch', to: '/contact' },
+            imagesEnabled
+              ? { label: 'Images and gallery', to: '/images' }
+              : { label: 'Get in touch', to: '/contact' },
           ].map(({ label, to }) => (
             <a key={label} href={to}
                className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#dadce0] dark:border-[#5f6368]

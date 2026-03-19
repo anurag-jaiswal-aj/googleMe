@@ -21,19 +21,25 @@ router.get('/', async (req, res, next) => {
     const filtered = repos
       .filter((r) => nameOrder.includes(r.name))
       .sort((a, b) => nameOrder.indexOf(a.name) - nameOrder.indexOf(b.name))
-      .map((r, i) => ({
-        _id: r.name,
-        title: r.name,
-        description: r.description,
-        techStack: r.languages?.length ? r.languages : (r.topics?.length ? r.topics : []),
-        repoUrl: r.repoUrl,
-        demoUrl: r.demoUrl,
-        imageUrl: '',
-        featured: featuredSet.has(r.name),
-        order: i + 1,
-        stars: r.stars,
-        forks: r.forks,
-      }));
+      .map((r, i) => {
+        const entry = selected.find((s) => (typeof s === 'string' ? s : s.name) === r.name);
+        const extraTags = entry?.extraTags ?? [];
+        const baseTech = r.languages?.length ? r.languages : (r.topics?.length ? r.topics : []);
+        const techStack = [...new Set([...baseTech, ...extraTags])];
+        return {
+          _id: r.name,
+          title: r.name,
+          description: r.description,
+          techStack,
+          repoUrl: r.repoUrl,
+          demoUrl: r.demoUrl,
+          imageUrl: '',
+          featured: featuredSet.has(r.name),
+          order: i + 1,
+          stars: r.stars,
+          forks: r.forks,
+        };
+      });
 
     res.json(filtered);
   } catch (err) {

@@ -7,12 +7,13 @@ import { LINKS } from "../config/links";
 import { submitFeedback } from "../api";
 
 const TABS = [
-  { label: "All", to: "/all", query: "anurag developer portfolio" },
-  { label: "About", to: "/about", query: "anurag about me" },
-  { label: "Projects", to: "/projects", query: "anurag projects github" },
-  { label: "Contact", to: "/contact", query: "contact anurag" },
-  { label: "Blog", to: "/blog", query: "anurag blog posts" },
-  { label: "Tools", to: "/tools", query: "anurag tools stack" },
+  { label: "All",     to: "/all",      query: "anurag developer portfolio" },
+  { label: "About",   to: "/about",    query: "anurag about me" },
+  { label: "Projects",to: "/projects", query: "anurag projects github" },
+  { label: "Blog",    to: "/blog",     query: "anurag blog posts" },
+  { label: "Tools",   to: "/tools",    query: "anurag tools stack" },
+  { label: "Images",  to: "/images",   query: "anurag images gallery" },
+  { label: "Contact", to: "/contact",  query: "contact anurag" },
 ];
 
 const FOOTER_CYCLE = [
@@ -22,6 +23,7 @@ const FOOTER_CYCLE = [
   { label: "Projects", to: "/projects" },
   { label: "Blog", to: "/blog" },
   { label: "Tools", to: "/tools" },
+  { label: "Images", to: "/images" },
   { label: "All", to: "/all" },
 ];
 
@@ -103,6 +105,18 @@ export default function SearchLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isDark, toggle } = useTheme();
+
+  const [imagesPageEnabled, setImagesPageEnabled] = useState(
+    () => localStorage.getItem('imagesPageEnabled') !== 'false'
+  );
+
+  useEffect(() => {
+    const handler = () => setImagesPageEnabled(localStorage.getItem('imagesPageEnabled') !== 'false');
+    window.addEventListener('imagesPageToggled', handler);
+    return () => window.removeEventListener('imagesPageToggled', handler);
+  }, []);
+
+  const visibleTabs = TABS.filter(t => t.to !== '/images' || imagesPageEnabled);
 
   const currentTab = TABS.find((t) => t.to === location.pathname);
   const footerIndex = FOOTER_CYCLE.findIndex(
@@ -1073,7 +1087,7 @@ export default function SearchLayout() {
             All
           </Link>
 
-          {TABS.filter((t) => t.to !== "/all").map(({ label, to }) => (
+          {visibleTabs.filter((t) => t.to !== "/all").map(({ label, to }) => (
             <Link
               key={to}
               to={to}
@@ -1158,6 +1172,21 @@ export default function SearchLayout() {
                     strokeLinejoin="round"
                     strokeWidth={2}
                     d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                  />
+                </svg>
+              )}
+              {label === "Images" && (
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                   />
                 </svg>
               )}
