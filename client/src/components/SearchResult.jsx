@@ -79,7 +79,7 @@ export default function SearchResult({
             </button>
 
             {menuOpen && (
-              <div className="absolute left-0 top-full mt-1 z-50 min-w-[150px] rounded-xl
+              <div className="absolute left-0 top-full mt-1 z-50 w-max rounded-xl
                               bg-white dark:bg-[#303134]
                               border border-[#e8eaed] dark:border-[#5f6368]
                               shadow-[0_4px_16px_rgba(0,0,0,0.15)] overflow-hidden">
@@ -90,11 +90,15 @@ export default function SearchResult({
                       action();
                       setMenuOpen(false);
                     }}
-                    className="w-full flex items-center gap-3 pl-4 pr-3 py-2.5 text-left
+                    className="w-full flex items-center gap-2.5 pl-4 pr-3 py-2.5 text-left whitespace-nowrap
                                text-[13px] text-[#202124] dark:text-[#e8eaed]
                                hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
                   >
-                    {icon && <span className="text-base leading-none">{icon}</span>}
+                    {icon && (
+                      <svg className="w-4 h-4 text-[#5f6368] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={icon} />
+                      </svg>
+                    )}
                     {label}
                   </button>
                 ))}

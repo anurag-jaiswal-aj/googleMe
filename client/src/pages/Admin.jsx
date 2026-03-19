@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import api from '../api';
+import api, { fetchGithubRepos, saveGithubSelection } from '../api';
 import { LINKS } from '../config/links';
 
 export default function Admin() {
@@ -11,7 +11,14 @@ export default function Admin() {
   
   // Content states
   const [aboutContent, setAboutContent] = useState('');
-  const [projects, setProjects] = useState([]);
+  // GitHub repo picker
+  const [allRepos, setAllRepos] = useState([]);
+  const [selectedRepos, setSelectedRepos] = useState([]); // [{ name, featured }]
+  const [reposLoading, setReposLoading] = useState(false);
+  const [reposError, setReposError] = useState('');
+  const [reposSaving, setReposSaving] = useState(false);
+  const [reposSaved, setReposSaved] = useState(false);
+  const [repoSearch, setRepoSearch] = useState('');
   const [contactInfo, setContactInfo] = useState({
     email: LINKS.email,
     phone: '+91 XXXXX XXXXX',
@@ -30,22 +37,18 @@ export default function Admin() {
 
   const loadContent = async () => {
     try {
-      // Load about content (you might need to create this endpoint)
-      // const aboutRes = await api.get('/admin/about');
-      // setAboutContent(aboutRes.data.content);
-      
-      // Load projects
-      const projectsRes = await api.get('/projects');
-      setProjects(projectsRes.data);
-      
-      // Load contact info
-      setContactInfo({
-        email: LINKS.email,
-        phone: '+91 XXXXX XXXXX',
-        address: 'Bengaluru, India'
-      });
+      setReposLoading(true);
+      setReposError('');
+      const { repos, selected } = await fetchGithubRepos();
+      setAllRepos(repos);
+      // Normalise: server may return strings (legacy) or { name, featured } objects
+      setSelectedRepos(
+        selected.map((s) => (typeof s === 'string' ? { name: s, featured: false } : s))
+      );
     } catch (err) {
-      console.error('Failed to load content:', err);
+      setReposError('Could not load GitHub repos. Check GITHUB_USERNAME env var or network.');
+    } finally {
+      setReposLoading(false);
     }
   };
 
@@ -77,15 +80,6 @@ export default function Admin() {
       alert('About content saved successfully!');
     } catch (err) {
       alert('Failed to save about content');
-    }
-  };
-
-  const saveProjects = async () => {
-    try {
-      // await api.post('/admin/projects', { projects });
-      alert('Projects saved successfully!');
-    } catch (err) {
-      alert('Failed to save projects');
     }
   };
 
@@ -266,113 +260,179 @@ export default function Admin() {
 
           {/* Projects Tab */}
           {activeTab === 'projects' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-[#202124] dark:text-[#e8eaed]">Manage Projects</h2>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-[#202124] dark:text-[#e8eaed]">GitHub Repos</h2>
+                  <p className="text-xs text-[#5f6368] dark:text-[#9aa0a6] mt-0.5">
+                    Select which repos appear on the Projects page. Order = selection order.
+                  </p>
+                </div>
                 <button
-                  onClick={() => {
-                    const newProject = {
-                      _id: `project-${Date.now()}`,
-                      title: 'New Project',
-                      description: 'Project description',
-                      techStack: [],
-                      repoUrl: '',
-                      demoUrl: '',
-                      featured: false,
-                      order: projects.length + 1
-                    };
-                    setProjects([...projects, newProject]);
-                  }}
-                  className="px-4 py-2 bg-[#34a853] text-white rounded-lg font-normal hover:bg-[#2d8f47] transition-colors text-sm"
+                  onClick={loadContent}
+                  disabled={reposLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#1a73e8] border border-[#dadce0] dark:border-[#5f6368] rounded-lg hover:bg-[#f1f3f4] dark:hover:bg-[#2d2e30] transition-colors disabled:opacity-50"
                 >
-                  + Add Project
+                  <svg className={`w-3.5 h-3.5 ${reposLoading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                  </svg>
+                  Refresh
                 </button>
               </div>
 
-              <div className="space-y-4">
-                {projects.map((project, index) => (
-                  <div key={project._id} className="border border-[#e8eaed] dark:border-[#3c4043] rounded-lg p-4 space-y-3">
+              {reposError && (
+                <div className="text-sm text-[#d93025] bg-[#fce8e6] px-3 py-2 rounded-lg">{reposError}</div>
+              )}
+
+              {/* Selected count + search */}
+              {!reposLoading && allRepos.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 relative">
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9aa0a6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+                    </svg>
                     <input
                       type="text"
-                      value={project.title}
-                      onChange={(e) => {
-                        const updated = [...projects];
-                        updated[index].title = e.target.value;
-                        setProjects(updated);
-                      }}
-                      className="w-full px-3 py-2 border border-[#dadce0] dark:border-[#5f6368] rounded-md bg-white dark:bg-[#202124] text-[#202124] dark:text-[#e8eaed] focus:outline-none focus:ring-1 focus:ring-[#1a73e8] focus:border-[#1a73e8] transition-colors text-sm"
-                      placeholder="Project Title"
+                      value={repoSearch}
+                      onChange={(e) => setRepoSearch(e.target.value)}
+                      placeholder="Filter repos…"
+                      className="w-full pl-9 pr-3 py-2 text-sm border border-[#dadce0] dark:border-[#5f6368] rounded-lg bg-white dark:bg-[#202124] text-[#202124] dark:text-[#e8eaed] focus:outline-none focus:ring-1 focus:ring-[#1a73e8] transition-colors"
                     />
-                    <textarea
-                      value={project.description}
-                      onChange={(e) => {
-                        const updated = [...projects];
-                        updated[index].description = e.target.value;
-                        setProjects(updated);
-                      }}
-                      className="w-full h-20 px-3 py-2 border border-[#dadce0] dark:border-[#5f6368] rounded-md bg-white dark:bg-[#202124] text-[#202124] dark:text-[#e8eaed] focus:outline-none focus:ring-1 focus:ring-[#1a73e8] focus:border-[#1a73e8] transition-colors text-sm"
-                      placeholder="Project Description"
-                    />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <input
-                        type="url"
-                        value={project.repoUrl}
-                        onChange={(e) => {
-                          const updated = [...projects];
-                          updated[index].repoUrl = e.target.value;
-                          setProjects(updated);
-                        }}
-                        className="w-full px-3 py-2 border border-[#dadce0] dark:border-[#5f6368] rounded-md bg-white dark:bg-[#202124] text-[#202124] dark:text-[#e8eaed] focus:outline-none focus:ring-1 focus:ring-[#1a73e8] focus:border-[#1a73e8] transition-colors text-sm"
-                        placeholder="GitHub Repository URL"
-                      />
-                      <input
-                        type="url"
-                        value={project.demoUrl}
-                        onChange={(e) => {
-                          const updated = [...projects];
-                          updated[index].demoUrl = e.target.value;
-                          setProjects(updated);
-                        }}
-                        className="w-full px-3 py-2 border border-[#dadce0] dark:border-[#5f6368] rounded-md bg-white dark:bg-[#202124] text-[#202124] dark:text-[#e8eaed] focus:outline-none focus:ring-1 focus:ring-[#1a73e8] focus:border-[#1a73e8] transition-colors text-sm"
-                        placeholder="Live Demo URL"
-                      />
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <label className="flex items-center gap-2 text-sm text-[#202124] dark:text-[#e8eaed]">
-                        <input
-                          type="checkbox"
-                          checked={project.featured}
-                          onChange={(e) => {
-                            const updated = [...projects];
-                            updated[index].featured = e.target.checked;
-                            setProjects(updated);
-                          }}
-                          className="rounded border-[#e8eaed] dark:border-[#3c4043]"
-                        />
-                        Featured Project
-                      </label>
-                      <button
-                        onClick={() => {
-                          const updated = projects.filter((_, i) => i !== index);
-                          setProjects(updated);
-                        }}
-                        className="ml-auto px-3 py-1.5 text-sm text-[#ea4335] hover:bg-[#fce8e6] dark:hover:bg-[#3b1f1f] rounded-md transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
                   </div>
-                ))}
-              </div>
+                  <span className="text-sm text-[#5f6368] dark:text-[#9aa0a6] shrink-0">
+                    {selectedRepos.length} selected
+                  </span>
+                </div>
+              )}
 
-              <div className="flex justify-end mt-6">
-                <button
-                  onClick={saveProjects}
-                  className="px-6 py-2.5 bg-[#1a73e8] text-white rounded-lg font-normal hover:bg-[#1967d2] transition-colors"
-                >
-                  Save All Projects
-                </button>
-              </div>
+              {/* Repo list */}
+              {reposLoading ? (
+                <div className="space-y-2">
+                  {[1,2,3,4,5].map(i => (
+                    <div key={i} className="h-16 rounded-lg bg-[#f1f3f4] dark:bg-[#2d2e30] animate-pulse"/>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
+                  {allRepos
+                    .filter(r => !repoSearch || r.name.toLowerCase().includes(repoSearch.toLowerCase()) || (r.description || '').toLowerCase().includes(repoSearch.toLowerCase()))
+                    .map((repo) => {
+                      const entry = selectedRepos.find((s) => s.name === repo.name);
+                      const isSelected = !!entry;
+                      const isFeatured = entry?.featured ?? false;
+                      const selIdx = selectedRepos.findIndex((s) => s.name === repo.name);
+                      return (
+                        <div
+                          key={repo.name}
+                          className={`flex items-start gap-3 p-3 rounded-lg border transition-colors
+                            ${isSelected
+                              ? 'border-[#1a73e8] bg-[#e8f0fe] dark:bg-[#1a2744] dark:border-[#4285F4]'
+                              : 'border-[#e8eaed] dark:border-[#3c4043] hover:bg-[#f8f9fa] dark:hover:bg-[#2d2e30]'
+                            }`}
+                        >
+                          {/* Checkbox */}
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {
+                              setReposSaved(false);
+                              setSelectedRepos(prev =>
+                                isSelected
+                                  ? prev.filter(s => s.name !== repo.name)
+                                  : [...prev, { name: repo.name, featured: false }]
+                              );
+                            }}
+                            className="mt-1 shrink-0 accent-[#1a73e8]"
+                          />
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-medium text-[#202124] dark:text-[#e8eaed] truncate">{repo.name}</span>
+                              {isSelected && (
+                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#1a73e8] text-white shrink-0">
+                                  #{selIdx + 1}
+                                </span>
+                              )}
+                              {repo.language && (
+                                <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-[#f1f3f4] dark:bg-[#3c4043] text-[#5f6368] dark:text-[#9aa0a6] shrink-0">
+                                  {repo.language}
+                                </span>
+                              )}
+                              {repo.stars > 0 && (
+                                <span className="text-[11px] text-[#9aa0a6] flex items-center gap-0.5 shrink-0">
+                                  <svg className="w-3 h-3 text-[#FBBC05]" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                  </svg>
+                                  {repo.stars}
+                                </span>
+                              )}
+                            </div>
+                            {repo.description && (
+                              <p className="text-xs text-[#5f6368] dark:text-[#9aa0a6] mt-0.5 truncate">{repo.description}</p>
+                            )}
+                          </div>
+
+                          {/* Featured star toggle — only visible when selected */}
+                          {isSelected && (
+                            <button
+                              title={isFeatured ? 'Remove featured' : 'Mark as featured'}
+                              onClick={() => {
+                                setReposSaved(false);
+                                setSelectedRepos(prev =>
+                                  prev.map(s => s.name === repo.name ? { ...s, featured: !s.featured } : s)
+                                );
+                              }}
+                              className="shrink-0 p-1 rounded-full hover:bg-white/60 dark:hover:bg-black/20 transition-colors"
+                            >
+                              <svg className={`w-4 h-4 ${isFeatured ? 'text-[#FBBC05]' : 'text-[#dadce0] dark:text-[#5f6368]'}`} fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+
+              {/* Save button */}
+              {!reposLoading && (
+                <div className="flex items-center justify-between pt-2 border-t border-[#e8eaed] dark:border-[#3c4043]">
+                  {reposSaved ? (
+                    <span className="text-sm text-[#34A853] flex items-center gap-1.5">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+                      </svg>
+                      Saved — Projects page updated
+                    </span>
+                  ) : <span />}
+                  <button
+                    disabled={reposSaving}
+                    onClick={async () => {
+                      setReposSaving(true);
+                      setReposSaved(false);
+                      try {
+                        await saveGithubSelection(selectedRepos);
+                        setReposSaved(true);
+                      } catch {
+                        setReposError('Failed to save selection. Try again.');
+                      } finally {
+                        setReposSaving(false);
+                      }
+                    }}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-[#1a73e8] text-white rounded-lg font-normal hover:bg-[#1967d2] disabled:opacity-50 transition-colors"
+                  >
+                    {reposSaving && (
+                      <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                      </svg>
+                    )}
+                    {reposSaving ? 'Saving…' : 'Save Selection'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

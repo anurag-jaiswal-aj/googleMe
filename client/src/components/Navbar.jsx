@@ -15,6 +15,12 @@ export default function Navbar() {
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const handleNavClick = (to) => {
+    if (pathname === to) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   return (
     <nav className="sticky top-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800">
       <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -32,6 +38,7 @@ export default function Navbar() {
             <Link
               key={to}
               to={to}
+              onClick={() => handleNavClick(to)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 pathname === to
                   ? 'bg-blue-50 dark:bg-blue-900/30 text-google-blue'
@@ -79,7 +86,7 @@ export default function Navbar() {
                 <Link
                   key={to}
                   to={to}
-                  onClick={() => setMenuOpen(false)}
+                  onClick={() => { setMenuOpen(false); handleNavClick(to); }}
                   className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                     pathname === to
                       ? 'bg-blue-50 dark:bg-blue-900/30 text-google-blue'

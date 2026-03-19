@@ -4,10 +4,10 @@ import toast from "react-hot-toast";
 import SearchResult from "../components/SearchResult";
 import FilterSort from "../components/FilterSort";
 import { ABOUT_QA } from "../data/allPageData";
-import { SKILLS, EDUCATION, EXPERIENCE } from "../data/aboutData";
+import { SKILLS, EDUCATION, EXPERIENCE, CERTIFICATIONS } from "../data/aboutData";
 import { LINKS } from "../config/links";
 
-const SECTIONS = ["Bio", "Skills", "Education", "Experience"];
+const SECTIONS = ["Bio", "Skills", "Education", "Experience", "Certifications"];
 const SORT_OPTS = [
   { value: "relevance", label: "Relevance" },
   { value: "az", label: "A \u2192 Z" },
@@ -48,6 +48,7 @@ export default function About() {
     skills: false,
     edu: false,
     exp: false,
+    certs: false,
   });
   const openSection = (key) => {
     if (!key) return;
@@ -56,6 +57,7 @@ export default function About() {
       skills: key === "skills",
       edu: key === "edu",
       exp: key === "exp",
+      certs: key === "certs",
     });
   };
   const handleSectionLink = (event, sectionId) => {
@@ -77,10 +79,12 @@ export default function About() {
   const aboutMenuItems = [
     {
       label: "Download Resume",
+      icon: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4",
       action: downloadResume,
     },
     {
       label: "Copy page link",
+      icon: "M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z",
       action: () => {
         navigator.clipboard.writeText(`${window.location.origin}/about`);
         toast.success("Page link copied");
@@ -88,6 +92,7 @@ export default function About() {
     },
     {
       label: "View on LinkedIn",
+      icon: "M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14",
       action: () => window.open(LINKS.linkedin, "_blank", "noopener,noreferrer"),
     },
   ];
@@ -103,6 +108,7 @@ export default function About() {
     { id: "Education", delay: 0.1 },
     { id: "Skills", delay: 0.15 },
     { id: "Experience", delay: 0.2 },
+    { id: "Certifications", delay: 0.25 },
   ];
 
   let visible =
@@ -165,6 +171,7 @@ export default function About() {
                 { label: "Skills", to: "#skills", key: "skills" },
                 { label: "Education", to: "#education", key: "edu" },
                 { label: "Experience", to: "#experience", key: "exp" },
+                { label: "Certifications", to: "#certifications", key: "certs" },
                 { label: "Projects", to: "/projects" },
                 { label: "Contact", to: "/contact" },
                 { label: "Blog", to: "/blog" },
@@ -355,6 +362,72 @@ export default function About() {
       );
     }
 
+    if (id === "Certifications") {
+      return (
+        <motion.div
+          key={id}
+          id="certifications"
+          className="scroll-mt-36"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay }}
+        >
+          <SearchResult
+            url="anurag.dev/about/certifications"
+            title="Certifications & Courses | Verified Learning"
+            snippet={`${CERTIFICATIONS.length} verified certifications from platforms including Udemy, Coursera, and IBM covering web development, Python, machine learning, and data structures.`}
+            onTitleClick={() => openSection("certs")}
+            faviconBg="#FBBC05"
+            faviconLetter="C"
+            menuItems={aboutMenuItems}
+          >
+            <AnimatePresence initial={false}>
+              {expanded.certs && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-3 space-y-3">
+                    {CERTIFICATIONS.map(({ title, issuer, year, credential, color }, i) => (
+                      <div key={i} className="flex items-start gap-3">
+                        <div
+                          className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0"
+                          style={{ backgroundColor: color }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[#202124] dark:text-[#e8eaed] leading-snug">
+                            {title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            <p className="text-sm text-[#1a73e8] dark:text-[#8ab4f8]">{issuer}</p>
+                            <span className="text-xs text-[#9aa0a6]">·</span>
+                            <p className="text-xs text-[#5f6368] dark:text-[#9aa0a6]">{year}</p>
+                            {credential && (
+                              <a
+                                href={credential}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-[#1a73e8] dark:text-[#8ab4f8] hover:underline"
+                              >
+                                View credential
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </SearchResult>
+        </motion.div>
+      );
+    }
+
     return null;
   };
 
@@ -363,7 +436,7 @@ export default function About() {
       {/* Stats + controls */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <p className="text-sm text-[#133780] dark:text-[#bdc1c6]">
-          About 4 results (0.42 seconds)
+          About 5 results (0.42 seconds)
         </p>
         <FilterSort
           filterOptions={SECTIONS}
@@ -477,6 +550,29 @@ export default function About() {
           </motion.div>
         </motion.div>
       </AnimatePresence>
+
+      {/* People also search for */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+                  className="max-w-[680px] mt-4 border-t border-[#e8eaed] dark:border-[#3c4043] pt-6">
+        <p className="text-base font-medium text-[#202124] dark:text-[#e8eaed] mb-4">People also search for</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {[
+            { label: 'Open source projects and GitHub', to: '/projects' },
+            { label: 'Skills and tech stack', to: '/tools' },
+            { label: 'Blog posts and articles', to: '/blog' },
+            { label: 'Get in touch', to: '/contact' },
+          ].map(({ label, to }) => (
+            <a key={label} href={to}
+               className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#dadce0] dark:border-[#5f6368]
+                          text-sm text-[#202124] dark:text-[#e8eaed] hover:bg-[#f8f9fa] dark:hover:bg-[#3c4043] transition-colors">
+              <svg className="w-4 h-4 text-[#70757a] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+              </svg>
+              <span className="truncate">{label}</span>
+            </a>
+          ))}
+        </div>
+      </motion.div>
     </div>
   );
 }

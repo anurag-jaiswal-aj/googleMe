@@ -206,12 +206,12 @@ function PostMenu({ post, onRead }) {
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -4 }} transition={{ duration: 0.12 }}
-            className="absolute left-0 top-7 z-50 w-44 bg-white dark:bg-[#303134]
+            className="absolute left-0 top-7 z-50 w-max bg-white dark:bg-[#303134]
                        border border-[#dadce0] dark:border-[#5f6368] rounded-2xl shadow-lg py-1 overflow-hidden"
           >
             {actions.map(a => (
               <button key={a.label} onClick={a.onClick}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm whitespace-nowrap
                            text-[#202124] dark:text-[#e8eaed]
                            hover:bg-[#f8f9fa] dark:hover:bg-[#3c4043] transition-colors text-left">
                 <svg className="w-4 h-4 text-[#5f6368] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../context/ThemeContext";
 import { LINKS } from "../config/links";
+import { submitFeedback } from "../api";
 
 const LANGUAGES = [
   { label: "हिन्दी", code: "hi" },
@@ -25,6 +26,10 @@ const TRANSLATIONS = {
     about: "About",
     projects: "Projects",
     contact: "Contact",
+    gmail: "Gmail",
+    github: "GitHub",
+    linkedin: "LinkedIn",
+    locale: "en-US",
   },
   hi: {
     offeredIn: "पोर्टफोलियो उपलब्ध है:",
@@ -34,6 +39,10 @@ const TRANSLATIONS = {
     about: "परिचय",
     projects: "प्रोजेक्ट्स",
     contact: "संपर्क",
+    gmail: "जीमेल",
+    github: "गिटहब",
+    linkedin: "लिंक्डइन",
+    locale: "hi-IN",
   },
   bn: {
     offeredIn: "পোর্টফোলিও পাওয়া যাচ্ছে:",
@@ -43,6 +52,10 @@ const TRANSLATIONS = {
     about: "পরিচয়",
     projects: "প্রজেক্টস",
     contact: "যোগাযোগ",
+    gmail: "জিমেইল",
+    github: "গিটহাব",
+    linkedin: "লিংকডইন",
+    locale: "bn-BD",
   },
   te: {
     offeredIn: "పోర్ట్‌ఫోలియో అందుబాటులో:",
@@ -52,6 +65,10 @@ const TRANSLATIONS = {
     about: "పరిచయం",
     projects: "ప్రాజెక్టులు",
     contact: "సంప్రదించు",
+    gmail: "జీమెయిల్",
+    github: "గిట్‌హబ్",
+    linkedin: "లింక్డ్‌ఇన్",
+    locale: "te-IN",
   },
   mr: {
     offeredIn: "पोर्टफोलिओ उपलब्ध आहे:",
@@ -61,6 +78,10 @@ const TRANSLATIONS = {
     about: "माझ्याबद्दल",
     projects: "प्रोजेक्ट्स",
     contact: "संपर्क",
+    gmail: "जीमेल",
+    github: "गिटहब",
+    linkedin: "लिंक्डइन",
+    locale: "mr-IN",
   },
   ta: {
     offeredIn: "போர்ட்ஃபோலியோ கிடைக்கிறது:",
@@ -70,6 +91,10 @@ const TRANSLATIONS = {
     about: "என்னைப் பற்றி",
     projects: "திட்டங்கள்",
     contact: "தொடர்பு",
+    gmail: "ஜிமெயில்",
+    github: "கிட்ஹப்",
+    linkedin: "லிங்க்டின்",
+    locale: "ta-IN",
   },
   gu: {
     offeredIn: "પોર્ટફોલિયો ઉપલબ્ધ છે:",
@@ -79,6 +104,10 @@ const TRANSLATIONS = {
     about: "મારા વિશે",
     projects: "પ્રોજેક્ટ્સ",
     contact: "સંપર્ક",
+    gmail: "જીમેઇલ",
+    github: "ગિટહબ",
+    linkedin: "લિંક્ડઇન",
+    locale: "gu-IN",
   },
   kn: {
     offeredIn: "ಪೋರ್ಟ್‌ಫೋಲಿಯೋ ಲಭ್ಯವಿದೆ:",
@@ -88,6 +117,10 @@ const TRANSLATIONS = {
     about: "ನನ್ನ ಬಗ್ಗೆ",
     projects: "ಪ್ರಾಜೆಕ್ಟ್‌ಗಳು",
     contact: "ಸಂಪರ್ಕ",
+    gmail: "ಜಿಮೇಲ್",
+    github: "ಗಿಟ್‌ಹಬ್",
+    linkedin: "ಲಿಂಕ್ಡ್‌ಇನ್",
+    locale: "kn-IN",
   },
   ml: {
     offeredIn: "പോർട്ട്ഫോളിയോ ലഭ്യമാണ്:",
@@ -97,6 +130,10 @@ const TRANSLATIONS = {
     about: "എന്നെക്കുറിച്ച്",
     projects: "പ്രൊജക്ടുകൾ",
     contact: "ബന്ധപ്പെടുക",
+    gmail: "ജിമെയിൽ",
+    github: "ഗിറ്റ്ഹബ്",
+    linkedin: "ലിങ്ക്ഡ്ഇൻ",
+    locale: "ml-IN",
   },
   pa: {
     offeredIn: "ਪੋਰਟਫੋਲੀਓ ਉਪਲਬਧ ਹੈ:",
@@ -106,18 +143,38 @@ const TRANSLATIONS = {
     about: "ਮੇਰੇ ਬਾਰੇ",
     projects: "ਪ੍ਰੋਜੈਕਟ",
     contact: "ਸੰਪਰਕ",
+    gmail: "ਜੀਮੇਲ",
+    github: "ਗਿੱਟਹੱਬ",
+    linkedin: "ਲਿੰਕਡਇਨ",
+    locale: "pa-IN",
   },
 };
 
 // Google-style coloured logo letters
-const LOGO_LETTERS = [
-  { char: "A", color: "#4285F4" },
-  { char: "n", color: "#EA4335" },
-  { char: "u", color: "#FBBC05" },
-  { char: "r", color: "#4285F4" },
-  { char: "a", color: "#34A853" },
-  { char: "g", color: "#EA4335" },
-];
+const GOOGLE_COLORS = ["#4285F4", "#EA4335", "#FBBC05", "#4285F4", "#34A853", "#EA4335"];
+
+function makeLogoLetters(name) {
+  // Use Intl.Segmenter for grapheme-aware splitting (handles Indic scripts correctly)
+  const segmenter = new Intl.Segmenter();
+  const chars = [...segmenter.segment(name)].map((s) => s.segment);
+  return chars.map((char, i) => ({
+    char,
+    color: GOOGLE_COLORS[i % GOOGLE_COLORS.length],
+  }));
+}
+
+const NAME_TRANSLATIONS = {
+  en: "Anurag",
+  hi: "अनुराग",
+  bn: "অনুরাগ",
+  te: "అనురాగ్",
+  mr: "अनुराग",
+  ta: "அனுராக்",
+  gu: "અનુરાગ",
+  kn: "ಅನುರಾಗ್",
+  ml: "അനുരാഗ്",
+  pa: "ਅਨੁਰਾਗ",
+};
 
 export default function Home() {
   const navigate = useNavigate();
@@ -163,6 +220,12 @@ export default function Home() {
   const [aiOpen, setAiOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [helpSection, setHelpSection] = useState(0);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [bugOpen, setBugOpen] = useState(false);
+  const [bugForm, setBugForm] = useState({ type: "bug", message: "", name: "", email: "", attachment: null });
+  const [bugSent, setBugSent] = useState(false);
+  const [bugSubmitting, setBugSubmitting] = useState(false);
+  const [bugError, setBugError] = useState("");
   const [aiInput, setAiInput] = useState("");
   const [aiMessages, setAiMessages] = useState([]);
   const [aiTyping, setAiTyping] = useState(false);
@@ -381,6 +444,8 @@ export default function Home() {
   }, []);
 
   // Weather — geolocation + Open-Meteo (no API key)
+  const coordsRef = useRef(null);
+
   useEffect(() => {
     if (!navigator.geolocation) {
       setWeatherLoading(false);
@@ -388,34 +453,22 @@ export default function Home() {
     }
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
+        coordsRef.current = coords;
         try {
           const WMO = {
-            0: "☀️",
-            1: "🌤️",
-            2: "⛅",
-            3: "☁️",
-            45: "🌫️",
-            48: "🌫️",
-            51: "🌦️",
-            53: "🌦️",
-            55: "🌧️",
-            61: "🌧️",
-            63: "🌧️",
-            65: "🌧️",
-            71: "🌨️",
-            73: "🌨️",
-            75: "❄️",
-            80: "🌦️",
-            81: "🌧️",
-            82: "⛈️",
-            95: "⛈️",
+            0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️",
+            45: "🌫️", 48: "🌫️", 51: "🌦️", 53: "🌦️", 55: "🌧️",
+            61: "�️", 63: "🌧️", 65: "🌧️", 71: "�️", 73: "🌨️",
+            75: "❄️", 80: "🌦️", 81: "🌧️", 82: "⛈️", 95: "⛈️",
           };
+          const locale = TRANSLATIONS[lang]?.locale ?? "en-US";
+          const langCode = locale.split("-")[0];
           const [meteo, geo] = await Promise.all([
             fetch(
               `https://api.open-meteo.com/v1/forecast?latitude=${coords.latitude}&longitude=${coords.longitude}&current_weather=true`,
             ).then((r) => r.json()),
             fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}`,
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}&accept-language=${langCode}`,
             ).then((r) => r.json()),
           ]);
           setWeather({
@@ -434,7 +487,28 @@ export default function Home() {
       () => setWeatherLoading(false),
       { timeout: 8000 },
     );
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-fetch city name in new language when lang changes
+  useEffect(() => {
+    const coords = coordsRef.current;
+    if (!coords || !weather) return;
+    const langCode = (TRANSLATIONS[lang]?.locale ?? "en-US").split("-")[0];
+    fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}&accept-language=${langCode}`,
+    )
+      .then((r) => r.json())
+      .then((geo) => {
+        const city =
+          geo.address?.city ||
+          geo.address?.town ||
+          geo.address?.village ||
+          geo.address?.county ||
+          "";
+        setWeather((w) => w ? { ...w, city } : w);
+      })
+      .catch(() => {});
+  }, [lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close on outside click
   useEffect(() => {
@@ -453,6 +527,75 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e) => {
+      const tag = document.activeElement?.tagName;
+      const isTyping = tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable;
+
+      // Ctrl+Shift+A → Admin (always)
+      if (e.ctrlKey && e.shiftKey && e.key === "A") {
+        e.preventDefault();
+        navigate("/admin");
+        return;
+      }
+      // Ctrl+Shift+H → Help modal
+      if (e.ctrlKey && e.shiftKey && e.key === "H") {
+        e.preventDefault();
+        setHelpOpen(true);
+        setHelpSection(0);
+        return;
+      }
+      // Ctrl+Shift+K → Keyboard shortcuts modal
+      if (e.ctrlKey && e.shiftKey && e.key === "K") {
+        e.preventDefault();
+        setShortcutsOpen(true);
+        return;
+      }
+      // Ctrl+Shift+D → toggle dark/light
+      if (e.ctrlKey && e.shiftKey && e.key === "D") {
+        e.preventDefault();
+        toggle();
+        return;
+      }
+      if (isTyping) return;
+      // / → focus search bar
+      if (e.key === "/") {
+        e.preventDefault();
+        inputRef.current?.focus();
+        return;
+      }
+      // G then shortcuts (navigation)
+      if (e.key === "g") {
+        const next = (e2) => {
+          document.removeEventListener("keydown", next);
+          if (e2.key === "h") navigate("/");
+          else if (e2.key === "a") navigate("/about");
+          else if (e2.key === "p") navigate("/projects");
+          else if (e2.key === "b") navigate("/blog");
+          else if (e2.key === "c") navigate("/contact");
+          else if (e2.key === "t") navigate("/tools");
+        };
+        document.addEventListener("keydown", next, { once: true });
+        return;
+      }
+      // Esc → close any open modal/dropdown
+      if (e.key === "Escape") {
+        setFocused(false);
+        setAppsOpen(false);
+        setAvatarOpen(false);
+        setAiOpen(false);
+        setMicOpen(false);
+        setLensOpen(false);
+        setHelpOpen(false);
+        setShortcutsOpen(false);
+        setBugOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [navigate, toggle]);
+
   return (
     <div className="relative min-h-screen flex flex-col bg-white dark:bg-gray-950 transition-colors duration-300">
       {/* Top bar */}
@@ -468,13 +611,13 @@ export default function Home() {
             >
               <div className="text-left">
                 <p className="text-sm font-medium text-[#202124] dark:text-[#e8eaed] tabular-nums leading-none">
-                  {time.toLocaleTimeString([], {
+                  {time.toLocaleTimeString(t.locale, {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
                 </p>
                 <p className="text-xs text-[#5f6368] dark:text-[#9aa0a6] leading-none mt-0.5">
-                  {time.toLocaleDateString([], {
+                  {time.toLocaleDateString(t.locale, {
                     weekday: "short",
                     month: "short",
                     day: "numeric",
@@ -509,7 +652,7 @@ export default function Home() {
             href={LINKS.mailto}
             className="text-sm text-[#202124] dark:text-[#e8eaed] hover:underline px-3 py-1.5 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
           >
-            Gmail
+            {t.gmail}
           </a>
           {/*
         <a
@@ -797,30 +940,6 @@ export default function Home() {
                         />
                       </svg>
                     </a>
-                    <button
-                      onClick={() => {
-                        navigate("/admin");
-                        setAvatarOpen(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-5 py-2.5
-                               text-[13.5px] text-[#202124] dark:text-[#e8eaed]
-                               hover:bg-[#f1f3f4] dark:hover:bg-[#2d2e30] transition-colors"
-                    >
-                      <span className="flex-1 text-left">Admin Access</span>
-                      <svg
-                        className="w-3.5 h-3.5 text-[#9aa0a6]"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                        />
-                      </svg>
-                    </button>
                   </div>
 
                   <div className="border-t border-[#e8eaed] dark:border-[#3c4043] mx-3" />
@@ -895,6 +1014,41 @@ export default function Home() {
                       Help
                     </button>
                   </div>
+
+                  <div className="border-t border-[#e8eaed] dark:border-[#3c4043] mx-3" />
+
+                  {/* Others */}
+                  <div className="py-1.5">
+                    <button
+                      onClick={() => { setShortcutsOpen(true); setAvatarOpen(false); }}
+                      className="w-full flex items-center gap-3 px-5 py-2.5
+                               text-[13.5px] text-[#202124] dark:text-[#e8eaed]
+                               hover:bg-[#f1f3f4] dark:hover:bg-[#2d2e30] transition-colors"
+                    >
+                      <svg className="w-4 h-4 text-[#5f6368] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <rect x="2" y="6" width="4" height="3" rx="0.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <rect x="8" y="6" width="4" height="3" rx="0.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <rect x="14" y="6" width="8" height="3" rx="0.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <rect x="2" y="12" width="8" height="3" rx="0.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <rect x="12" y="12" width="4" height="3" rx="0.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <rect x="18" y="12" width="4" height="3" rx="0.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <rect x="2" y="18" width="4" height="3" rx="0.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <rect x="8" y="18" width="12" height="3" rx="0.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span className="flex-1 text-left">Keyboard shortcuts</span>
+                    </button>
+                    <button
+                      onClick={() => { setBugSent(false); setBugForm({ type: "bug", message: "", name: "", email: "", attachment: null }); setBugOpen(true); setAvatarOpen(false); }}
+                      className="w-full flex items-center gap-3 px-5 py-2.5
+                               text-[13.5px] text-[#202124] dark:text-[#e8eaed]
+                               hover:bg-[#f1f3f4] dark:hover:bg-[#2d2e30] transition-colors"
+                    >
+                      <svg className="w-4 h-4 text-[#5f6368] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                      </svg>
+                      <span className="flex-1 text-left">Report a bug / Feedback</span>
+                    </button>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -913,9 +1067,9 @@ export default function Home() {
           className="mb-8 select-none"
         >
           <h1 className="text-7xl sm:text-8xl md:text-9xl font-bold tracking-tight leading-none">
-            {LOGO_LETTERS.map(({ char, color }, i) => (
+            {makeLogoLetters(NAME_TRANSLATIONS[lang] ?? "Anurag").map(({ char, color }, i) => (
               <motion.span
-                key={i}
+                key={`${lang}-${i}`}
                 style={{ color }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1912,6 +2066,272 @@ export default function Home() {
         )}
       </AnimatePresence>
 
+      {/* ── Keyboard Shortcuts Modal ────────────────────────────── */}
+      <AnimatePresence>
+        {shortcutsOpen && (
+          <motion.div
+            key="shortcuts-backdrop"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 dark:bg-black/65 p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) setShortcutsOpen(false); }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{ duration: 0.18 }}
+              className="w-full max-w-md bg-white dark:bg-[#202124] rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8eaed] dark:border-[#3c4043]">
+                <span className="text-[15px] font-medium text-[#202124] dark:text-[#e8eaed]">Keyboard Shortcuts</span>
+                <button onClick={() => setShortcutsOpen(false)} className="p-1.5 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#2d2e30] transition-colors">
+                  <svg className="w-5 h-5 text-[#5f6368]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+              <div className="px-5 py-4 space-y-1 max-h-[70vh] overflow-y-auto">
+                {[
+                  { group: "Navigation" },
+                  { keys: ["/"], desc: "Focus search bar" },
+                  { keys: ["g", "h"], desc: "Go to Home" },
+                  { keys: ["g", "a"], desc: "Go to About" },
+                  { keys: ["g", "p"], desc: "Go to Projects" },
+                  { keys: ["g", "b"], desc: "Go to Blog" },
+                  { keys: ["g", "c"], desc: "Go to Contact" },
+                  { keys: ["g", "t"], desc: "Go to Tools" },
+                  { group: "Search" },
+                  { keys: ["↑", "↓"], desc: "Navigate suggestions" },
+                  { keys: ["Enter"], desc: "Select suggestion / search" },
+                  { keys: ["Esc"], desc: "Dismiss dropdown / close modal" },
+                  { group: "UI" },
+                  { keys: ["Ctrl", "Shift", "D"], desc: "Toggle dark / light mode" },
+                  { keys: ["Ctrl", "Shift", "H"], desc: "Open Help" },
+                  { keys: ["Ctrl", "Shift", "K"], desc: "Open Keyboard shortcuts" },
+                  { keys: ["Ctrl", "Shift", "A"], desc: "Open Admin panel" },
+                ].map((item, i) =>
+                  item.group ? (
+                    <p key={i} className="pt-3 pb-1 text-[11px] font-semibold text-[#9aa0a6] uppercase tracking-wider first:pt-0">{item.group}</p>
+                  ) : (
+                    <div key={item.desc} className="flex items-center justify-between py-2 border-b border-[#f1f3f4] dark:border-[#2d2e30] last:border-0">
+                      <span className="text-[13px] text-[#202124] dark:text-[#e8eaed]">{item.desc}</span>
+                      <div className="flex items-center gap-1">
+                        {item.keys.map((k, j) => (
+                          <span key={j} className="px-2 py-0.5 rounded-md bg-[#f1f3f4] dark:bg-[#303134] text-[11.5px] font-mono font-medium text-[#202124] dark:text-[#e8eaed] border border-[#dadce0] dark:border-[#5f6368]">{k}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Report a Bug / Feedback Modal ───────────────────────── */}
+      <AnimatePresence>
+        {bugOpen && (
+          <motion.div
+            key="bug-backdrop"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 dark:bg-black/65 p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) setBugOpen(false); }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{ duration: 0.18 }}
+              className="w-full max-w-[480px] bg-white dark:bg-[#202124] rounded-3xl shadow-2xl overflow-hidden"
+            >
+              <div className="h-1.5 w-full flex">
+                <div className="flex-1 bg-[#4285F4]" /><div className="flex-1 bg-[#EA4335]" />
+                <div className="flex-1 bg-[#FBBC05]" /><div className="flex-1 bg-[#34A853]" />
+              </div>
+
+              {bugSent ? (
+                <div className="px-8 py-10 flex flex-col items-center gap-3 text-center">
+                  <svg className="w-14 h-14 mb-1" viewBox="0 0 56 56" fill="none">
+                    <circle cx="28" cy="28" r="28" fill="#e8f5e9"/>
+                    <path d="M16 28l8 8 16-16" stroke="#34A853" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <p className="text-[17px] font-medium text-[#202124] dark:text-[#e8eaed]">Thanks for the feedback!</p>
+                  <p className="text-[13px] text-[#5f6368] dark:text-[#9aa0a6]">Your message has been noted. Anurag will look into it.</p>
+                  <button onClick={() => setBugOpen(false)} className="mt-3 px-7 py-2 rounded-full bg-[#1a73e8] text-white text-[13.5px] font-medium hover:bg-[#1557b0] transition-colors">Done</button>
+                </div>
+              ) : (
+                <div className="px-6 pt-5 pb-6 max-h-[85vh] overflow-y-auto">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-5">
+                    <div className="flex items-center gap-2.5">
+                      <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                      </svg>
+                      <span className="text-[15px] font-medium text-[#202124] dark:text-[#e8eaed]">Send feedback</span>
+                    </div>
+                    <button onClick={() => setBugOpen(false)} className="p-1.5 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#2d2e30] transition-colors">
+                      <svg className="w-5 h-5 text-[#5f6368]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Type chips — 2 rows of 3 */}
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    {[
+                      { id: "bug",        label: "🐛 Bug",           color: "#EA4335" },
+                      { id: "feature",    label: "✨ Feature",        color: "#4285F4" },
+                      { id: "suggestion", label: "💡 Suggestion",     color: "#34A853" },
+                      { id: "typo",       label: "✏️ Typo / Content", color: "#FBBC05" },
+                      { id: "compliment", label: "🌟 Compliment",     color: "#34A853" },
+                      { id: "other",      label: "💬 Other",          color: "#9aa0a6" },
+                    ].map(({ id, label, color }) => (
+                      <button
+                        key={id}
+                        onClick={() => setBugForm((f) => ({ ...f, type: id }))}
+                        style={bugForm.type === id ? { borderColor: color, color, backgroundColor: color + "18" } : {}}
+                        className={`py-1.5 px-2 rounded-full text-[11.5px] font-medium border transition-all text-center
+                          ${bugForm.type === id ? "border-current" : "border-[#dadce0] dark:border-[#5f6368] text-[#5f6368] dark:text-[#9aa0a6] hover:bg-[#f1f3f4] dark:hover:bg-[#2d2e30]"}`}
+                      >{label}</button>
+                    ))}
+                  </div>
+
+                  {/* Message */}
+                  <textarea
+                    rows={3}
+                    value={bugForm.message}
+                    onChange={(e) => setBugForm((f) => ({ ...f, message: e.target.value }))}
+                    placeholder={
+                      bugForm.type === "bug"        ? "Describe what went wrong…"
+                      : bugForm.type === "feature"    ? "Describe the feature you'd like…"
+                      : bugForm.type === "suggestion" ? "Share your idea…"
+                      : bugForm.type === "typo"       ? "What's incorrect and where?"
+                      : bugForm.type === "compliment" ? "Say something nice 😊"
+                      : "Your message…"
+                    }
+                    className="w-full rounded-xl border border-[#dadce0] dark:border-[#5f6368] bg-[#f8f9fa] dark:bg-[#303134]
+                               px-4 py-3 text-[13.5px] text-[#202124] dark:text-[#e8eaed] placeholder:text-[#9aa0a6]
+                               outline-none focus:border-[#1a73e8] focus:bg-white dark:focus:bg-[#3c4043] resize-none transition-all"
+                  />
+
+                  {/* Optional name + email */}
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    <input
+                      type="text"
+                      value={bugForm.name}
+                      onChange={(e) => setBugForm((f) => ({ ...f, name: e.target.value }))}
+                      placeholder="Name (optional)"
+                      className="rounded-xl border border-[#dadce0] dark:border-[#5f6368] bg-[#f8f9fa] dark:bg-[#303134]
+                                 px-4 py-2.5 text-[13px] text-[#202124] dark:text-[#e8eaed] placeholder:text-[#9aa0a6]
+                                 outline-none focus:border-[#1a73e8] focus:bg-white dark:focus:bg-[#3c4043] transition-all"
+                    />
+                    <input
+                      type="email"
+                      value={bugForm.email}
+                      onChange={(e) => setBugForm((f) => ({ ...f, email: e.target.value }))}
+                      placeholder="Email (optional)"
+                      className="rounded-xl border border-[#dadce0] dark:border-[#5f6368] bg-[#f8f9fa] dark:bg-[#303134]
+                                 px-4 py-2.5 text-[13px] text-[#202124] dark:text-[#e8eaed] placeholder:text-[#9aa0a6]
+                                 outline-none focus:border-[#1a73e8] focus:bg-white dark:focus:bg-[#3c4043] transition-all"
+                    />
+                  </div>
+
+                  {/* Attachment */}
+                  <div className="mt-3">
+                    <label className="flex items-center gap-2 cursor-pointer w-fit">
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#dadce0] dark:border-[#5f6368]
+                                      text-[12.5px] text-[#5f6368] dark:text-[#9aa0a6] hover:bg-[#f1f3f4] dark:hover:bg-[#2d2e30] transition-colors">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                        </svg>
+                        {bugForm.attachment ? bugForm.attachment.name : "Attach a file (optional)"}
+                      </div>
+                      {bugForm.attachment && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); setBugForm((f) => ({ ...f, attachment: null })); }}
+                          className="text-[#EA4335] hover:text-[#c5221f] text-[11px] font-medium"
+                        >Remove</button>
+                      )}
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*,.pdf,.txt,.log"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setBugForm((f) => ({ ...f, attachment: file }));
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                    <p className="mt-1 text-[11px] text-[#9aa0a6]">Images, PDF, TXT — max 5 MB</p>
+                  </div>
+
+                  {bugError && (
+                    <p className="mt-2 text-[12px] text-[#EA4335] flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                      </svg>
+                      {bugError}
+                    </p>
+                  )}
+
+                  {/* Footer */}
+                  <div className="flex items-center justify-between mt-4">
+                    <p className="text-[11px] text-[#9aa0a6]">
+                      Page: <span className="font-mono">{typeof window !== "undefined" ? window.location.pathname : ""}</span>
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setBugOpen(false)}
+                        className="px-5 py-2 rounded-full text-[13px] font-medium text-[#5f6368] dark:text-[#9aa0a6]
+                                   hover:bg-[#f1f3f4] dark:hover:bg-[#2d2e30] transition-colors"
+                      >Cancel</button>
+                      <button
+                        disabled={!bugForm.message.trim() || bugSubmitting}
+                        onClick={async () => {
+                          setBugError("");
+                          setBugSubmitting(true);
+                          try {
+                            await submitFeedback({
+                              type: bugForm.type,
+                              message: bugForm.message,
+                              name: bugForm.name,
+                              email: bugForm.email,
+                              attachment: bugForm.attachment,
+                              page: window.location.pathname,
+                            });
+                            setBugSent(true);
+                          } catch {
+                            setBugError("Something went wrong. Please try again.");
+                          } finally {
+                            setBugSubmitting(false);
+                          }
+                        }}
+                        className="px-5 py-2 rounded-full bg-[#1a73e8] text-white text-[13px] font-medium
+                                   hover:bg-[#1557b0] disabled:opacity-40 disabled:cursor-default transition-colors flex items-center gap-2"
+                      >
+                        {bugSubmitting && (
+                          <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                          </svg>
+                        )}
+                        {bugSubmitting ? "Sending…" : "Send"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className="h-1.5 w-full flex">
+                <div className="flex-1 bg-[#4285F4]" /><div className="flex-1 bg-[#EA4335]" />
+                <div className="flex-1 bg-[#FBBC05]" /><div className="flex-1 bg-[#34A853]" />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── Help Modal ────────────────────────────────────────── */}
       <AnimatePresence>
         {helpOpen &&
@@ -1968,6 +2388,11 @@ export default function Home() {
                     title: "Avatar & Profile",
                     icon: "👤",
                     desc: 'Click the "A" avatar button to see account info, copy email, toggle dark/light mode, or open this Help guide.',
+                  },
+                  {
+                    title: "Admin Panel",
+                    icon: "🔐",
+                    desc: "Press Ctrl + Shift + A anywhere on the site to open the Admin panel. This shortcut works on both the home page and all search result pages.",
                   },
                   {
                     title: "Weather & Clock",
@@ -2399,7 +2824,7 @@ export default function Home() {
               rel="noopener noreferrer"
               className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors"
             >
-              GitHub
+              {t.github}
             </a>
             <a
               href={LINKS.linkedin}
@@ -2407,7 +2832,7 @@ export default function Home() {
               rel="noopener noreferrer"
               className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors"
             >
-              LinkedIn
+              {t.linkedin}
             </a>
           </div>
           <div className="flex flex-wrap gap-x-6 gap-y-2">

@@ -76,3 +76,30 @@ export const submitContact = async (data) => {
 };
 
 export default api;
+
+export const fetchGithubRepos = () => api.get('/github/repos').then((r) => r.data);
+export const saveGithubSelection = (selectedRepos) =>
+  api.post('/github/selection', { selectedRepos }).then((r) => r.data);
+
+export const submitFeedback = async (data) => {
+  const fd = new FormData();
+  fd.append('type', data.type);
+  fd.append('message', data.message);
+  if (data.name)       fd.append('name', data.name);
+  if (data.email)      fd.append('email', data.email);
+  if (data.page)       fd.append('page', data.page);
+  if (data.attachment) fd.append('attachment', data.attachment);
+
+  const post = (timeout) => api.post('/feedback', fd, {
+    timeout,
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }).then((r) => r.data);
+
+  try {
+    return await post(20000);
+  } catch (err) {
+    if (!isTimeoutLikeError(err)) throw err;
+    try { await api.get('/health', { timeout: 15000 }); } catch {}
+    return await post(20000);
+  }
+};

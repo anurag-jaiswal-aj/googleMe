@@ -122,7 +122,7 @@ function ContactForm() {
           </button>
 
           {menuOpen && (
-            <div className="absolute left-0 top-full z-50 min-w-[170px] rounded-xl
+            <div className="absolute left-0 top-full z-50 w-max rounded-xl
                             bg-white dark:bg-[#303134]
                             border border-[#e8eaed] dark:border-[#5f6368]
                             shadow-[0_4px_16px_rgba(0,0,0,0.15)] overflow-hidden">
@@ -132,10 +132,13 @@ function ContactForm() {
                   toast.success('Contact page link copied');
                   setMenuOpen(false);
                 }}
-                className="w-full flex items-center gap-3 pl-4 pr-3 py-2.5 text-left
+                className="w-full flex items-center gap-2.5 pl-4 pr-3 py-2.5 text-left whitespace-nowrap
                            text-[13px] text-[#202124] dark:text-[#e8eaed]
                            hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
               >
+                <svg className="w-4 h-4 text-[#5f6368] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
                 Copy page link
               </button>
               <button
@@ -144,10 +147,13 @@ function ContactForm() {
                   toast.success('Email copied');
                   setMenuOpen(false);
                 }}
-                className="w-full flex items-center gap-3 pl-4 pr-3 py-2.5 text-left
+                className="w-full flex items-center gap-2.5 pl-4 pr-3 py-2.5 text-left whitespace-nowrap
                            text-[13px] text-[#202124] dark:text-[#e8eaed]
                            hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
               >
+                <svg className="w-4 h-4 text-[#5f6368] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
                 Copy email
               </button>
             </div>
@@ -339,10 +345,10 @@ const SORT_OPTS = [
 ];
 
 const PEOPLE_ALSO_SEARCH = [
-  { label: 'Anurag projects and open source work', to: '/projects' },
-  { label: 'Anurag skills and tech stack',         to: '/tools' },
-  { label: 'About Anurag, bio and background',    to: '/about' },
-  { label: 'Anurag blog posts and articles',       to: '/blog' },
+  { label: 'Projects and open source work', to: '/projects' },
+  { label: 'Skills and tech stack',         to: '/tools' },
+  { label: 'Background and bio',            to: '/about' },
+  { label: 'Blog posts and articles',       to: '/blog' },
 ];
 
 export default function Contact() {
@@ -360,13 +366,23 @@ export default function Contact() {
   const getMenuItems = (item) => [
     {
       label: 'Open profile',
+      icon: 'M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14',
       action: () => window.open(item.href, '_blank', 'noopener,noreferrer'),
     },
     {
       label: 'Copy profile link',
+      icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
       action: () => {
         navigator.clipboard.writeText(item.href);
         toast.success(`${item.name} link copied`);
+      },
+    },
+    {
+      label: 'Share profile',
+      icon: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z',
+      action: () => {
+        if (navigator.share) navigator.share({ title: item.name, url: item.href });
+        else { navigator.clipboard.writeText(item.href); toast.success('Link copied'); }
       },
     },
   ];

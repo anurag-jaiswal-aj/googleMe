@@ -92,6 +92,29 @@ export default function Tools() {
           ))}
         </motion.div>
       </AnimatePresence>
+
+      {/* People also search for */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+                  className="max-w-[680px] mt-4 border-t border-[#e8eaed] dark:border-[#3c4043] pt-6">
+        <p className="text-base font-medium text-[#202124] dark:text-[#e8eaed] mb-4">People also search for</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {[
+            { label: 'Projects and open source work', to: '/projects' },
+            { label: 'Background and bio', to: '/about' },
+            { label: 'Blog posts and articles', to: '/blog' },
+            { label: 'Get in touch', to: '/contact' },
+          ].map(({ label, to }) => (
+            <a key={label} href={to}
+               className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#dadce0] dark:border-[#5f6368]
+                          text-sm text-[#202124] dark:text-[#e8eaed] hover:bg-[#f8f9fa] dark:hover:bg-[#3c4043] transition-colors">
+              <svg className="w-4 h-4 text-[#70757a] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+              </svg>
+              <span className="truncate">{label}</span>
+            </a>
+          ))}
+        </div>
+      </motion.div>
     </div>
   );
 }

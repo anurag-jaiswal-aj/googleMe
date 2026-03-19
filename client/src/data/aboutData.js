@@ -63,6 +63,37 @@ export const EDUCATION = [
   },
 ];
 
+export const CERTIFICATIONS = [
+  {
+    title: "The Complete 2024 Web Development Bootcamp",
+    issuer: "Udemy",
+    year: "2024",
+    credential: "",
+    color: "#EA4335",
+  },
+  {
+    title: "Python for Data Science, AI & Development",
+    issuer: "IBM / Coursera",
+    year: "2024",
+    credential: "",
+    color: "#4285F4",
+  },
+  {
+    title: "Machine Learning Specialization",
+    issuer: "DeepLearning.AI / Coursera",
+    year: "2024",
+    credential: "",
+    color: "#34A853",
+  },
+  {
+    title: "Data Structures and Algorithms",
+    issuer: "Udemy",
+    year: "2023",
+    credential: "",
+    color: "#FBBC05",
+  },
+];
+
 export const EXPERIENCE = [
   {
     period: '2024 – Present',

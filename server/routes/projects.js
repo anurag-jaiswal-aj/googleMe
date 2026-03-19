@@ -1,48 +1,44 @@
 const express = require('express');
 const router = express.Router();
-const Project = require('../models/Project');
+const PortfolioConfig = require('../models/PortfolioConfig');
+const { fetchAllRepos } = require('./github');
+const fallback = require('../../shared/projects.json');
 
-// GET /api/projects — list all projects
+// GET /api/projects — returns only selected GitHub repos shaped like the old schema
 router.get('/', async (req, res, next) => {
   try {
-    const projects = await Project.find().sort({ order: 1, createdAt: -1 });
-    res.json(projects);
-  } catch (err) {
-    next(err);
-  }
-});
+    const config = await PortfolioConfig.findOne({ key: 'github_selection' });
+    const selected = config?.selectedRepos ?? []; // [{ name, featured }]
 
-// GET /api/projects/featured — featured projects only
-router.get('/featured', async (req, res, next) => {
-  try {
-    const projects = await Project.find({ featured: true }).sort({ order: 1 });
-    res.json(projects);
-  } catch (err) {
-    next(err);
-  }
-});
+    if (selected.length === 0) return res.json(fallback);
 
-// GET /api/projects/:id
-router.get('/:id', async (req, res, next) => {
-  try {
-    const project = await Project.findById(req.params.id);
-    if (!project) return res.status(404).json({ error: 'Project not found' });
-    res.json(project);
-  } catch (err) {
-    next(err);
-  }
-});
+    const repos = await fetchAllRepos();
+    const nameOrder = selected.map((s) => (typeof s === 'string' ? s : s.name));
+    const featuredSet = new Set(
+      selected.filter((s) => typeof s !== 'string' && s.featured).map((s) => s.name)
+    );
 
-// POST /api/projects — create (admin/seeding)
-router.post('/', async (req, res, next) => {
-  try {
-    const project = await Project.create(req.body);
-    res.status(201).json(project);
+    const filtered = repos
+      .filter((r) => nameOrder.includes(r.name))
+      .sort((a, b) => nameOrder.indexOf(a.name) - nameOrder.indexOf(b.name))
+      .map((r, i) => ({
+        _id: r.name,
+        title: r.name,
+        description: r.description,
+        techStack: r.languages?.length ? r.languages : (r.topics?.length ? r.topics : []),
+        repoUrl: r.repoUrl,
+        demoUrl: r.demoUrl,
+        imageUrl: '',
+        featured: featuredSet.has(r.name),
+        order: i + 1,
+        stars: r.stars,
+        forks: r.forks,
+      }));
+
+    res.json(filtered);
   } catch (err) {
-    if (err.name === 'ValidationError') {
-      return res.status(400).json({ error: err.message });
-    }
-    next(err);
+    console.error('Projects route error, using fallback:', err.message);
+    res.json(fallback);
   }
 });
 

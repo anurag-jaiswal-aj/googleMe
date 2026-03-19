@@ -5,9 +5,11 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
-const projectRoutes = require('./routes/projects');
-const contactRoutes = require('./routes/contact');
-const mediumRoutes  = require('./routes/medium');
+const projectRoutes  = require('./routes/projects');
+const contactRoutes  = require('./routes/contact');
+const mediumRoutes   = require('./routes/medium');
+const feedbackRoutes = require('./routes/feedback');
+const githubRoutes   = require('./routes/github');
 
 const app = express();
 
@@ -50,6 +52,8 @@ app.use(express.json({ limit: '10kb' }));
 app.use('/api/projects', projectRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/medium', mediumRoutes);
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/github', githubRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

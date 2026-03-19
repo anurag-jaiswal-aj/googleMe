@@ -373,6 +373,8 @@ function ArticleReader({ post, onClose }) {
 export default function All() {
   const navigate = useNavigate();
   const [expandedQA, setExpandedQA] = useState(null);
+  const [expandedProject, setExpandedProject] = useState(null);
+  const [liveProjects, setLiveProjects] = useState([]);
   const [blogPosts, setBlogPosts] = useState(
     getBlogCards(3).map((post) => ({
       ...post,
@@ -395,9 +397,20 @@ export default function All() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    api
+      .get("/projects")
+      .then((response) => {
+        if (Array.isArray(response.data) && response.data.length > 0) {
+          setLiveProjects(response.data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const total =
     QA.length +
-    PROJECTS.length +
+    (liveProjects.length > 0 ? liveProjects.length : PROJECTS.length) +
     blogPosts.length +
     TOOLS.length +
     SOCIALS.length;
@@ -432,20 +445,28 @@ export default function All() {
               url={item.url}
               title={item.question}
               snippet={item.answer}
-              onTitleClick={() => setExpandedQA(isOpen ? null : item.question)}
+              onTitleClick={() => setExpandedQA(item.question)}
               faviconBg={item.faviconBg}
               faviconLetter={item.faviconLetter}
               menuItems={[
                 {
                   label: `Open ${item.pageName}`,
-                  icon: "↗",
+                  icon: 'M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14',
                   action: () => navigate(item.to),
                 },
                 {
                   label: "Copy link",
-                  icon: "🔗",
+                  icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
                   action: () =>
                     navigator.clipboard.writeText(`https://${item.url}`),
+                },
+                {
+                  label: "Share",
+                  icon: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z',
+                  action: () => {
+                    if (navigator.share) navigator.share({ title: item.question, url: `https://${item.url}` });
+                    else navigator.clipboard.writeText(`https://${item.url}`);
+                  },
                 },
               ]}
             >
@@ -480,23 +501,97 @@ export default function All() {
 
       {/* Projects */}
       <SectionLabel label="Projects" />
-      {PROJECTS.map((r, i) => (
-        <motion.div
-          key={r.title}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: (QA.length + i) * 0.05, duration: 0.28 }}
-        >
-          <SearchResult
-            url={r.url}
-            title={r.title}
-            snippet={r.snippet}
-            href={r.href}
-            faviconBg={r.faviconBg}
-            faviconLetter={r.faviconLetter}
-          />
-        </motion.div>
-      ))}
+      {(liveProjects.length > 0 ? liveProjects : PROJECTS).map((r, i) => {
+        const isLive = liveProjects.length > 0;
+        const key = isLive ? r._id : r.title;
+        const title = isLive ? `${r.title} | GitHub` : r.title;
+        const url = isLive
+          ? (r.repoUrl ? r.repoUrl.replace('https://', '') : `github.com/${toSlug(r.title)}`)
+          : r.url;
+        const isExpanded = expandedProject === key;
+        return (
+          <motion.div
+            key={key}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: (QA.length + i) * 0.05, duration: 0.28 }}
+          >
+            <SearchResult
+              url={url}
+              title={title}
+              snippet=""
+              faviconBg="#24292e"
+              faviconLetter="G"
+              onTitleClick={() => setExpandedProject(key)}
+              menuItems={[
+                {
+                  label: 'Copy repo link',
+                  icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
+                  action: () => navigator.clipboard.writeText(isLive ? (r.repoUrl || '') : (r.href || '')),
+                },
+                {
+                  label: 'Share project',
+                  icon: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z',
+                  action: () => {
+                    const link = isLive ? r.repoUrl : r.href;
+                    if (navigator.share) navigator.share({ title: r.title, url: link });
+                    else navigator.clipboard.writeText(link || '');
+                  },
+                },
+              ]}
+            >
+              <p className={`text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-[1.58] ${isExpanded ? '' : 'line-clamp-2'}`}>
+                {isLive ? r.description : r.snippet}
+              </p>
+              {isLive && isExpanded && r.techStack?.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {r.techStack.map(tech => (
+                    <span key={tech} className="inline-block px-2 py-0 rounded text-xs border leading-5 bg-[#f1f3f4] dark:bg-[#2d2d2d] text-[#5f6368] dark:text-[#9aa0a6] border-[#dadce0] dark:border-[#5f6368]">{tech}</span>
+                  ))}
+                </div>
+              )}
+              {isLive && (
+                <div className="flex flex-wrap items-center gap-4 mt-2.5">
+                  {r.repoUrl && (
+                    <a href={r.repoUrl} target="_blank" rel="noopener noreferrer"
+                       className="text-sm text-[#1a73e8] dark:text-[#8ab4f8] hover:underline flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                      </svg>
+                      View on GitHub
+                    </a>
+                  )}
+                  {r.demoUrl && (
+                    <a href={r.demoUrl} target="_blank" rel="noopener noreferrer"
+                       className="text-sm text-[#1a73e8] dark:text-[#8ab4f8] hover:underline flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                      </svg>
+                      Live Demo
+                    </a>
+                  )}
+                  {r.stars > 0 && (
+                    <span className="text-xs text-[#5f6368] dark:text-[#9aa0a6] flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 text-[#FBBC05]" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                      {r.stars} stars
+                    </span>
+                  )}
+                  {r.featured && (
+                    <span className="text-xs text-[#5f6368] dark:text-[#9aa0a6] flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 text-[#FBBC05]" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                      Featured
+                    </span>
+                  )}
+                </div>
+              )}
+            </SearchResult>
+          </motion.div>
+        );
+      })}
 
       {/* Blog */}
       <SectionLabel label="From the blog" />
@@ -518,6 +613,31 @@ export default function All() {
             onTitleClick={post.content ? () => setReading(post) : undefined}
             faviconBg={post.faviconBg || "#4285F4"}
             faviconLetter="B"
+            menuItems={[
+              {
+                label: 'Read here',
+                icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
+                action: () => setReading(post),
+              },
+              {
+                label: 'Copy link',
+                icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
+                action: () => navigator.clipboard.writeText(post.href || LINKS.medium),
+              },
+              {
+                label: 'Open on Medium',
+                icon: 'M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14',
+                action: () => window.open(post.href || LINKS.medium, '_blank', 'noopener,noreferrer'),
+              },
+              {
+                label: 'Share',
+                icon: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z',
+                action: () => {
+                  if (navigator.share) navigator.share({ title: post.title, url: post.href || LINKS.medium });
+                  else navigator.clipboard.writeText(post.href || LINKS.medium);
+                },
+              },
+            ]}
           />
         </motion.div>
       ))}
@@ -570,9 +690,52 @@ export default function All() {
             href={r.href}
             faviconBg={r.faviconBg}
             faviconLetter={r.faviconLetter}
+            menuItems={[
+              {
+                label: 'Open profile',
+                icon: 'M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14',
+                action: () => window.open(r.href, '_blank', 'noopener,noreferrer'),
+              },
+              {
+                label: 'Copy profile link',
+                icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
+                action: () => navigator.clipboard.writeText(r.href),
+              },
+              {
+                label: 'Share profile',
+                icon: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z',
+                action: () => {
+                  if (navigator.share) navigator.share({ title: r.name, url: r.href });
+                  else navigator.clipboard.writeText(r.href);
+                },
+              },
+            ]}
           />
         </motion.div>
       ))}
+
+      {/* People also search for */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+                  className="max-w-[680px] mt-4 border-t border-[#e8eaed] dark:border-[#3c4043] pt-6">
+        <p className="text-base font-medium text-[#202124] dark:text-[#e8eaed] mb-4">People also search for</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {[
+            { label: 'Projects and open source work', to: '/projects' },
+            { label: 'Skills and tech stack', to: '/tools' },
+            { label: 'Blog posts and articles', to: '/blog' },
+            { label: 'Get in touch', to: '/contact' },
+          ].map(({ label, to }) => (
+            <a key={label} href={to}
+               className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#dadce0] dark:border-[#5f6368]
+                          text-sm text-[#202124] dark:text-[#e8eaed] hover:bg-[#f8f9fa] dark:hover:bg-[#3c4043] transition-colors">
+              <svg className="w-4 h-4 text-[#70757a] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+              </svg>
+              <span className="truncate">{label}</span>
+            </a>
+          ))}
+        </div>
+      </motion.div>
     </div>
   );
 }
