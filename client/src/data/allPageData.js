@@ -15,15 +15,15 @@ export const ABOUT_QA = [
     faviconLetter: "A",
   },
   {
-    url: "anurag.dev/tools",
+    url: "anurag.dev/toolkit",
     question: "What technologies do I work with?",
     answer:
-      "JavaScript, TypeScript, Python with React, Node.js, Express, MongoDB, PostgreSQL, Redis, Docker, and modern tooling for full-stack product development.",
+      "JavaScript and Python are my primary languages. On the frontend I use React, TailwindCSS, and Framer Motion. Backend is Node.js and Express with MongoDB. I also work with NumPy, Pandas, Scikit-learn, and TensorFlow for machine learning.",
     type: "skills",
     to: "/tools",
-    pageName: "Tools",
+    pageName: "Toolkit",
     faviconBg: "#8B5CF6",
-    faviconLetter: "T",
+    faviconLetter: "S",
   },
   {
     url: "anurag.dev/about",

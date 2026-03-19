@@ -2264,7 +2264,7 @@ export default function Home() {
                         }}
                       />
                     </label>
-                    <p className="mt-1 text-[11px] text-[#9aa0a6]">Images, PDF, TXT — max 5 MB</p>
+                    <p className="mt-1 text-[11px] text-[#9aa0a6]">Images, PDF, TXT (max 5 MB)</p>
                   </div>
 
                   {bugError && (

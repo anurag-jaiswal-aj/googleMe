@@ -6,7 +6,7 @@ const GITHUB_USER = process.env.GITHUB_USERNAME || 'anurag-jaiswal-aj';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
 
 let repoCache = null;
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 const githubHeaders = () => {
   const h = {

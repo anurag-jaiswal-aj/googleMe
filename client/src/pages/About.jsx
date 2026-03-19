@@ -465,91 +465,96 @@ export default function About() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
         >
-          {visible.map(renderResult)}
-
-          {/* People also ask */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-          >
-            <div className="max-w-[680px] border border-[#dadce0] dark:border-[#3c4043] rounded-xl overflow-hidden mb-1">
-              <div className="px-5 py-3 border-b border-[#e8eaed] dark:border-[#3c4043]">
-                <p className="text-base font-medium text-[#202124] dark:text-[#e8eaed]">
-                  People also ask
-                </p>
-              </div>
-              {[
-                {
-                  q: "Are you available for freelance work?",
-                  a: "Yes. I am open to freelance projects, collaborations, and internship opportunities related to web development, backend systems, and machine learning. You can reach out through the Contact page.",
-                },
-                {
-                  q: "Do you work on Machine Learning projects?",
-                  a: "Yes. I explore machine learning concepts and build ML experiments using Python with libraries such as NumPy, Pandas, Scikit-learn, and Matplotlib.",
-                },
-                {
-                  q: "Do you practice Data Structures & Algorithms?",
-                  a: "Yes. I regularly practice Data Structures & Algorithms to improve my problem-solving skills and to design efficient and optimized solutions.",
-                },
-                {
-                  q: "How do you approach learning new technologies?",
-                  a: "I usually learn new technologies by building small projects and experimenting with practical implementations to understand how systems work in real-world scenarios.",
-                },
-                {
-                  q: "What are you currently learning or exploring?",
-                  a: "I am currently exploring advanced Machine Learning concepts, improving backend architecture knowledge, and strengthening my problem-solving skills through DSA.",
-                },
-              ].map(({ q, a }, i) => (
-                <div
-                  key={q}
-                  className="border-b last:border-b-0 border-[#e8eaed] dark:border-[#3c4043]"
+          {visible.map((item, idx) => (
+            <div key={item.id}>
+              {renderResult(item)}
+              {/* People also ask — rendered after Education */}
+              {item.id === 'Education' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
                 >
-                  <button
-                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                    className="w-full flex items-center justify-between px-5 py-3 cursor-pointer text-left
-                               text-sm font-medium text-[#202124] dark:text-[#e8eaed]
-                               hover:bg-[#f8f9fa] dark:hover:bg-[#303134] transition-colors"
-                  >
-                    {q}
-                    <svg
-                      className={`w-4 h-4 shrink-0 text-[#70757a] transition-transform duration-200 ${
-                        openFaq === i ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-                  <AnimatePresence initial={false}>
-                    {openFaq === i && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2, ease: "easeInOut" }}
-                        className="overflow-hidden"
+                  <div className="max-w-[680px] border border-[#dadce0] dark:border-[#3c4043] rounded-xl overflow-hidden mb-8">
+                    <div className="px-5 py-3 border-b border-[#e8eaed] dark:border-[#3c4043]">
+                      <p className="text-base font-medium text-[#202124] dark:text-[#e8eaed]">
+                        People also ask
+                      </p>
+                    </div>
+                    {[
+                      {
+                        q: "Are you available for freelance work?",
+                        a: "Yes. I am open to freelance projects, collaborations, and internship opportunities related to web development, backend systems, and machine learning. You can reach out through the Contact page.",
+                      },
+                      {
+                        q: "Do you work on Machine Learning projects?",
+                        a: "Yes. I explore machine learning concepts and build ML experiments using Python with libraries such as NumPy, Pandas, Scikit-learn, and Matplotlib.",
+                      },
+                      {
+                        q: "Do you practice Data Structures & Algorithms?",
+                        a: "Yes. I regularly practice Data Structures & Algorithms to improve my problem-solving skills and to design efficient and optimized solutions.",
+                      },
+                      {
+                        q: "How do you approach learning new technologies?",
+                        a: "I usually learn new technologies by building small projects and experimenting with practical implementations to understand how systems work in real-world scenarios.",
+                      },
+                      {
+                        q: "What are you currently learning or exploring?",
+                        a: "I am currently exploring advanced Machine Learning concepts, improving backend architecture knowledge, and strengthening my problem-solving skills through DSA.",
+                      },
+                    ].map(({ q, a }, i) => (
+                      <div
+                        key={q}
+                        className="border-b last:border-b-0 border-[#e8eaed] dark:border-[#3c4043]"
                       >
-                        <div
-                          className="px-5 pb-4 pt-3 text-sm text-[#133780] dark:text-[#bdc1c6] leading-relaxed
-                                        border-t border-[#e8eaed] dark:border-[#3c4043]"
+                        <button
+                          onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                          className="w-full flex items-center justify-between px-5 py-3 cursor-pointer text-left
+                                     text-sm font-medium text-[#202124] dark:text-[#e8eaed]
+                                     hover:bg-[#f8f9fa] dark:hover:bg-[#303134] transition-colors"
                         >
-                          {a}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ))}
+                          {q}
+                          <svg
+                            className={`w-4 h-4 shrink-0 text-[#70757a] transition-transform duration-200 ${
+                              openFaq === i ? "rotate-180" : ""
+                            }`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 9l-7 7-7-7"
+                            />
+                          </svg>
+                        </button>
+                        <AnimatePresence initial={false}>
+                          {openFaq === i && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2, ease: "easeInOut" }}
+                              className="overflow-hidden"
+                            >
+                              <div
+                                className="px-5 pb-4 pt-3 text-sm text-[#133780] dark:text-[#bdc1c6] leading-relaxed
+                                            border-t border-[#e8eaed] dark:border-[#3c4043]"
+                              >
+                                {a}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
             </div>
-          </motion.div>
+          ))}
         </motion.div>
       </AnimatePresence>
 

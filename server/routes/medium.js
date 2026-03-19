@@ -48,7 +48,7 @@ function autoTags(categories = []) {
 
 let cache = null;
 let cacheTime = 0;
-const CACHE_TTL = 10 * 60 * 1000;
+const CACHE_TTL = 30 * 60 * 1000;
 
 // GET /api/medium
 router.get('/', async (req, res) => {

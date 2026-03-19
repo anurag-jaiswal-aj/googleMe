@@ -26,6 +26,7 @@ export default function Tools() {
   const [sort,       setSort]       = useState('relevance');
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortOpen,   setSortOpen]   = useState(false);
+  const [expandedCat, setExpandedCat] = useState(null);
 
   let visible = TOOLS.map(group => ({
     ...group,
@@ -41,7 +42,7 @@ export default function Tools() {
     <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <p className="text-sm text-[#133780] dark:text-[#bdc1c6]">
-          {total} tools &amp; technologies (0.31 seconds)
+          {total} skills across {visible.length} categories (0.31 seconds)
         </p>
         <FilterSort
           filterOptions={LEVELS}
@@ -57,6 +58,9 @@ export default function Tools() {
         />
       </div>
 
+      {/* Divider */}
+      <div className="max-w-[700px] h-px bg-[#e8eaed] dark:bg-[#3c4043] mb-6" />
+
       <AnimatePresence mode="wait">
         <motion.div key={filters.join() + sort} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
           {visible.map((group, gi) => (
@@ -67,11 +71,12 @@ export default function Tools() {
           transition={{ delay: gi * 0.07 }}
         >
           <SearchResult
-            url={`anurag.dev/tools/${group.category.toLowerCase().replace(/\s+/g, '-')}`}
-            title={`${group.category} - Anurag's Tech Stack`}
-            snippet={group.items.map(i => i.name).join(' · ')}
+            url={`anurag.dev/toolkit/${group.category.toLowerCase().replace(/[\s/]+/g, '-')}`}
+            title={group.title || group.category}
+            snippet={group.snippet}
             faviconBg={group.color}
             faviconLetter={group.category[0]}
+            onTitleClick={() => setExpandedCat(group.category)}
             menuItems={[
               {
                 label: 'Copy link',
@@ -83,28 +88,40 @@ export default function Tools() {
                 icon: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z',
                 action: () => {
                   const url = `${window.location.origin}/tools`;
-                  if (navigator.share) navigator.share({ title: `${group.category} - Tech Stack`, url });
+                  if (navigator.share) navigator.share({ title: `${group.category} - Toolkit`, url });
                   else navigator.clipboard.writeText(url);
                 },
               },
             ]}
           >
-            <div className="mt-3 space-y-3">
-              {group.items.map(tool => (
-                <div key={tool.name} className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full mt-2 shrink-0" style={{ background: group.color }} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                      <span className="text-sm font-medium text-[#202124] dark:text-[#e8eaed]">{tool.name}</span>
-                      <span className={`text-xs px-2 py-0 rounded border leading-5 ${LEVEL_COLOR[tool.level]}`}>
-                        {tool.level}
-                      </span>
-                    </div>
-                    <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-5">{tool.desc}</p>
+            <AnimatePresence initial={false}>
+              {expandedCat === group.category && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-3 space-y-3">
+                    {group.items.map(tool => (
+                      <div key={tool.name} className="flex items-start gap-3">
+                        <div className="w-2 h-2 rounded-full mt-2 shrink-0" style={{ background: group.color }} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                            <span className="text-sm font-medium text-[#202124] dark:text-[#e8eaed]">{tool.name}</span>
+                            <span className={`text-xs px-2 py-0 rounded border leading-5 ${LEVEL_COLOR[tool.level]}`}>
+                              {tool.level}
+                            </span>
+                          </div>
+                          <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-5">{tool.desc}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              ))}
-            </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </SearchResult>
         </motion.div>
           ))}

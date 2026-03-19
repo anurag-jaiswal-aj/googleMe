@@ -11,7 +11,7 @@ const TABS = [
   { label: "About",   to: "/about",    query: "anurag about me" },
   { label: "Projects",to: "/projects", query: "anurag projects github" },
   { label: "Blog",    to: "/blog",     query: "anurag blog posts" },
-  { label: "Tools",   to: "/tools",    query: "anurag tools stack" },
+  { label: "Toolkit", to: "/tools",    query: "anurag tools stack" },
   { label: "Images",  to: "/images",   query: "anurag images gallery" },
   { label: "Contact", to: "/contact",  query: "contact anurag" },
 ];
@@ -22,7 +22,7 @@ const FOOTER_CYCLE = [
   { label: "Contact", to: "/contact" },
   { label: "Projects", to: "/projects" },
   { label: "Blog", to: "/blog" },
-  { label: "Tools", to: "/tools" },
+  { label: "Toolkit", to: "/tools" },
   { label: "Images", to: "/images" },
   { label: "All", to: "/all" },
 ];
@@ -1160,7 +1160,7 @@ export default function SearchLayout() {
                   />
                 </svg>
               )}
-              {label === "Tools" && (
+              {label === "Toolkit" && (
                 <svg
                   className="w-3.5 h-3.5"
                   fill="none"
@@ -1214,7 +1214,7 @@ export default function SearchLayout() {
 
             {/* Sticky knowledge panel — scrolls up naturally when footer arrives */}
             <div className="hidden lg:block w-[420px] shrink-0">
-              <div className="sticky top-[152px] w-[380px] pt-3 mb-6 max-h-[calc(100vh-168px)] overflow-y-auto ml-[-40px]">
+              <div className="sticky top-[152px] w-[380px] pt-3 mb-6 max-h-[calc(100vh-168px)] overflow-y-auto ml-[-40px] mt-10">
                 <KnowledgePanel />
               </div>
             </div>
@@ -1574,7 +1574,7 @@ export default function SearchLayout() {
                     desc: "Full-stack developer specialising in the MERN stack. The About page covers background, education, and personality.",
                   },
                   {
-                    title: "Skills & Tech Stack",
+            title: "Skills & Toolkit",
                     icon: "⚙️",
                     desc: "Browse all technologies: React, Node.js, MongoDB, TypeScript, Docker, AWS, and more, shown as interactive skill cards.",
                   },

@@ -376,6 +376,7 @@ export default function All() {
   const imagesEnabled = useImagesPageEnabled();
   const [expandedQA, setExpandedQA] = useState(null);
   const [expandedProject, setExpandedProject] = useState(null);
+  const [expandedTool, setExpandedTool] = useState(null);
   const [liveProjects, setLiveProjects] = useState([]);
   const [blogPosts, setBlogPosts] = useState(
     getBlogCards(3).map((post) => ({
@@ -503,7 +504,7 @@ export default function All() {
 
       {/* Projects */}
       <SectionLabel label="Projects" />
-      {(liveProjects.length > 0 ? liveProjects : PROJECTS).map((r, i) => {
+      {(liveProjects.length > 0 ? liveProjects : PROJECTS).slice(0, 4).map((r, i) => {
         const isLive = liveProjects.length > 0;
         const key = isLive ? r._id : r.title;
         const title = isLive ? `${r.title} | GitHub` : r.title;
@@ -646,7 +647,7 @@ export default function All() {
 
       {/* Tools */}
       <SectionLabel label="Tools & technologies" />
-      {TOOLS.map((r, i) => (
+      {TOOLS.slice(0, 4).map((r, i) => (
         <motion.div
           key={r.title}
           initial={{ opacity: 0, y: 10 }}
@@ -660,9 +661,9 @@ export default function All() {
             url={r.url}
             title={r.title}
             snippet={r.snippet}
-            to={r.to}
             faviconBg={r.faviconBg}
             faviconLetter={r.faviconLetter}
+            onTitleClick={() => setExpandedTool(r.url)}
             menuItems={[
               {
                 label: 'Copy link',
@@ -679,7 +680,37 @@ export default function All() {
                 },
               },
             ]}
-          />
+          >
+            <AnimatePresence initial={false}>
+              {expandedTool === r.url && (
+                <motion.div
+                  key="tool-expanded"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-3 space-y-2.5">
+                    {(r.items || []).map(tool => (
+                      <div key={tool.name} className="flex items-start gap-2.5">
+                        <div className="w-2 h-2 rounded-full mt-2 shrink-0" style={{ background: r.faviconBg }} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                            <span className="text-sm font-medium text-[#202124] dark:text-[#e8eaed]">{tool.name}</span>
+                            <span className="text-xs px-2 py-0 rounded border leading-5 bg-[#f1f3f4] dark:bg-[#2d2d2d] text-[#5f6368] dark:text-[#9aa0a6] border-[#dadce0] dark:border-[#5f6368]">
+                              {tool.level}
+                            </span>
+                          </div>
+                          <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-5">{tool.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </SearchResult>
         </motion.div>
       ))}
 

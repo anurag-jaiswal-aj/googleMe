@@ -5,6 +5,11 @@ import { Toaster } from 'react-hot-toast';
 import App from './App';
 import { ThemeProvider } from './context/ThemeContext';
 import './styles/index.css';
+import api from './api';
+
+// Wake up the Render server as early as possible so Projects/Blog
+// don't feel slow when the user navigates there.
+api.get('/health').catch(() => {});
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
