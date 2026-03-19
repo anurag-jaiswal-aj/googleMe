@@ -22,17 +22,19 @@ app.use(helmet());
 
 // CORS
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : ['http://localhost:3000', 'http://localhost:5173'];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
+      // Allow requests with no origin (curl, Postman, server-to-server)
+      if (!origin) return callback(null, true);
+      // Exact match
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // Allow any *.vercel.app preview URL automatically
+      if (/^https:\/\/[^.]+\.vercel\.app$/.test(origin)) return callback(null, true);
+      callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
   })
