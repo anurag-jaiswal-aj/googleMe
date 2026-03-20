@@ -155,15 +155,15 @@ function QAExpanded({ type }) {
               style={{ backgroundColor: color }}
             />
             <div className="min-w-0">
-              <span className="text-[11px] text-[#70757a] dark:text-[#9aa0a6] tabular-nums">
-                {period}
-              </span>
               <p className="text-sm font-medium text-[#202124] dark:text-[#e8eaed] leading-snug">
                 {role}
               </p>
               <p className="text-xs text-[#1a73e8] dark:text-[#8ab4f8] leading-snug">
                 {company}
               </p>
+              <span className="text-[11px] text-[#70757a] dark:text-[#9aa0a6] tabular-nums">
+                {period}
+              </span>
               <p className="text-xs text-[#4d5156] dark:text-[#bdc1c6] mt-0.5 leading-relaxed">
                 {detail}
               </p>

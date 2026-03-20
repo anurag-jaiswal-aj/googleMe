@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchImages } from '../api';
+import FilterSort from '../components/FilterSort';
 
-const CATEGORIES = ['All', 'Projects', 'Certificates', 'UI Work', 'Other'];
+const CATEGORIES = ['Projects', 'Certificates', 'UI Work', 'Other'];
 
 /* ── Lightbox ───────────────────────────────────── */
 function Lightbox({ image, onClose, onPrev, onNext, hasPrev, hasNext }) {
@@ -130,16 +131,24 @@ function ImageCard({ image, onClick }) {
 export default function Images() {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState('All');
+  const [filters, setFilters] = useState([]);
+  const [sort, setSort] = useState('newest');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState(null);
 
   useEffect(() => {
     fetchImages().then(setImages).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  const filtered = activeCategory === 'All'
+  let filtered = filters.length === 0
     ? images
-    : images.filter(img => img.category === activeCategory);
+    : images.filter(img => filters.includes(img.category));
+
+  if (sort === 'az') filtered = [...filtered].sort((a, b) => a.title.localeCompare(b.title));
+  if (sort === 'za') filtered = [...filtered].sort((a, b) => b.title.localeCompare(a.title));
+
+  const availableCategories = CATEGORIES.filter(c => images.some(img => img.category === c));
 
   const openLightbox = useCallback((idx) => setLightboxIdx(idx), []);
   const closeLightbox = useCallback(() => setLightboxIdx(null), []);
@@ -162,25 +171,29 @@ export default function Images() {
       </AnimatePresence>
 
       <p className="text-sm text-[#133780] dark:text-[#bdc1c6] mb-4">
-        {loading ? 'Loading…' : `About ${filtered.length} images`}
+        {loading ? 'Loading…' : `About ${filtered.length} image${filtered.length !== 1 ? 's' : ''}`}
       </p>
 
       {!loading && images.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-5">
-          {CATEGORIES.filter(c => c === 'All' || images.some(img => img.category === c)).map(cat => (
-            <button key={cat} onClick={() => setActiveCategory(cat)}
-              className={`px-3 py-1 rounded-full text-sm border transition-colors
-                ${activeCategory === cat
-                  ? 'bg-[#1a73e8] text-white border-[#1a73e8]'
-                  : 'border-[#dadce0] dark:border-[#5f6368] text-[#202124] dark:text-[#e8eaed] hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043]'
-                }`}>
-              {cat}
-            </button>
-          ))}
-        </div>
+        <FilterSort
+          filterOptions={availableCategories}
+          filters={filters}
+          onFilterChange={(val) => { setFilters(val); }}
+          sortOptions={[
+            { value: 'newest', label: 'Newest' },
+            { value: 'az',     label: 'A → Z' },
+            { value: 'za',     label: 'Z → A' },
+          ]}
+          sort={sort}
+          onSortChange={setSort}
+          filterOpen={filterOpen}
+          setFilterOpen={setFilterOpen}
+          sortOpen={sortOpen}
+          setSortOpen={setSortOpen}
+        />
       )}
 
-      <div className="max-w-[700px] h-px bg-[#e8eaed] dark:bg-[#3c4043] mb-5" />
+      <div className="max-w-[700px] h-px bg-[#e8eaed] dark:bg-[#3c4043] mt-4 mb-5" />
 
       {loading && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-[700px]">

@@ -2080,6 +2080,10 @@ export default function Home() {
               transition={{ duration: 0.18 }}
               className="w-full max-w-md bg-white dark:bg-[#202124] rounded-2xl shadow-2xl overflow-hidden"
             >
+              <div className="h-1.5 w-full flex">
+                <div className="flex-1 bg-[#4285F4]" /><div className="flex-1 bg-[#EA4335]" />
+                <div className="flex-1 bg-[#FBBC05]" /><div className="flex-1 bg-[#34A853]" />
+              </div>
               <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8eaed] dark:border-[#3c4043]">
                 <span className="text-[15px] font-medium text-[#202124] dark:text-[#e8eaed]">Keyboard Shortcuts</span>
                 <button onClick={() => setShortcutsOpen(false)} className="p-1.5 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#2d2e30] transition-colors">
@@ -2121,6 +2125,10 @@ export default function Home() {
                     </div>
                   )
                 )}
+              </div>
+              <div className="h-1.5 w-full flex">
+                <div className="flex-1 bg-[#4285F4]" /><div className="flex-1 bg-[#EA4335]" />
+                <div className="flex-1 bg-[#FBBC05]" /><div className="flex-1 bg-[#34A853]" />
               </div>
             </motion.div>
           </motion.div>
@@ -2378,11 +2386,13 @@ export default function Home() {
                   },
                   {
                     title: "AI Mode",
-                    desc: "Click the sparkle icon in the search bar to open AI Mode, a conversational assistant that answers any question about Anurag, his skills, projects, and experience.",
+                    icon: "✨",
+                    desc: "Click the sparkle icon in the search bar to open AI Mode — a conversational assistant that answers questions about Anurag, his skills, projects, blog, and how to get in touch.",
                   },
                   {
                     title: "Apps Grid",
-                    desc: "Click the 9-dot grid icon in the top-right corner to open quick-access tiles: Search, Gmail, Works, Blog, LinkedIn, GitHub, About, LeetCode, CodeChef.",
+                    icon: "⚡",
+                    desc: "Click the 9-dot grid icon in the top-right corner to open quick-access tiles: Search, Mail, About, Works, Blogs, Twitter, LinkedIn, GitHub, LeetCode, and CodeChef.",
                   },
                   {
                     title: "Avatar & Profile",
@@ -2505,7 +2515,7 @@ export default function Home() {
                   {
                     title: "Pagination",
                     icon: "📖",
-                    desc: "Navigate through articles using the Google-style numbered page controls at the bottom. Each page shows exactly 8 articles.",
+                    desc: "Navigate through articles using the Google-style numbered page controls at the bottom. Each page shows 6 articles by default (configurable in Admin).",
                   },
                   {
                     title: "Article Reader",
@@ -2562,27 +2572,33 @@ export default function Home() {
               },
               {
                 id: "tools",
-                label: "Tools",
+                label: "Toolkit",
                 color: "#00BCD4",
                 icon: (
-                  <svg
-                    className="w-5 h-5"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z" />
                   </svg>
                 ),
                 items: [
                   {
-                    title: "Developer Tools",
+                    title: "Tech Stack Overview",
                     icon: "🛠️",
-                    desc: "The Tools page hosts a collection of utility tools built by Anurag, including converters, formatters, generators, and other developer helpers.",
+                    desc: "The Toolkit page shows all technologies Anurag works with, grouped by category: Languages, Frontend, Backend, Database, Machine Learning, and Tools.",
                   },
                   {
-                    title: "Use Freely",
-                    icon: "✅",
-                    desc: "All tools are free to use directly in the browser, no login required. Each tool is self-contained and runs entirely on the client side.",
+                    title: "Skill Cards",
+                    icon: "🃏",
+                    desc: "Each technology is displayed as a Google search result–style card with proficiency level, description, and relevant links.",
+                  },
+                  {
+                    title: "Filter by Category",
+                    icon: "🔧",
+                    desc: "Use the filter chips at the top to narrow the view by category — Frontend, Backend, ML, DevOps, and more.",
+                  },
+                  {
+                    title: "Knowledge Panel",
+                    icon: "📊",
+                    desc: "The right-side Knowledge Panel shows a visual skill bar chart with proficiency percentages for Anurag's top areas.",
                   },
                 ],
               },
@@ -2638,11 +2654,16 @@ export default function Home() {
                   animate={{ y: 0, opacity: 1, scale: 1 }}
                   exit={{ y: 32, opacity: 0, scale: 0.97 }}
                   transition={{ type: "spring", stiffness: 340, damping: 30 }}
-                  className="bg-white dark:bg-[#202124] border border-[#dadce0] dark:border-[#3c4043]
+                  className="bg-white dark:bg-[#202124]
                            w-full sm:max-w-[780px] rounded-t-2xl sm:rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.24)]
                            flex flex-col overflow-hidden"
                   style={{ height: "min(92vh, 680px)" }}
                 >
+                  {/* Top stripe */}
+                  <div className="h-1.5 w-full flex shrink-0">
+                    <div className="flex-1 bg-[#4285F4]" /><div className="flex-1 bg-[#EA4335]" />
+                    <div className="flex-1 bg-[#FBBC05]" /><div className="flex-1 bg-[#34A853]" />
+                  </div>
                   {/* Header */}
                   <div className="flex items-center justify-between px-6 py-4 border-b border-[#e8eaed] dark:border-[#3c4043] shrink-0">
                     <div className="flex items-center gap-3">
@@ -2796,6 +2817,11 @@ export default function Home() {
                         </p>
                       </div>
                     </div>
+                  </div>
+                  {/* Bottom stripe */}
+                  <div className="h-1.5 w-full flex shrink-0">
+                    <div className="flex-1 bg-[#4285F4]" /><div className="flex-1 bg-[#EA4335]" />
+                    <div className="flex-1 bg-[#FBBC05]" /><div className="flex-1 bg-[#34A853]" />
                   </div>
                 </motion.div>
               </motion.div>

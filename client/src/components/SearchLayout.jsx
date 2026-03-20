@@ -1259,6 +1259,10 @@ export default function SearchLayout() {
               transition={{ duration: 0.18 }}
               className="w-full max-w-md bg-white dark:bg-[#202124] rounded-2xl shadow-2xl overflow-hidden"
             >
+              <div className="h-1.5 w-full flex">
+                <div className="flex-1 bg-[#4285F4]" /><div className="flex-1 bg-[#EA4335]" />
+                <div className="flex-1 bg-[#FBBC05]" /><div className="flex-1 bg-[#34A853]" />
+              </div>
               <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8eaed] dark:border-[#3c4043]">
                 <span className="text-[15px] font-medium text-[#202124] dark:text-[#e8eaed]">Keyboard Shortcuts</span>
                 <button onClick={() => setShortcutsOpen(false)} className="p-1.5 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#2d2e30] transition-colors">
@@ -1300,6 +1304,10 @@ export default function SearchLayout() {
                     </div>
                   )
                 )}
+              </div>
+              <div className="h-1.5 w-full flex">
+                <div className="flex-1 bg-[#4285F4]" /><div className="flex-1 bg-[#EA4335]" />
+                <div className="flex-1 bg-[#FBBC05]" /><div className="flex-1 bg-[#34A853]" />
               </div>
             </motion.div>
           </motion.div>
@@ -1781,11 +1789,16 @@ export default function SearchLayout() {
                   animate={{ y: 0, opacity: 1, scale: 1 }}
                   exit={{ y: 32, opacity: 0, scale: 0.97 }}
                   transition={{ type: "spring", stiffness: 340, damping: 30 }}
-                  className="bg-white dark:bg-[#202124] border border-[#dadce0] dark:border-[#3c4043]
+                  className="bg-white dark:bg-[#202124]
                            w-full sm:max-w-[780px] rounded-t-2xl sm:rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.24)]
                            flex flex-col overflow-hidden"
                   style={{ height: "min(92vh, 680px)" }}
                 >
+                  {/* Top stripe */}
+                  <div className="h-1.5 w-full flex shrink-0">
+                    <div className="flex-1 bg-[#4285F4]" /><div className="flex-1 bg-[#EA4335]" />
+                    <div className="flex-1 bg-[#FBBC05]" /><div className="flex-1 bg-[#34A853]" />
+                  </div>
                   <div className="flex items-center justify-between px-6 py-4 border-b border-[#e8eaed] dark:border-[#3c4043] shrink-0">
                     <div className="flex items-center gap-3">
                       <div
@@ -1926,6 +1939,11 @@ export default function SearchLayout() {
                         </p>
                       </div>
                     </div>
+                  </div>
+                  {/* Bottom stripe */}
+                  <div className="h-1.5 w-full flex shrink-0">
+                    <div className="flex-1 bg-[#4285F4]" /><div className="flex-1 bg-[#EA4335]" />
+                    <div className="flex-1 bg-[#FBBC05]" /><div className="flex-1 bg-[#34A853]" />
                   </div>
                 </motion.div>
               </motion.div>
