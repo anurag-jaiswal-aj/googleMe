@@ -25,16 +25,16 @@ Built with **MongoDB · Express · React · Node.js**, styled with **TailwindCSS
 
 ## Lighthouse Scores
 
-> Run `npm run build && npm run preview` then audit with Chrome DevTools → Lighthouse.
+> Audited on [anuragjaiswal.me](https://anuragjaiswal.me) · Desktop · Chrome DevTools
 
 | Category | Score |
 |----------|-------|
-| Performance | 90+ |
-| Accessibility | 90+ |
-| Best Practices | 90+ |
+| Performance | 95 |
+| Accessibility | 98 |
+| Best Practices | 96 |
 | SEO | 100 |
 
-_Screenshot your scores and drop the image here — recruiters love it._
+![Lighthouse Scores](./lighthouse.png)
 
 ---
 
