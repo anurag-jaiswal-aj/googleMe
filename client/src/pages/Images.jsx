@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchImages } from '../api';
 import FilterSort from '../components/FilterSort';
+import SEO from '../components/SEO';
 
 const CATEGORIES = ['Projects', 'Certificates', 'UI Work', 'Other'];
 
@@ -61,7 +62,7 @@ function Lightbox({ image, onClose, onPrev, onNext, hasPrev, hasNext }) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/>
           </svg>
         </button>
-        <img src={image.imageData} alt={image.title}
+        <img src={image.src || image.imageData} alt={image.title}
           className="max-h-full max-w-full object-contain rounded-lg select-none"
           style={{ maxHeight: 'calc(100vh - 140px)' }} />
         <button onClick={onNext} disabled={!hasNext}
@@ -93,7 +94,9 @@ function ImageCard({ image, onClick }) {
     >
       {/* Image */}
       <div className="rounded-xl overflow-hidden bg-[#f1f3f4] dark:bg-[#303134]">
-        <img src={image.imageData} alt={image.title}
+        <img src={image.src || image.imageData} alt={image.title}
+          loading="lazy"
+          decoding="async"
           className="w-full object-cover transition-transform duration-300 group-hover:scale-105"
           style={{ aspectRatio: '4/3' }} />
       </div>
@@ -157,6 +160,11 @@ export default function Images() {
 
   return (
     <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
+      <SEO
+        title="Gallery"
+        description="Anurag Jaiswal's image gallery — project screenshots, certificates, UI work, and more."
+        path="/images"
+      />
       <AnimatePresence>
         {lightboxIdx !== null && filtered[lightboxIdx] && (
           <Lightbox
@@ -170,28 +178,29 @@ export default function Images() {
         )}
       </AnimatePresence>
 
-      <p className="text-sm text-[#133780] dark:text-[#bdc1c6] mb-4">
-        {loading ? 'Loading…' : `About ${filtered.length} image${filtered.length !== 1 ? 's' : ''}`}
-      </p>
-
-      {!loading && images.length > 0 && (
-        <FilterSort
-          filterOptions={availableCategories}
-          filters={filters}
-          onFilterChange={(val) => { setFilters(val); }}
-          sortOptions={[
-            { value: 'newest', label: 'Newest' },
-            { value: 'az',     label: 'A → Z' },
-            { value: 'za',     label: 'Z → A' },
-          ]}
-          sort={sort}
-          onSortChange={setSort}
-          filterOpen={filterOpen}
-          setFilterOpen={setFilterOpen}
-          sortOpen={sortOpen}
-          setSortOpen={setSortOpen}
-        />
-      )}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <p className="text-sm text-[#133780] dark:text-[#bdc1c6]">
+          {loading ? 'Searching…' : `About ${filtered.length} result${filtered.length !== 1 ? 's' : ''} (0.24 seconds)`}
+        </p>
+        {!loading && images.length > 0 && (
+          <FilterSort
+            filterOptions={availableCategories}
+            filters={filters}
+            onFilterChange={(val) => { setFilters(val); }}
+            sortOptions={[
+              { value: 'newest', label: 'Newest' },
+              { value: 'az',     label: 'A → Z' },
+              { value: 'za',     label: 'Z → A' },
+            ]}
+            sort={sort}
+            onSortChange={setSort}
+            filterOpen={filterOpen}
+            setFilterOpen={setFilterOpen}
+            sortOpen={sortOpen}
+            setSortOpen={setSortOpen}
+          />
+        )}
+      </div>
 
       <div className="max-w-[700px] h-px bg-[#e8eaed] dark:bg-[#3c4043] mt-4 mb-5" />
 

@@ -1,16 +1,28 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import SearchLayout from './components/SearchLayout';
-import Home from './pages/Home';
-import All from './pages/All';
-import About from './pages/About';
-import Projects from './pages/Projects';
-import Contact from './pages/Contact';
-import Blog from './pages/Blog';
-import Tools from './pages/Tools';
-import Images from './pages/Images';
-import Admin from './pages/Admin';
-import NotFound from './pages/NotFound';
+import ErrorBoundary from './components/ErrorBoundary';
+
+// Page-level code splitting — each page loads only when first visited
+const Home     = lazy(() => import('./pages/Home'));
+const All      = lazy(() => import('./pages/All'));
+const About    = lazy(() => import('./pages/About'));
+const Projects = lazy(() => import('./pages/Projects'));
+const Contact  = lazy(() => import('./pages/Contact'));
+const Blog     = lazy(() => import('./pages/Blog'));
+const Tools    = lazy(() => import('./pages/Tools'));
+const Images   = lazy(() => import('./pages/Images'));
+const Admin    = lazy(() => import('./pages/Admin'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950">
+      <div className="w-8 h-8 rounded-full border-2 border-[#e8eaed] border-t-[#4285F4] animate-spin" />
+    </div>
+  );
+}
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -20,28 +32,30 @@ function ScrollToTop() {
 
 export default function App() {
   return (
-    <>
-      <ScrollToTop />
-      <Routes>
-      {/* Home — standalone Google-homepage style */}
-      <Route path="/" element={<Home />} />
+    <ErrorBoundary>
+      <Suspense fallback={<PageLoader />}>
+        <ScrollToTop />
+        <Routes>
+          {/* Home — standalone Google-homepage style */}
+          <Route path="/" element={<ErrorBoundary><Home /></ErrorBoundary>} />
 
-      {/* SERP pages — share a persistent SearchLayout header */}
-      <Route element={<SearchLayout />}>
-        <Route path="/all"      element={<All />} />
-        <Route path="/about"    element={<About />} />
-        <Route path="/projects" element={<Projects />} />
-        <Route path="/contact"  element={<Contact />} />
-        <Route path="/blog"     element={<Blog />} />
-        <Route path="/tools"    element={<Tools />} />
-        <Route path="/images"   element={<Images />} />
-      </Route>
+          {/* SERP pages — share a persistent SearchLayout header */}
+          <Route element={<SearchLayout />}>
+            <Route path="/all"      element={<ErrorBoundary><All /></ErrorBoundary>} />
+            <Route path="/about"    element={<ErrorBoundary><About /></ErrorBoundary>} />
+            <Route path="/projects" element={<ErrorBoundary><Projects /></ErrorBoundary>} />
+            <Route path="/contact"  element={<ErrorBoundary><Contact /></ErrorBoundary>} />
+            <Route path="/blog"     element={<ErrorBoundary><Blog /></ErrorBoundary>} />
+            <Route path="/tools"    element={<ErrorBoundary><Tools /></ErrorBoundary>} />
+            <Route path="/images"   element={<ErrorBoundary><Images /></ErrorBoundary>} />
+          </Route>
 
-      {/* Admin — standalone page */}
-      <Route path="/admin" element={<Admin />} />
+          {/* Admin — standalone page */}
+          <Route path="/admin" element={<ErrorBoundary><Admin /></ErrorBoundary>} />
 
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-    </>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
   );
 }

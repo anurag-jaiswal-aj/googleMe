@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { fetchProjects } from '../api';
 import SearchResult from '../components/SearchResult';
 import FilterSort from '../components/FilterSort';
+import SEO from '../components/SEO';
 import fallbackProjects from '../../../shared/projects.json';
 import { useImagesPageEnabled } from '../hooks/useImagesPageEnabled';
 
@@ -80,7 +81,11 @@ export default function Projects() {
 
   return (
     <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
-
+      <SEO
+        title="Projects"
+        description="Anurag Jaiswal's open-source projects and web apps — built with React, Node.js, Express, MongoDB, and TailwindCSS. View source on GitHub."
+        path="/projects"
+      />
       {/* Stats + controls row */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <p className="text-sm text-[#133780] dark:text-[#bdc1c6] mr-2">

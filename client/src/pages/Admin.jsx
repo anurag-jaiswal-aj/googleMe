@@ -8,6 +8,7 @@ import api, {
 } from '../api';
 import { LINKS } from '../config/links';
 import { clearConfigCache } from '../hooks/useConfig';
+import SEO from '../components/SEO';
 
 /* ══════════════════════════════════════════════════════
    SHARED HELPERS
@@ -134,12 +135,13 @@ function ProfileTab({ cfg, onSaved }) {
     },
   });
   const [links, setLinks] = useState({
-    github:   cfg.socialLinks?.github   ?? LINKS.github,
-    linkedin: cfg.socialLinks?.linkedin ?? LINKS.linkedin,
-    twitter:  cfg.socialLinks?.twitter  ?? LINKS.twitter,
-    leetcode: cfg.socialLinks?.leetcode ?? LINKS.leetcode,
-    codechef: cfg.socialLinks?.codechef ?? LINKS.codechef,
-    email:    cfg.socialLinks?.email    ?? LINKS.email,
+    github:             cfg.socialLinks?.github             ?? LINKS.github,
+    linkedin:           cfg.socialLinks?.linkedin           ?? LINKS.linkedin,
+    twitter:            cfg.socialLinks?.twitter            ?? LINKS.twitter,
+    leetcode:           cfg.socialLinks?.leetcode           ?? LINKS.leetcode,
+    codechef:           cfg.socialLinks?.codechef           ?? LINKS.codechef,
+    email:              cfg.socialLinks?.email              ?? LINKS.email,
+    alternatePortfolio: cfg.socialLinks?.alternatePortfolio ?? LINKS.alternatePortfolio,
   });
   const [githubUsername, setGithubUsername] = useState(cfg.githubUsername ?? 'anurag-jaiswal-aj');
   const [saving, setSaving] = useState(false);
@@ -212,12 +214,13 @@ function ProfileTab({ cfg, onSaved }) {
         <p className="text-xs font-semibold text-[#5f6368] dark:text-[#9aa0a6] uppercase tracking-wide mb-3">Social Links</p>
         <div className="space-y-3">
           {[
-            { key: 'github',   label: 'GitHub URL' },
-            { key: 'linkedin', label: 'LinkedIn URL' },
-            { key: 'twitter',  label: 'Twitter / X URL' },
-            { key: 'leetcode', label: 'LeetCode URL' },
-            { key: 'codechef', label: 'CodeChef URL' },
-            { key: 'email',    label: 'Email Address' },
+            { key: 'github',             label: 'GitHub URL' },
+            { key: 'linkedin',           label: 'LinkedIn URL' },
+            { key: 'twitter',            label: 'Twitter / X URL' },
+            { key: 'leetcode',           label: 'LeetCode URL' },
+            { key: 'codechef',           label: 'CodeChef URL' },
+            { key: 'email',              label: 'Email Address' },
+            { key: 'alternatePortfolio', label: 'Alternate Portfolio URL' },
           ].map(({ key, label }) => (
             <Field key={key} label={label}>
               <input className={inputCls} value={links[key]} onChange={e => setLink(key, e.target.value)} />
@@ -1049,6 +1052,7 @@ export default function Admin() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#f8f9fa] dark:bg-[#202124] flex flex-col">
+        <SEO title="Admin" description="Admin panel" path="/admin" noIndex />
         <div className="bg-white dark:bg-[#202124] border-b border-[#e8eaed] dark:border-[#3c4043]">
           <div className="max-w-[680px] mx-auto px-4 py-3 flex items-center gap-4">
             <div className="flex items-center gap-1">

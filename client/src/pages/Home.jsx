@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../context/ThemeContext";
 import { LINKS } from "../config/links";
 import { submitFeedback } from "../api";
+import { useConfig } from "../hooks/useConfig";
+import SEO from "../components/SEO";
 
 const LANGUAGES = [
   { label: "हिन्दी", code: "hi" },
@@ -179,6 +181,8 @@ const NAME_TRANSLATIONS = {
 export default function Home() {
   const navigate = useNavigate();
   const { isDark, toggle } = useTheme();
+  const cfg = useConfig();
+  const altPortfolioUrl = cfg.socialLinks?.alternatePortfolio ?? LINKS.alternatePortfolio;
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
@@ -598,9 +602,12 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen flex flex-col bg-white dark:bg-gray-950 transition-colors duration-300">
+      <SEO
+        path="/"
+        description="Anurag Jaiswal — Full-Stack Developer specialising in React, Node.js, Express and MongoDB. Explore projects, skills, blog posts, and get in touch for freelance or full-time opportunities."
+      />
       {/* Top bar */}
-      <header className="flex justify-between items-center gap-3 px-7 py-5">
-        {/* Left — Clock & Weather (both reveal together once weather loads) */}
+      <header className="flex justify-between items-center gap-3 px-7 py-5">        {/* Left — Clock & Weather (both reveal together once weather loads) */}
         <div className="flex items-center gap-3 select-none">
           {!weatherLoading && (
             <motion.div
@@ -916,7 +923,7 @@ export default function Home() {
                       </svg>
                     </a>
                     <a
-                      href={LINKS.alternatePortfolio}
+                      href={altPortfolioUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full flex items-center gap-3 px-5 py-2.5

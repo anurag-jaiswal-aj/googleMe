@@ -105,7 +105,7 @@ export const TOOLS = [
 
 export const getToolCards = () =>
   TOOLS.map((group) => ({
-    url: `anurag.dev/toolkit/${group.category.toLowerCase().replace(/[\s/]+/g, '-')}`,
+    url: `anuragjaiswal.me/toolkit/${group.category.toLowerCase().replace(/[\s/]+/g, '-')}`,
     title: group.title,
     snippet: group.snippet,
     category: group.category,

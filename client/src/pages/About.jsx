@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import SearchResult from "../components/SearchResult";
 import FilterSort from "../components/FilterSort";
+import SEO from "../components/SEO";
 import { ABOUT_QA } from "../data/allPageData";
 import { SKILLS as DEFAULT_SKILLS, EDUCATION as DEFAULT_EDUCATION, EXPERIENCE as DEFAULT_EXPERIENCE, CERTIFICATIONS as DEFAULT_CERTIFICATIONS } from "../data/aboutData";
 import { LINKS } from "../config/links";
@@ -138,7 +139,7 @@ export default function About() {
           transition={{ delay }}
         >
           <SearchResult
-            url="anurag.dev/about/bio"
+            url="anuragjaiswal.me/about/bio"
             title="About Me | Anurag Jaiswal"
             snippet={aboutSummaryById.Bio.answer}
             onTitleClick={() => openSection("bio")}
@@ -195,7 +196,7 @@ export default function About() {
           transition={{ delay }}
         >
           <SearchResult
-            url="anurag.dev/about/education"
+            url="anuragjaiswal.me/about/education"
             title="Education | Academic Timeline"
             snippet="Bachelor of Engineering in Information Science & Engineering at JSS Academy of Technical Education, Bengaluru with a CGPA of 9.1. Pursued Pre-University in PCM and High School from J.B.P.I.C with 91% and 90% respectively."
             onTitleClick={() => openSection("edu")}
@@ -254,7 +255,7 @@ export default function About() {
           transition={{ delay }}
         >
           <SearchResult
-            url="anurag.dev/about/skills"
+            url="anuragjaiswal.me/about/skills"
             title="Skills & Technologies | My Tech Stack"
             snippet={aboutSummaryById.Skills.answer}
             onTitleClick={() => openSection("skills")}
@@ -310,7 +311,7 @@ export default function About() {
           transition={{ delay }}
         >
           <SearchResult
-            url="anurag.dev/about/experience"
+            url="anuragjaiswal.me/about/experience"
             title="Experience | Work & Internships"
             snippet={aboutSummaryById.Experience.answer}
             onTitleClick={() => openSection("exp")}
@@ -372,7 +373,7 @@ export default function About() {
           transition={{ delay }}
         >
           <SearchResult
-            url="anurag.dev/about/certifications"
+            url="anuragjaiswal.me/about/certifications"
             title="Certifications & Courses | Verified Learning"
             snippet={`${CERTIFICATIONS.length} verified certifications from platforms including Udemy, Coursera, and IBM covering web development, Python, machine learning, and data structures.`}
             onTitleClick={() => openSection("certs")}
@@ -432,6 +433,11 @@ export default function About() {
 
   return (
     <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
+      <SEO
+        title="About"
+        description="Learn about Anurag Jaiswal — Full-Stack Developer, B.Tech ISE student, MERN stack specialist. Bio, skills, education, experience, and certifications."
+        path="/about"
+      />
       {/* Stats + controls */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <p className="text-sm text-[#133780] dark:text-[#bdc1c6]">

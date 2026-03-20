@@ -4,7 +4,7 @@
 
 export const ABOUT_QA = [
   {
-    url: "anurag.dev/about",
+    url: "anuragjaiswal.me/about",
     question: "Who am I?",
     answer:
       "I am a B.Tech Information Science and Engineering student and full-stack developer specialising in the MERN stack. I care deeply about clean UI, developer tooling, and building practical products.",
@@ -15,7 +15,7 @@ export const ABOUT_QA = [
     faviconLetter: "A",
   },
   {
-    url: "anurag.dev/toolkit",
+    url: "anuragjaiswal.me/toolkit",
     question: "What technologies do I work with?",
     answer:
       "JavaScript and Python are my primary languages. On the frontend I use React, TailwindCSS, and Framer Motion. Backend is Node.js and Express with MongoDB. I also work with NumPy, Pandas, Scikit-learn, and TensorFlow for machine learning.",
@@ -26,7 +26,7 @@ export const ABOUT_QA = [
     faviconLetter: "S",
   },
   {
-    url: "anurag.dev/about",
+    url: "anuragjaiswal.me/about",
     question: "Where have I worked?",
     answer:
       "I have internship and freelance experience building production web features, improving API performance, and contributing to open-source projects on GitHub.",

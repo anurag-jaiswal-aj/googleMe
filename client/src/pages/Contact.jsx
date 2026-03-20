@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { submitContact } from '../api';
 import SearchResult from '../components/SearchResult';
 import FilterSort from '../components/FilterSort';
+import SEO from '../components/SEO';
 import { LINKS } from '../config/links';
 import { SOCIAL_PROFILES } from '../data/socialProfiles';
 import { useImagesPageEnabled } from '../hooks/useImagesPageEnabled';
@@ -108,7 +109,7 @@ function ContactForm() {
       {/* URL breadcrumb */}
       <div className="flex items-center gap-2 mb-0.5">
         <div className="w-[18px] h-[18px] rounded-full bg-[#4285F4] flex items-center justify-center text-white text-[9px] font-bold shrink-0">A</div>
-        <span className="min-w-0 flex-1 text-sm text-[#133780] dark:text-[#bdc1c6] truncate">anurag.dev/contact</span>
+        <span className="min-w-0 flex-1 text-sm text-[#133780] dark:text-[#bdc1c6] truncate">anuragjaiswal.me/contact</span>
         <div className="relative ml-auto" ref={menuRef}>
           <button
             onClick={() => setMenuOpen((open) => !open)}
@@ -391,7 +392,11 @@ export default function Contact() {
 
   return (
     <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
-
+      <SEO
+        title="Contact"
+        description="Get in touch with Anurag Jaiswal — open to job opportunities, collaborations, and project inquiries. Send a message or connect on LinkedIn and GitHub."
+        path="/contact"
+      />
       {/* Stats + FilterSort */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <p className="text-sm text-[#133780] dark:text-[#bdc1c6]">

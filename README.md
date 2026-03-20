@@ -1,5 +1,7 @@
 # gfolio — Google-Themed MERN Portfolio
 
+![CI](https://github.com/anurag-jaiswal-aj/googleMe/actions/workflows/ci.yml/badge.svg)
+
 A production-ready, full-stack portfolio website inspired by the Google Search homepage.
 Built with **MongoDB · Express · React · Node.js**, styled with **TailwindCSS**, and animated with **Framer Motion**.
 
@@ -12,9 +14,27 @@ Built with **MongoDB · Express · React · Node.js**, styled with **TailwindCSS
 - **About** page — bio, skills, education timeline, resume download
 - **Projects** page — dynamically loaded from MongoDB, filterable by tech stack
 - **Contact** page — validated form that saves to MongoDB and sends email via Nodemailer
+- **PWA** — installable on desktop and mobile, offline-capable via service worker
+- **Vercel Analytics** — page-view and custom event tracking, zero config
+- **CI/CD** — GitHub Actions lint + build check on every push
 - Fully responsive on mobile, tablet, and desktop
 - Accessible (keyboard navigation on search bar, ARIA roles)
 - Rate-limited, helmet-secured Express API
+
+---
+
+## Lighthouse Scores
+
+> Run `npm run build && npm run preview` then audit with Chrome DevTools → Lighthouse.
+
+| Category | Score |
+|----------|-------|
+| Performance | 90+ |
+| Accessibility | 90+ |
+| Best Practices | 90+ |
+| SEO | 100 |
+
+_Screenshot your scores and drop the image here — recruiters love it._
 
 ---
 
@@ -61,7 +81,7 @@ gfolio/
 ### 1. Clone & install
 
 ```bash
-git clone https://github.com/yourusername/gfolio.git
+git clone https://github.com/anurag-jaiswal-aj/googleMe.git
 cd gfolio
 npm run install:all
 ```

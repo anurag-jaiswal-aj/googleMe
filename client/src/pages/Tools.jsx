@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SearchResult from '../components/SearchResult';
 import FilterSort from '../components/FilterSort';
+import SEO from '../components/SEO';
 import { TOOLS } from '../data/toolsData';
 import { useImagesPageEnabled } from '../hooks/useImagesPageEnabled';
 
@@ -40,6 +41,11 @@ export default function Tools() {
 
   return (
     <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
+      <SEO
+        title="Toolkit"
+        description="Anurag Jaiswal's tech stack and skills — React, Node.js, MongoDB, Python, TailwindCSS, Docker, and more. Categorised by proficiency level."
+        path="/tools"
+      />
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <p className="text-sm text-[#133780] dark:text-[#bdc1c6]">
           {total} skills across {visible.length} categories (0.31 seconds)
@@ -71,7 +77,7 @@ export default function Tools() {
           transition={{ delay: gi * 0.07 }}
         >
           <SearchResult
-            url={`anurag.dev/toolkit/${group.category.toLowerCase().replace(/[\s/]+/g, '-')}`}
+            url={`anuragjaiswal.me/toolkit/${group.category.toLowerCase().replace(/[\s/]+/g, '-')}`}
             title={group.title || group.category}
             snippet={group.snippet}
             faviconBg={group.color}

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SearchResult from '../components/SearchResult';
 import FilterSort from '../components/FilterSort';
+import SEO from '../components/SEO';
 import api from '../api';
 import { LINKS } from '../config/links';
 import { FALLBACK_BLOG_POSTS } from '../data/blogPosts';
@@ -334,7 +335,11 @@ export default function Blog() {
 
   return (
     <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
-
+      <SEO
+        title="Blog"
+        description="Anurag Jaiswal's articles on web development, MERN stack, React, Node.js, and software engineering — published on Medium."
+        path="/blog"
+      />
       {/* Reader modal */}
       <AnimatePresence>
         {reading && <ArticleReader post={reading} onClose={closeReader} />}

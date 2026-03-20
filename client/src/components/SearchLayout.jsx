@@ -5,6 +5,7 @@ import { useTheme } from "../context/ThemeContext";
 import KnowledgePanel from "./KnowledgePanel";
 import { LINKS } from "../config/links";
 import { submitFeedback } from "../api";
+import { useConfig } from "../hooks/useConfig";
 
 const TABS = [
   { label: "All",     to: "/all",      query: "anurag developer portfolio" },
@@ -104,6 +105,8 @@ const LOGO = [
 export default function SearchLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const cfg = useConfig();
+  const altPortfolioUrl = cfg.socialLinks?.alternatePortfolio ?? LINKS.alternatePortfolio;
   const { isDark, toggle } = useTheme();
 
   const [imagesPageEnabled, setImagesPageEnabled] = useState(
@@ -938,7 +941,7 @@ export default function SearchLayout() {
                         </svg>
                       </a>
                       <a
-                        href={LINKS.alternatePortfolio}
+                        href={altPortfolioUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-full flex items-center gap-3 px-5 py-2.5
