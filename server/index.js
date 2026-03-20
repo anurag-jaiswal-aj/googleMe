@@ -11,6 +11,8 @@ const mediumRoutes   = require('./routes/medium');
 const feedbackRoutes = require('./routes/feedback');
 const githubRoutes   = require('./routes/github');
 const imagesRoutes   = require('./routes/images');
+const configRoutes   = require('./routes/config');
+const adminAuthRoutes = require('./routes/adminAuth');
 
 const app = express();
 
@@ -43,7 +45,7 @@ app.use(
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // Higher limit in dev
   message: { error: 'Too many requests, please try again later.' },
 });
 app.use('/api/', limiter);
@@ -52,6 +54,8 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 
 // Routes
+app.use('/api/admin', adminAuthRoutes);
+app.use('/api/config', configRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/medium', mediumRoutes);

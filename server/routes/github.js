@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const PortfolioConfig = require('../models/PortfolioConfig');
+const requireAuth = require('../middleware/auth');
 
 const GITHUB_USER = process.env.GITHUB_USERNAME || 'anurag-jaiswal-aj';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
@@ -92,8 +93,8 @@ router.get('/repos', async (req, res, next) => {
   }
 });
 
-// POST /api/github/selection — save selected repo names + featured flags
-router.post('/selection', async (req, res, next) => {
+// POST /api/github/selection — save selected repo names + featured flags (admin only)
+router.post('/selection', requireAuth, async (req, res, next) => {
   const { selectedRepos } = req.body;
   if (!Array.isArray(selectedRepos)) {
     return res.status(400).json({ error: 'selectedRepos must be an array' });

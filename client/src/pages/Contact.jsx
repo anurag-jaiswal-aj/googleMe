@@ -244,7 +244,7 @@ function ContactForm() {
                   Message <span className="text-[#c5221f]">*</span>
                 </label>
                 <textarea name="message" value={form.message} onChange={handleChange}
-                  rows={5} placeholder="Tell me about your project, idea, or just say hi…"
+                  rows={4} placeholder="Tell me about your project, idea, or just say hi…"
                   className={`${inputCls('message')} resize-none`} />
                 <div className="flex justify-between mt-1">
                   {errors.message

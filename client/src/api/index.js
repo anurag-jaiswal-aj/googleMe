@@ -29,6 +29,17 @@ const api = axios.create({
   },
 });
 
+// Attach JWT token to every request if present
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('adminToken');
+  if (token) config.headers['Authorization'] = `Bearer ${token}`;
+  return config;
+});
+
+// ── Admin Auth ────────────────────────────────────────
+export const adminLogin  = (password) => api.post('/admin/login', { password }).then(r => r.data);
+export const adminVerify = () => api.post('/admin/verify').then(r => r.data);
+
 export const fetchProjects = () => api.get('/projects').then((r) => r.data);
 
 const isTimeoutLikeError = (err) => {
@@ -86,6 +97,11 @@ export const uploadImage = (formData) =>
   api.post('/images', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 30000 }).then((r) => r.data);
 export const updateImage = (id, data) => api.patch(`/images/${id}`, data).then((r) => r.data);
 export const deleteImage = (id) => api.delete(`/images/${id}`).then((r) => r.data);
+
+// ── Site Config ──────────────────────────────────────
+export const fetchConfig = () => api.get('/config').then(r => r.data);
+export const saveConfig  = (key, value) => api.post('/config', { key, value }).then(r => r.data);
+export const saveConfigBulk = (updates) => api.post('/config', { updates }).then(r => r.data);
 
 export const submitFeedback = async (data) => {
   const fd = new FormData();

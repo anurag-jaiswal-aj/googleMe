@@ -4,8 +4,9 @@ import toast from "react-hot-toast";
 import SearchResult from "../components/SearchResult";
 import FilterSort from "../components/FilterSort";
 import { ABOUT_QA } from "../data/allPageData";
-import { SKILLS, EDUCATION, EXPERIENCE, CERTIFICATIONS } from "../data/aboutData";
+import { SKILLS as DEFAULT_SKILLS, EDUCATION as DEFAULT_EDUCATION, EXPERIENCE as DEFAULT_EXPERIENCE, CERTIFICATIONS as DEFAULT_CERTIFICATIONS } from "../data/aboutData";
 import { LINKS } from "../config/links";
+import { useConfig } from "../hooks/useConfig";
 import { useImagesPageEnabled } from "../hooks/useImagesPageEnabled";
 
 const SECTIONS = ["Bio", "Skills", "Education", "Experience", "Certifications"];
@@ -40,6 +41,14 @@ function Sitelinks({ links, onLinkClick }) {
 /* ── Page ───────────────────────────────────────────── */
 export default function About() {
   const imagesEnabled = useImagesPageEnabled();
+  const cfg = useConfig();
+
+  // Fall back to hardcoded data if nothing saved in DB yet
+  const SKILLS       = cfg.skills        ?? DEFAULT_SKILLS;
+  const EDUCATION    = cfg.education     ?? DEFAULT_EDUCATION;
+  const EXPERIENCE   = cfg.experience    ?? DEFAULT_EXPERIENCE;
+  const CERTIFICATIONS = cfg.certifications ?? DEFAULT_CERTIFICATIONS;
+  const bioParagraphs = cfg.bioParagraphs ?? null; // null = use inline JSX below
   const [filters, setFilters] = useState([]);
   const [sort, setSort] = useState("relevance");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -146,25 +155,13 @@ export default function About() {
                   transition={{ duration: 0.2, ease: "easeInOut" }}
                   className="overflow-hidden"
                 >
-                  <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-relaxed mt-2">
-                    I enjoy building scalable full-stack web applications and
-                    exploring how machine learning can power intelligent,
-                    data-driven systems. My work involves developing
-                    applications using JavaScript, the MERN stack, Python,
-                    MongoDB, and MySQL, while also experimenting with machine
-                    learning models and data analysis.
-                  </p>
-                  <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-relaxed mt-2">
-                    Alongside development and ML, I actively strengthen my
-                    problem-solving skills through Data Structures and
-                    Algorithms, focusing on writing efficient and optimized
-                    solutions.
-                  </p>
-                  <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-relaxed mt-2">
-                    I enjoy learning new technologies, building projects, and
-                    continuously improving my ability to create scalable,
-                    intelligent software systems.
-                  </p>
+                  {(bioParagraphs ?? [
+                    "I enjoy building scalable full-stack web applications and exploring how machine learning can power intelligent, data-driven systems. My work involves developing applications using JavaScript, the MERN stack, Python, MongoDB, and MySQL, while also experimenting with machine learning models and data analysis.",
+                    "Alongside development and ML, I actively strengthen my problem-solving skills through Data Structures and Algorithms, focusing on writing efficient and optimized solutions.",
+                    "I enjoy learning new technologies, building projects, and continuously improving my ability to create scalable, intelligent software systems.",
+                  ]).map((para, i) => (
+                    <p key={i} className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-relaxed mt-2">{para}</p>
+                  ))}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -475,7 +472,7 @@ export default function About() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 }}
                 >
-                  <div className="max-w-[680px] border border-[#dadce0] dark:border-[#3c4043] rounded-xl overflow-hidden mb-8">
+                  <div className="max-w-[680px] border border-[#dadce0] dark:border-[#3c4043] rounded-xl overflow-hidden mb-6">
                     <div className="px-5 py-3 border-b border-[#e8eaed] dark:border-[#3c4043]">
                       <p className="text-base font-medium text-[#202124] dark:text-[#e8eaed]">
                         People also ask

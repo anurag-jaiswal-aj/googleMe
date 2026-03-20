@@ -109,6 +109,12 @@ export default function SearchLayout() {
   const [imagesPageEnabled, setImagesPageEnabled] = useState(
     () => localStorage.getItem('imagesPageEnabled') !== 'false'
   );
+  const [blogPageEnabled, setBlogPageEnabled] = useState(
+    () => localStorage.getItem('blogPageEnabled') !== 'false'
+  );
+  const [toolsPageEnabled, setToolsPageEnabled] = useState(
+    () => localStorage.getItem('toolsPageEnabled') !== 'false'
+  );
 
   useEffect(() => {
     const handler = () => setImagesPageEnabled(localStorage.getItem('imagesPageEnabled') !== 'false');
@@ -116,7 +122,24 @@ export default function SearchLayout() {
     return () => window.removeEventListener('imagesPageToggled', handler);
   }, []);
 
-  const visibleTabs = TABS.filter(t => t.to !== '/images' || imagesPageEnabled);
+  useEffect(() => {
+    const handler = () => setBlogPageEnabled(localStorage.getItem('blogPageEnabled') !== 'false');
+    window.addEventListener('blogPageToggled', handler);
+    return () => window.removeEventListener('blogPageToggled', handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setToolsPageEnabled(localStorage.getItem('toolsPageEnabled') !== 'false');
+    window.addEventListener('toolsPageToggled', handler);
+    return () => window.removeEventListener('toolsPageToggled', handler);
+  }, []);
+
+  const visibleTabs = TABS.filter(t => {
+    if (t.to === '/images') return imagesPageEnabled;
+    if (t.to === '/blog')   return blogPageEnabled;
+    if (t.to === '/tools')  return toolsPageEnabled;
+    return true;
+  });
 
   const currentTab = TABS.find((t) => t.to === location.pathname);
   const footerIndex = FOOTER_CYCLE.findIndex(

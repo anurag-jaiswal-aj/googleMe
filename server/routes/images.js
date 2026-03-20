@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const GalleryImage = require('../models/GalleryImage');
+const requireAuth = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -13,7 +14,7 @@ const upload = multer({
   },
 });
 
-// GET all
+// GET all — public
 router.get('/', async (req, res) => {
   try {
     const images = await GalleryImage.find().sort({ order: 1, createdAt: -1 }).select('-__v');
@@ -21,8 +22,8 @@ router.get('/', async (req, res) => {
   } catch { res.status(500).json({ error: 'Failed to fetch images' }); }
 });
 
-// POST upload
-router.post('/', upload.single('image'), async (req, res) => {
+// POST upload — admin only
+router.post('/', requireAuth, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Image file is required' });
     const { title, category, description, link, order } = req.body;
@@ -36,8 +37,8 @@ router.post('/', upload.single('image'), async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message || 'Failed to upload image' }); }
 });
 
-// PATCH edit metadata (no image replacement)
-router.patch('/:id', async (req, res) => {
+// PATCH edit metadata — admin only
+router.patch('/:id', requireAuth, async (req, res) => {
   try {
     const { title, category, description, link } = req.body;
     const updated = await GalleryImage.findByIdAndUpdate(
@@ -50,8 +51,8 @@ router.patch('/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message || 'Failed to update image' }); }
 });
 
-// DELETE
-router.delete('/:id', async (req, res) => {
+// DELETE — admin only
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const deleted = await GalleryImage.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ error: 'Image not found' });
