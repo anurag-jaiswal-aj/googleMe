@@ -44,7 +44,7 @@ export default function SearchResult({
   }, [menuOpen]);
 
   const titleClass =
-    'block text-[20px] leading-[1.3] font-normal text-[#1a73e8] dark:text-[#8ab4f8] hover:underline cursor-pointer mb-1 text-left';
+    'block text-[18px] sm:text-[20px] leading-[1.3] font-normal text-[#1a73e8] dark:text-[#8ab4f8] hover:underline cursor-pointer mb-1 text-left';
 
   return (
     <div className="max-w-[680px] mb-8">

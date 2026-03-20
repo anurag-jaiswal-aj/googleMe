@@ -40,7 +40,7 @@ export default function Tools() {
   const total = visible.reduce((s, g) => s + g.items.length, 0);
 
   return (
-    <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
+    <div className="px-4 sm:pl-[120px] md:pl-[176px] sm:pr-6 md:pr-8 pt-3 pb-10">
       <SEO
         title="Toolkit"
         description="Anurag Jaiswal's tech stack and skills — React, Node.js, MongoDB, Python, TailwindCSS, Docker, and more. Categorised by proficiency level."

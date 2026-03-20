@@ -110,7 +110,7 @@ export default function KnowledgePanel() {
   ];
 
   return (
-    <aside className="w-full lg:w-[360px] shrink-0">
+    <aside className="w-full md:w-[360px] shrink-0">
       <div className="border border-[#dadce0] dark:border-[#3c4043] rounded-2xl overflow-hidden bg-white dark:bg-[#202124] shadow-sm">
 
         {/* Header */}
@@ -193,7 +193,7 @@ export default function KnowledgePanel() {
             {CIRCLE_PROFILES.map(({ name, href, bg, icon }) => (
               <a key={name} href={href} target="_blank" rel="noopener noreferrer"
                 className="flex flex-col items-center gap-1.5 group" title={name}>
-                <span className="w-12 h-12 rounded-full flex items-center justify-center text-white transition-opacity group-hover:opacity-80"
+                <span className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white transition-opacity group-hover:opacity-80"
                   style={{ backgroundColor: bg }}>
                   {icon}
                 </span>

@@ -42,7 +42,7 @@ export default function FilterSort({
 
   const currentSortLabel = sortOptions.find(o => o.value === sort)?.label ?? 'Relevance';
 
-  const dropdownCls = `absolute left-0 top-[calc(100%+6px)] z-50 min-w-[188px]
+  const dropdownCls = `absolute left-0 top-[calc(100%+6px)] z-50 min-w-[160px] sm:min-w-[188px]
     bg-white dark:bg-[#303134] border border-[#dadce0] dark:border-[#5f6368]
     rounded-2xl shadow-lg overflow-y-auto max-h-[168px] py-1 scrollbar-hide`;
 

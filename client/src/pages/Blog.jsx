@@ -124,7 +124,7 @@ function ArticleReader({ post, onClose }) {
 
         {/* Title */}
         <h1 style={{ fontFamily: "'Georgia', 'Charter', serif" }}
-            className="text-[42px] font-bold leading-[1.18] tracking-[-0.5px]
+            className="text-2xl sm:text-[42px] font-bold leading-[1.18] tracking-[-0.5px]
                        text-[#292929] dark:text-[#e6e6e6] mb-4">
           {post.title}
         </h1>
@@ -248,7 +248,7 @@ function PostCard({ post, onRead }) {
       {/* Title — opens reader, no external redirect */}
       <button
         onClick={() => onRead(post)}
-        className="block text-left text-[20px] leading-[1.3] font-normal
+        className="block text-left text-[18px] sm:text-[20px] leading-[1.3] font-normal
                    text-[#1a73e8] dark:text-[#8ab4f8] hover:underline mb-1"
       >
         {post.title}
@@ -334,7 +334,7 @@ export default function Blog() {
   const relatedSearches = filtered.filter(p => !paginatedIds.has(p.id)).slice(0, 6).map(p => p.title);
 
   return (
-    <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
+    <div className="px-4 sm:pl-[120px] md:pl-[176px] sm:pr-6 md:pr-8 pt-3 pb-10">
       <SEO
         title="Blog"
         description="Anurag Jaiswal's articles on web development, MERN stack, React, Node.js, and software engineering — published on Medium."

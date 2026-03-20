@@ -272,7 +272,7 @@ export default function About() {
                   transition={{ duration: 0.2, ease: "easeInOut" }}
                   className="overflow-hidden"
                 >
-                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-4">
                     {SKILLS.map(({ cat, list }) => (
                       <div
                         key={cat}
@@ -432,7 +432,7 @@ export default function About() {
   };
 
   return (
-    <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
+    <div className="px-4 sm:pl-[120px] md:pl-[176px] sm:pr-6 md:pr-8 pt-3 pb-10">
       <SEO
         title="About"
         description="Learn about Anurag Jaiswal — Full-Stack Developer, B.Tech ISE student, MERN stack specialist. Bio, skills, education, experience, and certifications."

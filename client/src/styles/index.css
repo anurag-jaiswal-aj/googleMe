@@ -82,10 +82,16 @@
 /* ── Medium-like article body typography ─────────── */
 .medium-body {
   font-family: 'Georgia', 'Charter', 'Bitstream Charter', serif;
-  font-size: 20px;
+  font-size: 17px;
   line-height: 1.8;
   color: rgb(41, 41, 41);
   word-break: break-word;
+}
+
+@media (min-width: 640px) {
+  .medium-body {
+    font-size: 20px;
+  }
 }
 
 .dark .medium-body {
@@ -117,10 +123,17 @@
   color: rgb(230, 230, 230);
 }
 
-.medium-body h1 { font-size: 36px; }
-.medium-body h2 { font-size: 28px; }
-.medium-body h3 { font-size: 22px; }
-.medium-body h4 { font-size: 20px; }
+.medium-body h1 { font-size: 28px; }
+.medium-body h2 { font-size: 22px; }
+.medium-body h3 { font-size: 18px; }
+.medium-body h4 { font-size: 17px; }
+
+@media (min-width: 640px) {
+  .medium-body h1 { font-size: 36px; }
+  .medium-body h2 { font-size: 28px; }
+  .medium-body h3 { font-size: 22px; }
+  .medium-body h4 { font-size: 20px; }
+}
 
 .medium-body blockquote {
   border-left: 3px solid rgb(41, 41, 41);

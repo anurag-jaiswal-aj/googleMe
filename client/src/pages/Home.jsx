@@ -607,7 +607,7 @@ export default function Home() {
         description="Anurag Jaiswal — Full-Stack Developer specialising in React, Node.js, Express and MongoDB. Explore projects, skills, blog posts, and get in touch for freelance or full-time opportunities."
       />
       {/* Top bar */}
-      <header className="flex justify-between items-center gap-3 px-7 py-5">        {/* Left — Clock & Weather (both reveal together once weather loads) */}
+      <header className="flex justify-between items-center gap-3 px-4 sm:px-7 py-3 sm:py-5">        {/* Left — Clock & Weather (both reveal together once weather loads) */}
         <div className="flex items-center gap-3 select-none">
           {!weatherLoading && (
             <motion.div
@@ -692,7 +692,7 @@ export default function Home() {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -8 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute right-0 mt-2 w-72 rounded-2xl shadow-xl
+                  className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-[288px] rounded-2xl shadow-xl
                            bg-white dark:bg-[#202124] border border-gray-200 dark:border-[#3c4043]
                            z-50 p-4"
                 >

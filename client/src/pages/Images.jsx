@@ -159,7 +159,7 @@ export default function Images() {
   const nextImage = useCallback(() => setLightboxIdx(i => Math.min(filtered.length - 1, i + 1)), [filtered.length]);
 
   return (
-    <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
+    <div className="px-4 sm:pl-[120px] md:pl-[176px] sm:pr-6 md:pr-8 pt-3 pb-10">
       <SEO
         title="Gallery"
         description="Anurag Jaiswal's image gallery — project screenshots, certificates, UI work, and more."
@@ -205,7 +205,7 @@ export default function Images() {
       <div className="max-w-[700px] h-px bg-[#e8eaed] dark:bg-[#3c4043] mt-4 mb-5" />
 
       {loading && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-[700px]">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-3 sm:gap-4 max-w-[700px]">
           {[1,2,3,4,5,6].map(i => (
             <div key={i}>
               <div className="rounded-xl bg-[#e8eaed] dark:bg-[#3c4043] animate-pulse" style={{ aspectRatio: '4/3' }} />
@@ -229,7 +229,7 @@ export default function Images() {
       )}
 
       {!loading && filtered.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-[700px]">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 max-w-[700px]">
           {filtered.map((image, idx) => (
             <ImageCard key={image._id} image={image} onClick={() => openLightbox(idx)} />
           ))}

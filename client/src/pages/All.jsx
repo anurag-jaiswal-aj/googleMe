@@ -96,7 +96,7 @@ function QAExpanded({ type }) {
       <div className="mt-3 space-y-1.5">
         {SKILLS.map(({ cat, list }) => (
           <div key={cat} className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wide w-28 shrink-0 text-[#133780] dark:text-[#bdc1c6]">
+            <span className="text-[10px] font-semibold uppercase tracking-wide w-20 sm:w-28 shrink-0 text-[#133780] dark:text-[#bdc1c6]">
               {cat}
             </span>
             {list.map((tag) => (
@@ -326,7 +326,7 @@ function ArticleReader({ post, onClose }) {
 
         <h1
           style={{ fontFamily: "'Georgia', 'Charter', serif" }}
-          className="text-[42px] font-bold leading-[1.18] tracking-[-0.5px] text-[#292929] dark:text-[#e6e6e6] mb-4"
+          className="text-2xl sm:text-[42px] font-bold leading-[1.18] tracking-[-0.5px] text-[#292929] dark:text-[#e6e6e6] mb-4"
         >
           {post.title}
         </h1>
@@ -419,7 +419,7 @@ export default function All() {
     SOCIALS.length;
 
   return (
-    <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
+    <div className="px-4 sm:pl-[120px] md:pl-[176px] sm:pr-6 md:pr-8 pt-3 pb-10">
       <AnimatePresence>
         {reading && (
           <ArticleReader post={reading} onClose={() => setReading(null)} />

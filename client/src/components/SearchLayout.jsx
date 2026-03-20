@@ -667,7 +667,7 @@ export default function SearchLayout() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -8 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-2 w-72 rounded-2xl shadow-xl
+                    className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-[288px] rounded-2xl shadow-xl
                                bg-white dark:bg-[#202124] border border-gray-200 dark:border-[#3c4043]
                                z-50 p-4"
                   >
@@ -1239,7 +1239,7 @@ export default function SearchLayout() {
             </div>
 
             {/* Sticky knowledge panel — scrolls up naturally when footer arrives */}
-            <div className="hidden lg:block w-[420px] shrink-0">
+            <div className="hidden xl:block w-[420px] shrink-0">
               <div className="sticky top-[152px] w-[380px] pt-3 mb-6 max-h-[calc(100vh-168px)] overflow-y-auto ml-[-40px] mt-10">
                 <KnowledgePanel />
               </div>

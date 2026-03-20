@@ -391,7 +391,7 @@ export default function Contact() {
   ];
 
   return (
-    <div className="px-4 sm:pl-[176px] sm:pr-8 pt-3 pb-10">
+    <div className="px-4 sm:pl-[120px] md:pl-[176px] sm:pr-6 md:pr-8 pt-3 pb-10">
       <SEO
         title="Contact"
         description="Get in touch with Anurag Jaiswal — open to job opportunities, collaborations, and project inquiries. Send a message or connect on LinkedIn and GitHub."
