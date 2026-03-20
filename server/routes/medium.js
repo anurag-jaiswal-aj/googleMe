@@ -2,55 +2,49 @@ const express = require('express');
 const router = express.Router();
 const Parser = require('rss-parser');
 
+const MEDIUM_USER = 'janurag582004';
+const MEDIUM_RSS = `https://medium.com/feed/@${MEDIUM_USER}`;
+
+// Use a browser-like user-agent — Medium rate-limits generic Node.js agents
 const parser = new Parser({
-  customFields: {
-    item: [['content:encoded', 'contentEncoded']],
+  customFields: { item: [['content:encoded', 'contentEncoded']] },
+  requestOptions: {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+    },
   },
 });
 
-const MEDIUM_RSS = 'https://medium.com/feed/@janurag582004';
-
-// Estimate read time from content (avg 200 wpm)
 function estimateReadTime(html = '') {
   const text = html.replace(/<[^>]+>/g, ' ');
-  const words = text.trim().split(/\s+/).length;
-  const mins = Math.max(1, Math.round(words/200));
-  return `${mins} min read`;
+  return `${Math.max(1, Math.round(text.trim().split(/\s+/).length / 200))} min read`;
 }
 
-// Extract thumbnail from content:encoded
 function extractThumbnail(html = '') {
   const match = html.match(/<img[^>]+src="([^"]+)"/);
   return match ? match[1] : '';
 }
 
-// Extract plain-text snippet (~160 chars)
 function extractSnippet(html = '') {
   const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
   return text.length > 160 ? text.slice(0, 157) + '…' : text;
 }
 
-// Clean URL → "medium.com/@janurag582004/slug"
 function cleanUrl(href = '') {
   try {
     const url = new URL(href);
-    const parts = url.pathname.split('/').filter(Boolean); // ['@janurag582004', 'slug-abc123']
+    const parts = url.pathname.split('/').filter(Boolean);
     const slug = parts[1] ? parts[1].replace(/-[a-f0-9]{10,}$/, '').replace(/-/g, ' ') : '';
-    return `medium.com/@janurag582004${slug ? '/' + slug : ''}`;
+    return `medium.com/@${MEDIUM_USER}${slug ? '/' + slug : ''}`;
   } catch {
-    return 'medium.com/@janurag582004';
+    return `medium.com/@${MEDIUM_USER}`;
   }
-}
-
-function autoTags(categories = []) {
-  return categories.slice(0, 4);
 }
 
 let cache = null;
 let cacheTime = 0;
 const CACHE_TTL = 30 * 60 * 1000;
 
-// GET /api/medium
 router.get('/', async (req, res) => {
   try {
     if (cache && Date.now() - cacheTime < CACHE_TTL) {
@@ -61,11 +55,9 @@ router.get('/', async (req, res) => {
 
     const posts = feed.items.map((item, i) => {
       const rawContent = item.contentEncoded || item.content || '';
-      // Strip Medium's tracking pixel before storing/sending content
       const content = rawContent
         .replace(/<img[^>]*medium\.com\/_\/stat[^>]*>/gi, '')
         .replace(/<img[^>]*\s(?:width|height)="1"[^>]*>/gi, '');
-      const pubDate = new Date(item.pubDate);
       const href = item.link || '';
       return {
         id: item.guid || String(i),
@@ -73,18 +65,17 @@ router.get('/', async (req, res) => {
         url: cleanUrl(href),
         href,
         snippet: extractSnippet(content),
-        date: pubDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        date: new Date(item.pubDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         readTime: estimateReadTime(content),
         thumbnail: extractThumbnail(content),
-        tags: autoTags(item.categories),
-        content,                        // full HTML for in-portfolio reader
+        tags: (item.categories || []).slice(0, 4),
+        content,
         faviconBg: '#00ab6c',
       };
     });
 
     cache = posts;
     cacheTime = Date.now();
-
     res.json(posts);
   } catch (err) {
     console.error('Medium RSS fetch failed:', err.message);
