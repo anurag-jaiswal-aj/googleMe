@@ -19,7 +19,7 @@ const SORT_OPTS = [
 /* ── Sitelinks strip ────────────────────────────────── */
 function Sitelinks({ links, onLinkClick }) {
   return (
-    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-0">
+    <div className="mt-3 grid grid-cols-2 gap-x-8 gap-y-0">
       {links.map(({ label, to, key }) => (
         <a
           key={label}
@@ -175,6 +175,7 @@ export default function About() {
                 { label: "Projects", to: "/projects" },
                 { label: "Contact", to: "/contact" },
                 { label: "Blog", to: "/blog" },
+                { label: "Toolkit", to: "/tools" },
               ]}
               onLinkClick={(event, link) =>
                 handleSectionLink(event, link.to.slice(1))
@@ -272,7 +273,7 @@ export default function About() {
                   transition={{ duration: 0.2, ease: "easeInOut" }}
                   className="overflow-hidden"
                 >
-                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-4">
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-4">
                     {SKILLS.map(({ cat, list }) => (
                       <div
                         key={cat}

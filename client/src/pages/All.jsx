@@ -90,23 +90,19 @@ function QAExpanded({ type }) {
     );
   }
 
-  /* Skills — compact category + pill rows from aboutData */
+  /* Skills — bordered column grid matching About page */
   if (type === "skills") {
     return (
-      <div className="mt-3 space-y-1.5">
+      <div className="mt-3 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-4">
         {SKILLS.map(({ cat, list }) => (
-          <div key={cat} className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wide w-20 sm:w-28 shrink-0 text-[#133780] dark:text-[#bdc1c6]">
+          <div key={cat} className="border-l-2 border-[#dadce0] dark:border-[#3c4043] pl-3">
+            <p className="text-xs font-semibold text-[#133780] dark:text-[#bdc1c6] mb-1.5 uppercase tracking-wide">
               {cat}
-            </span>
-            {list.map((tag) => (
-              <span
-                key={tag}
-                className="text-xs px-2 py-0.5 rounded-full border border-[#e8eaed] dark:border-[#3c4043]
-                           bg-[#f8f9fa] dark:bg-[#303134] text-[#202124] dark:text-[#e8eaed]"
-              >
-                {tag}
-              </span>
+            </p>
+            {list.map((s) => (
+              <p key={s} className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-[1.7]">
+                {s}
+              </p>
             ))}
           </div>
         ))}

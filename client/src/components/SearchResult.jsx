@@ -47,7 +47,7 @@ export default function SearchResult({
     'block text-[18px] sm:text-[20px] leading-[1.3] font-normal text-[#1a73e8] dark:text-[#8ab4f8] hover:underline cursor-pointer mb-1 text-left';
 
   return (
-    <div className="max-w-[680px] mb-8">
+    <div className="max-w-[680px] mb-8 min-w-0 overflow-hidden">
       {/* ── URL row ────────────────────────────────── */}
       <div className="flex items-center gap-2 mb-0.5">
         {/* Favicon */}
@@ -124,7 +124,7 @@ export default function SearchResult({
 
       {/* ── Snippet ────────────────────────────────── */}
       {snippet && (
-        <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-[1.58]">
+        <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-[1.58] break-words">
           {snippet}
         </p>
       )}
