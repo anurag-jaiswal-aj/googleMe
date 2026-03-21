@@ -1,185 +1,80 @@
 const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
-const nodemailer = require('nodemailer');
 const multer = require('multer');
 const Contact = require('../models/Contact');
+const { sendEmail } = require('../utils/emailService');
 
-const RESEND_API_URL = 'https://api.resend.com/emails';
-
-// Accept up to 3 attachments, max 5 MB each, in memory
+// Accept up to 3 attachments, max 5 MB each, stored in memory
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 3 },
 });
 
 const handleUpload = (req, res, next) => {
-  upload.array('attachments', 3)(req, res, err => {
-    if (err instanceof multer.MulterError) {
-      return res.status(400).json({ error: err.message });
-    }
+  upload.array('attachments', 3)(req, res, (err) => {
+    if (err instanceof multer.MulterError) return res.status(400).json({ error: err.message });
     if (err) return next(err);
     next();
   });
 };
 
-const contactValidation = [
-  body('name')
-    .trim()
-    .notEmpty().withMessage('Name is required')
-    .isLength({ max: 100 }).withMessage('Name cannot exceed 100 characters')
-    .escape(),
-  body('email')
-    .trim()
-    .notEmpty().withMessage('Email is required')
-    .isEmail().withMessage('Please enter a valid email')
-    .normalizeEmail(),
-  body('message')
-    .trim()
-    .notEmpty().withMessage('Message is required')
-    .isLength({ max: 2000 }).withMessage('Message cannot exceed 2000 characters')
-    .escape(),
+const validation = [
+  body('name').trim().notEmpty().withMessage('Name is required')
+    .isLength({ max: 100 }).withMessage('Name cannot exceed 100 characters').escape(),
+  body('email').trim().notEmpty().withMessage('Email is required')
+    .isEmail().withMessage('Please enter a valid email').normalizeEmail(),
+  body('message').trim().notEmpty().withMessage('Message is required')
+    .isLength({ max: 2000 }).withMessage('Message cannot exceed 2000 characters').escape(),
   body('subject').optional().trim().isLength({ max: 100 }).escape(),
 ];
 
-const buildEmailHtml = ({ name, email, message, subject, attachments }) => `
+const buildHtml = ({ name, email, message, subject, attachments }) => `
   <h2>New Contact Form Submission</h2>
   ${subject ? `<p><strong>Subject:</strong> ${subject}</p>` : ''}
   <p><strong>Name:</strong> ${name}</p>
   <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
   <p><strong>Message:</strong></p>
   <p>${message.replace(/\n/g, '<br/>')}</p>
-  ${attachments.length > 0 ? `<p><strong>Attachments:</strong> ${attachments.map(a => a.filename).join(', ')}</p>` : ''}
+  ${attachments.length > 0 ? `<p><strong>Attachments:</strong> ${attachments.map((a) => a.filename).join(', ')}</p>` : ''}
   <hr/>
   <small>Sent from portfolio contact form</small>
 `;
 
-const sendViaResend = async ({ name, email, subject, html, attachments }) => {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return false;
-
-  const from = process.env.RESEND_FROM || process.env.EMAIL_FROM || 'onboarding@resend.dev';
-  const to = process.env.EMAIL_TO || process.env.EMAIL_USER;
-  if (!to) return false;
-
-  const subjectLine = subject
-    ? `[${subject}] New Portfolio Message from ${name}`
-    : `New Portfolio Message from ${name}`;
-
-  const resendAttachments = attachments.map((a) => ({
-    filename: a.filename,
-    content: a.content.toString('base64'),
-  }));
-
-  const resp = await fetch(RESEND_API_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      reply_to: email,
-      subject: subjectLine,
-      html,
-      attachments: resendAttachments,
-    }),
-  });
-
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(`Resend failed (${resp.status}): ${text}`);
-  }
-
-  return true;
-};
-
-const sendViaSmtp = async ({ name, email, subject, html, attachments }) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) return false;
-
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT, 10) || 465,
-    secure: true,
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-
-  const subjectLine = subject
-    ? `[${subject}] New Portfolio Message from ${name}`
-    : `New Portfolio Message from ${name}`;
-
-  await transporter.sendMail({
-    from: `"Portfolio Contact" <${process.env.EMAIL_USER}>`,
-    to: process.env.EMAIL_TO || process.env.EMAIL_USER,
-    replyTo: email,
-    subject: subjectLine,
-    html,
-    attachments,
-  });
-
-  return true;
-};
-
-const sendNotificationEmail = async ({ name, email, message, subject, attachments }) => {
-  const html = buildEmailHtml({ name, email, message, subject, attachments });
-
-  try {
-    const sent = await sendViaResend({ name, email, subject, html, attachments });
-    if (sent) return;
-  } catch (err) {
-    console.error('Resend send failed:', err.message);
-  }
-
-  try {
-    const sent = await sendViaSmtp({ name, email, subject, html, attachments });
-    if (sent) return;
-  } catch (err) {
-    console.error('SMTP send failed:', err.message);
-  }
-
-  console.error('Email not sent: no valid email provider configured or all providers failed.');
-};
-
 // POST /api/contact
-router.post('/', handleUpload, contactValidation, async (req, res, next) => {
+router.post('/', handleUpload, validation, async (req, res, next) => {
   const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
   const { name, email, message, subject } = req.body;
-  const attachments = (req.files || []).map(f => ({
+  const attachments = (req.files || []).map((f) => ({
     filename: f.originalname,
     content: f.buffer,
     contentType: f.mimetype,
   }));
 
   try {
-    // Save to MongoDB (without attachments — email-only)
     const contact = await Contact.create({ name, email, message });
 
-    // Fire-and-forget: never block API response on provider latency.
-    sendNotificationEmail({ name, email, message, subject, attachments }).catch((mailErr) => {
-      console.error('Email send failed:', mailErr.message);
-    });
+    const subjectLine = subject
+      ? `[${subject}] New Portfolio Message from ${name}`
+      : `New Portfolio Message from ${name}`;
+
+    // Fire-and-forget — never block the response on email delivery
+    sendEmail({
+      subject: subjectLine,
+      html: buildHtml({ name, email, message, subject, attachments }),
+      replyTo: email,
+      attachments,
+    }).catch((err) => console.error('[contact] Email send failed:', err.message));
 
     res.status(201).json({
       success: true,
-      message: 'Your message has been received! I will get back to you soon.',
+      message: "Your message has been received! I'll get back to you soon.",
       id: contact._id,
     });
   } catch (err) {
-    if (err.name === 'ValidationError') {
-      return res.status(400).json({ error: err.message });
-    }
+    if (err.name === 'ValidationError') return res.status(400).json({ error: err.message });
     next(err);
   }
 });

@@ -5,6 +5,14 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
+// Fail fast if critical secrets are missing
+const REQUIRED_ENV = ['MONGO_URI', 'JWT_SECRET', 'ADMIN_PASSWORD_HASH'];
+const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
+if (missing.length) {
+  console.error(`[startup] Missing required env vars: ${missing.join(', ')}`);
+  process.exit(1);
+}
+
 const projectRoutes  = require('./routes/projects');
 const contactRoutes  = require('./routes/contact');
 const mediumRoutes   = require('./routes/medium');
@@ -42,13 +50,22 @@ app.use(
   })
 );
 
-// Rate limiting
+// Rate limiting — general
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // Higher limit in dev
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000,
   message: { error: 'Too many requests, please try again later.' },
 });
 app.use('/api/', limiter);
+
+// Stricter rate limit for admin login to slow brute-force attempts
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many login attempts, please try again later.' },
+  skipSuccessfulRequests: true,
+});
+app.use('/api/admin/login', adminLimiter);
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));

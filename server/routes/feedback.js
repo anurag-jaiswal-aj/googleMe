@@ -1,11 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
-const nodemailer = require('nodemailer');
 const multer = require('multer');
 const Feedback = require('../models/Feedback');
-
-const RESEND_API_URL = 'https://api.resend.com/emails';
+const { sendEmail } = require('../utils/emailService');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -22,7 +20,7 @@ const handleUpload = (req, res, next) => {
 
 const VALID_TYPES = ['bug', 'feature', 'suggestion', 'typo', 'compliment', 'other'];
 
-const feedbackValidation = [
+const validation = [
   body('type').trim().isIn(VALID_TYPES).withMessage('Invalid feedback type'),
   body('message').trim().notEmpty().withMessage('Message is required')
     .isLength({ max: 2000 }).withMessage('Message cannot exceed 2000 characters').escape(),
@@ -46,94 +44,31 @@ const buildHtml = ({ type, message, name, email, page, hasAttachment }) => `
   <small style="color:#9aa0a6">Sent from portfolio feedback form</small>
 `;
 
-const sendViaResend = async ({ subject, html, attachment }) => {
-  const apiKey = process.env.RESEND_API_KEY;
-  const to = process.env.EMAIL_TO || process.env.EMAIL_USER;
-  if (!apiKey || !to) return false;
-
-  const from = process.env.RESEND_FROM || process.env.EMAIL_FROM || 'onboarding@resend.dev';
-  const body = { from, to: [to], subject, html };
-  if (attachment) {
-    body.attachments = [{ filename: attachment.originalname, content: attachment.buffer.toString('base64') }];
-  }
-
-  const resp = await fetch(RESEND_API_URL, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(`Resend failed (${resp.status}): ${text}`);
-  }
-  return true;
-};
-
-const sendViaSmtp = async ({ subject, html, attachment }) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) return false;
-
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT, 10) || 465,
-    secure: true,
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  });
-
-  const mailOptions = {
-    from: `"Portfolio Feedback" <${process.env.EMAIL_USER}>`,
-    to: process.env.EMAIL_TO || process.env.EMAIL_USER,
-    subject,
-    html,
-  };
-  if (attachment) {
-    mailOptions.attachments = [{ filename: attachment.originalname, content: attachment.buffer }];
-  }
-
-  await transporter.sendMail(mailOptions);
-  return true;
-};
-
-const sendFeedbackEmail = async ({ type, message, name, email, page, attachment }) => {
-  const label = type.charAt(0).toUpperCase() + type.slice(1);
-  const subject = name
-    ? `[Portfolio Feedback] ${label} from ${name}`
-    : `[Portfolio Feedback] ${label}`;
-  const html = buildHtml({ type, message, name, email, page, hasAttachment: !!attachment });
-
-  try {
-    const sent = await sendViaResend({ subject, html, attachment });
-    if (sent) return;
-  } catch (err) {
-    console.error('Resend feedback failed:', err.message);
-  }
-
-  try {
-    const sent = await sendViaSmtp({ subject, html, attachment });
-    if (sent) return;
-  } catch (err) {
-    console.error('SMTP feedback failed:', err.message);
-  }
-
-  console.error('Feedback email not sent: no valid email provider configured.');
-};
-
 // POST /api/feedback
-router.post('/', handleUpload, feedbackValidation, async (req, res, next) => {
+router.post('/', handleUpload, validation, async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
   const { type, message, name = '', email = '', page = '' } = req.body;
-  const attachment = req.file || null;
+  const file = req.file || null;
 
   try {
     await Feedback.create({ type, message, name, email, page });
-    sendFeedbackEmail({ type, message, name, email, page, attachment }).catch((err) => {
-      console.error('Feedback email send failed:', err.message);
-    });
+
+    const label = type.charAt(0).toUpperCase() + type.slice(1);
+    const subject = name
+      ? `[Portfolio Feedback] ${label} from ${name}`
+      : `[Portfolio Feedback] ${label}`;
+
+    sendEmail({
+      subject,
+      html: buildHtml({ type, message, name, email, page, hasAttachment: !!file }),
+      replyTo: email || undefined,
+      attachments: file
+        ? [{ filename: file.originalname, content: file.buffer }]
+        : [],
+    }).catch((err) => console.error('[feedback] Email send failed:', err.message));
+
     res.status(201).json({ success: true, message: 'Feedback received. Thank you!' });
   } catch (err) {
     next(err);
