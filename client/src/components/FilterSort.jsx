@@ -46,6 +46,10 @@ export default function FilterSort({
     bg-white dark:bg-[#303134] border border-[#dadce0] dark:border-[#5f6368]
     rounded-2xl shadow-lg overflow-y-auto max-h-[168px] py-1 scrollbar-hide`;
 
+  const sortDropdownCls = `absolute right-0 top-[calc(100%+6px)] z-50 min-w-[160px] sm:min-w-[188px]
+    bg-white dark:bg-[#303134] border border-[#dadce0] dark:border-[#5f6368]
+    rounded-2xl shadow-lg overflow-y-auto max-h-[168px] py-1 scrollbar-hide`;
+
   const btnBase = `flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm border transition-all`;
   const btnActive = `bg-[#e8f0fe] dark:bg-[#1a2744] border-[#1a73e8] dark:border-[#8ab4f8] text-[#1a73e8] dark:text-[#8ab4f8] font-medium`;
   const btnInactive = `border-[#dadce0] dark:border-[#5f6368] text-[#3c4043] dark:text-[#e8eaed] hover:bg-[#f8f9fa] dark:hover:bg-[#3c4043]`;
@@ -130,13 +134,14 @@ export default function FilterSort({
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M6 12h12M9 17h6" />
             </svg>
-            Sort: {currentSortLabel}
+            <span className="hidden sm:inline">Sort: {currentSortLabel}</span>
+            <span className="sm:hidden">Sort</span>
             {chevron(sortOpen)}
           </button>
 
           <AnimatePresence>
             {sortOpen && (
-              <motion.div {...dropMotion} className={dropdownCls}>
+              <motion.div {...dropMotion} className={sortDropdownCls}>
                 {sortOptions.map(opt => (
                   <button
                     key={opt.value}

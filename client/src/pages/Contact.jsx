@@ -124,7 +124,7 @@ function ContactForm() {
           </button>
 
           {menuOpen && (
-            <div className="absolute left-0 top-full z-50 w-max rounded-xl
+            <div className="absolute right-0 top-full z-50 w-max rounded-xl
                             bg-white dark:bg-[#303134]
                             border border-[#e8eaed] dark:border-[#5f6368]
                             shadow-[0_4px_16px_rgba(0,0,0,0.15)] overflow-hidden">

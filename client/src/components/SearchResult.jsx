@@ -79,7 +79,7 @@ export default function SearchResult({
             </button>
 
             {menuOpen && (
-              <div className="absolute left-0 top-full mt-1 z-50 w-max rounded-xl
+              <div className="absolute right-0 top-full mt-1 z-50 w-max max-w-[220px] rounded-xl
                               bg-white dark:bg-[#303134]
                               border border-[#e8eaed] dark:border-[#5f6368]
                               shadow-[0_4px_16px_rgba(0,0,0,0.15)] overflow-hidden">
@@ -130,7 +130,7 @@ export default function SearchResult({
       )}
 
       {/* ── Extra content (badges, links, etc.) ────── */}
-      {children && <div className="mt-2">{children}</div>}
+      {children && <div className="mt-2 min-w-0 overflow-hidden">{children}</div>}
     </div>
   );
 }

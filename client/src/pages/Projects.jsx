@@ -27,7 +27,7 @@ function SkeletonResult() {
         <div className="w-4 h-4 rounded-full bg-[#e8eaed] dark:bg-[#3c4043]" />
         <div className="h-3 w-40 bg-[#e8eaed] dark:bg-[#3c4043] rounded" />
       </div>
-      <div className="h-5 w-72 bg-[#e8eaed] dark:bg-[#3c4043] rounded mb-2" />
+      <div className="h-5 w-48 sm:w-72 bg-[#e8eaed] dark:bg-[#3c4043] rounded mb-2" />
       <div className="h-3 w-full bg-[#f1f3f4] dark:bg-[#303134] rounded mb-1.5" />
       <div className="h-3 w-4/5 bg-[#f1f3f4] dark:bg-[#303134] rounded mb-2" />
       <div className="flex gap-1.5">
@@ -183,7 +183,7 @@ export default function Projects() {
             )}
 
             {/* Stars + links — always visible */}
-            <div className="flex flex-wrap items-center gap-4 mt-2.5">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2.5">
               {project.repoUrl && (
                 <a href={project.repoUrl} target="_blank" rel="noopener noreferrer"
                    className="text-sm text-[#1a73e8] dark:text-[#8ab4f8] hover:underline flex items-center gap-1">
@@ -234,7 +234,7 @@ export default function Projects() {
 
       {/* Pagination */}
       {!loading && totalPages > 1 && (
-        <div className="max-w-[680px] mt-8 flex items-center justify-center gap-1">
+        <div className="max-w-[680px] mt-8 flex items-center justify-center gap-0.5 sm:gap-1 flex-wrap">
           <button
             onClick={() => { setPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
             disabled={page === 1}

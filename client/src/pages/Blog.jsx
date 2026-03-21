@@ -207,7 +207,7 @@ function PostMenu({ post, onRead }) {
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -4 }} transition={{ duration: 0.12 }}
-            className="absolute left-0 top-7 z-50 w-max bg-white dark:bg-[#303134]
+            className="absolute right-0 top-7 z-50 w-max bg-white dark:bg-[#303134]
                        border border-[#dadce0] dark:border-[#5f6368] rounded-2xl shadow-lg py-1 overflow-hidden"
           >
             {actions.map(a => (
@@ -231,7 +231,7 @@ function PostMenu({ post, onRead }) {
 /* ── Blog post row ──────────────────────────────── */
 function PostCard({ post, onRead }) {
   return (
-    <div className="max-w-[680px] mb-8">
+    <div className="max-w-[680px] mb-8 min-w-0">
       {/* URL row */}
       <div className="flex items-center gap-2 mb-0.5">
         <div className="w-[18px] h-[18px] rounded-full flex items-center justify-center
@@ -248,7 +248,7 @@ function PostCard({ post, onRead }) {
       {/* Title — opens reader, no external redirect */}
       <button
         onClick={() => onRead(post)}
-        className="block text-left text-[18px] sm:text-[20px] leading-[1.3] font-normal
+        className="w-full block text-left text-[18px] sm:text-[20px] leading-[1.3] font-normal
                    text-[#1a73e8] dark:text-[#8ab4f8] hover:underline mb-1"
       >
         {post.title}
@@ -400,7 +400,7 @@ export default function Blog() {
 
       {/* Google-style pagination */}
       {!loading && totalPages > 1 && (
-        <div className="max-w-[680px] mt-8 flex items-center justify-center gap-1">
+        <div className="max-w-[680px] mt-8 flex items-center justify-center gap-0.5 sm:gap-1 flex-wrap">
           {/* Prev */}
           <button
             onClick={() => { setPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}

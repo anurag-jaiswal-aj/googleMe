@@ -403,7 +403,7 @@ export default function SearchLayout() {
       {/* ── Sticky SERP header ─────────────────────────── */}
       <header className="sticky top-0 z-50 bg-white dark:bg-[#202124]">
         {/* Row 1 — logo · search · actions */}
-        <div className="flex items-center gap-3 sm:gap-7 px-3 sm:px-4 pt-4 sm:pt-6 pb-1.5">
+        <div className="flex items-center gap-2 sm:gap-7 px-3 sm:px-4 pt-3 sm:pt-6 pb-1.5">
           {/* Logo — links home */}
           <Link
             to="/"
@@ -495,7 +495,7 @@ export default function SearchLayout() {
               )}
 
               {/* Divider */}
-              <div className="w-px h-5 bg-[#dadce0] dark:bg-[#5f6368] shrink-0 mx-0.5" />
+              <div className="hidden sm:block w-px h-5 bg-[#dadce0] dark:bg-[#5f6368] shrink-0 mx-0.5" />
 
               {/* Mic */}
               <div className="relative group/mic">
@@ -527,7 +527,7 @@ export default function SearchLayout() {
               </div>
 
               {/* Lens */}
-              <div className="relative group/lens">
+              <div className="hidden sm:block relative group/lens">
                 <button
                   onClick={() => { setLensImage(null); setLensUrl(""); setLensOpen(true); }}
                   className="p-1.5 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
@@ -549,7 +549,7 @@ export default function SearchLayout() {
               </div>
 
               {/* AI */}
-              <div className="relative group/ai">
+              <div className="hidden sm:block relative group/ai">
                 <button
                   onClick={() => setAiOpen(true)}
                   className="p-1.5 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
@@ -642,9 +642,9 @@ export default function SearchLayout() {
           </div>
 
           {/* Right icons */}
-          <div className="ml-auto flex items-center gap-0.5 sm:gap-1 mr-4 shrink-0">
-            {/* Apps grid */}
-            <div className="relative" ref={appsRef}>
+          <div className="ml-auto flex items-center gap-0.5 sm:gap-1 mr-1 sm:mr-4 shrink-0">
+            {/* Apps grid — hidden on mobile */}
+            <div className="hidden sm:block relative" ref={appsRef}>
               <button
                 onClick={() => setAppsOpen((o) => !o)}
                 className={`p-2 rounded-full transition-colors text-[#5f6368] dark:text-[#9aa0a6]
@@ -1082,7 +1082,7 @@ export default function SearchLayout() {
         </div>
 
         {/* Row 2 — tab navigation */}
-        <div className="flex items-end overflow-x-auto scrollbar-hide -mb-px px-1">
+        <div className="flex items-end overflow-x-auto scrollbar-hide border-b border-[#e8eaed] dark:border-[#3c4043] -mb-px px-1">
           {/* Invisible spacer matching logo width + gap = same as row 1 */}
           <div className="hidden sm:block shrink-0 w-[112px] mr-10 sm:mr-12" />
           {/* "All" tab */}
@@ -1093,8 +1093,8 @@ export default function SearchLayout() {
                        text-sm border-b-2 transition-colors whitespace-nowrap
                        ${
                          location.pathname === "/all"
-                           ? "border-transparent text-[#1a73e8] dark:text-[#8ab4f8]"
-                           : "border-transparent text-[#5f6368] dark:text-[#9aa0a6] hover:text-[#202124] dark:hover:text-[#e8eaed]"
+                           ? "border-[#1a73e8] dark:border-[#8ab4f8] text-[#1a73e8] dark:text-[#8ab4f8]"
+                           : "border-transparent text-[#5f6368] dark:text-[#9aa0a6] hover:text-[#202124] dark:hover:text-[#e8eaed] hover:border-[#dadce0] dark:hover:border-[#5f6368]"
                        }`}
           >
             <svg
@@ -1122,8 +1122,8 @@ export default function SearchLayout() {
                 text-sm border-b-2 transition-colors whitespace-nowrap
                 ${
                   location.pathname === to
-                    ? "border-transparent text-[#1a73e8] dark:text-[#8ab4f8]"
-                    : "border-transparent text-[#5f6368] dark:text-[#9aa0a6] hover:text-[#202124] dark:hover:text-[#e8eaed]"
+                    ? "border-[#1a73e8] dark:border-[#8ab4f8] text-[#1a73e8] dark:text-[#8ab4f8]"
+                    : "border-transparent text-[#5f6368] dark:text-[#9aa0a6] hover:text-[#202124] dark:hover:text-[#e8eaed] hover:border-[#dadce0] dark:hover:border-[#5f6368]"
                 }`}
             >
               {label === "About" && (

@@ -36,11 +36,11 @@ function PeopleAlsoAsk() {
           >
             <button
               onClick={() => toggle(i)}
-              className="w-full flex items-center justify-between px-5 py-4
+              className="w-full flex items-center justify-between px-3 sm:px-5 py-3 sm:py-4
                          text-left text-sm font-medium text-[#202124] dark:text-[#e8eaed]
                          hover:bg-[#f8f9fa] dark:hover:bg-[#303134] transition-colors"
             >
-              <span>{item.q}</span>
+              <span className="min-w-0 flex-1 pr-2">{item.q}</span>
               <svg
                 className={`w-4 h-4 shrink-0 ml-4 text-[#70757a] transition-transform duration-200 ${
                   openIdx === i ? "rotate-180" : ""
@@ -59,7 +59,7 @@ function PeopleAlsoAsk() {
             </button>
             {openIdx === i && (
               <div
-                className="px-5 pb-4 text-sm text-[#133780] dark:text-[#bdc1c6] leading-relaxed
+                className="px-3 sm:px-5 pb-4 text-sm text-[#133780] dark:text-[#bdc1c6] leading-relaxed
                               border-t border-[#e8eaed] dark:border-[#3c4043] pt-3"
               >
                 {item.a}
@@ -203,7 +203,7 @@ function SectionLabel({ label }) {
   return (
     <p
       className="max-w-[680px] text-xs font-medium uppercase tracking-wider
-                  text-[#133780] dark:text-[#bdc1c6] mb-3 mt-0"
+                  text-[#133780] dark:text-[#bdc1c6] mb-3 mt-6"
     >
       {label}
     </p>
@@ -554,7 +554,7 @@ export default function All() {
                 </div>
               )}
               {isLive && (
-                <div className="flex flex-wrap items-center gap-4 mt-2.5">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2.5">
                   {r.repoUrl && (
                     <a href={r.repoUrl} target="_blank" rel="noopener noreferrer"
                        className="text-sm text-[#1a73e8] dark:text-[#8ab4f8] hover:underline flex items-center gap-1">
