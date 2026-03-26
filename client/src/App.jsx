@@ -1,8 +1,9 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import SearchLayout from './components/SearchLayout';
 import ErrorBoundary from './components/ErrorBoundary';
+import WelcomeSplash from './components/WelcomeSplash';
 
 // Page-level code splitting — each page loads only when first visited
 const Home     = lazy(() => import('./pages/Home'));
@@ -31,8 +32,19 @@ function ScrollToTop() {
 }
 
 export default function App() {
+  // Show splash once per browser session
+  const [showSplash, setShowSplash] = useState(
+    () => !sessionStorage.getItem('splashSeen')
+  );
+
+  const handleSplashDone = () => {
+    sessionStorage.setItem('splashSeen', '1');
+    setShowSplash(false);
+  };
+
   return (
     <ErrorBoundary>
+      {showSplash && <WelcomeSplash onDone={handleSplashDone} />}
       <Suspense fallback={<PageLoader />}>
         <ScrollToTop />
         <Routes>

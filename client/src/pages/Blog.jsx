@@ -4,6 +4,7 @@ import SearchResult from '../components/SearchResult';
 import FilterSort from '../components/FilterSort';
 import SEO from '../components/SEO';
 import api from '../api';
+import { getMediumPosts } from '../utils/prefetch';
 import { LINKS } from '../config/links';
 import { FALLBACK_BLOG_POSTS } from '../data/blogPosts';
 
@@ -301,11 +302,10 @@ export default function Blog() {
   const PER_PAGE = 6;
 
   useEffect(() => {
-    api.get('/medium')
-      .then(r => {
-        if (r.data?.length) {
-          // stamp original feed order so "relevance" can restore it
-          setPosts(r.data.map((p, i) => ({ ...p, _feedIndex: i })));
+    getMediumPosts()
+      .then(data => {
+        if (data?.length) {
+          setPosts(data.map((p, i) => ({ ...p, _feedIndex: i })));
         }
       })
       .catch(() => {})

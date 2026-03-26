@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { fetchProjects } from '../api';
+import { getProjects } from '../utils/prefetch';
 import SearchResult from '../components/SearchResult';
 import FilterSort from '../components/FilterSort';
 import SEO from '../components/SEO';
@@ -51,7 +51,7 @@ export default function Projects() {
   const PER_PAGE = 6;
 
   useEffect(() => {
-    fetchProjects()
+    getProjects()
       .then((data) => {
         setProjects(Array.isArray(data) && data.length > 0 ? data : fallbackProjects);
       })
