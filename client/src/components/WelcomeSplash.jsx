@@ -86,8 +86,9 @@ export default function WelcomeSplash({ onDone }) {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5, ease: 'easeInOut' }}
+          onClick={dismiss}
           className="fixed inset-0 z-[9999] flex flex-col items-center justify-center
-                     bg-white dark:bg-[#202124] select-none"
+                     bg-white dark:bg-[#202124] select-none cursor-pointer"
         >
           {/* Greeting word */}
           <AnimatePresence mode="wait">
@@ -122,7 +123,10 @@ export default function WelcomeSplash({ onDone }) {
               ))}
             </div>
             <p className="mt-2 text-xs text-[#9aa0a6] tracking-wide">
-              Press <kbd className="px-1.5 py-0.5 rounded border border-[#dadce0] dark:border-[#5f6368] text-[#5f6368] dark:text-[#9aa0a6] font-mono text-xs">Space</kbd> to skip
+              <span className="sm:hidden">Tap to skip</span>
+              <span className="hidden sm:inline">
+                Press <kbd className="px-1.5 py-0.5 rounded border border-[#dadce0] dark:border-[#5f6368] text-[#5f6368] dark:text-[#9aa0a6] font-mono text-xs">Space</kbd> to skip
+              </span>
             </p>
           </div>
         </motion.div>
