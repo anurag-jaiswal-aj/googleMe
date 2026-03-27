@@ -224,7 +224,7 @@ function ContactForm() {
                     Your Name <span className="text-[#c5221f]">*</span>
                   </label>
                   <input type="text" name="name" value={form.name} onChange={handleChange}
-                    placeholder="e.g. Anurag Sharma" autoComplete="name"
+                    placeholder="e.g. Rahul Kumar" autoComplete="name"
                     className={inputCls('name')} />
                   {errors.name && <p className="text-xs text-[#c5221f] mt-1">{errors.name}</p>}
                 </div>
@@ -233,7 +233,7 @@ function ContactForm() {
                     Email Address <span className="text-[#c5221f]">*</span>
                   </label>
                   <input type="email" name="email" value={form.email} onChange={handleChange}
-                    placeholder="you@example.com" autoComplete="email"
+                    placeholder="rahulKumar@example.com" autoComplete="email"
                     className={inputCls('email')} />
                   {errors.email && <p className="text-xs text-[#c5221f] mt-1">{errors.email}</p>}
                 </div>
