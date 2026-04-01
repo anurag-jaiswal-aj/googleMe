@@ -8,6 +8,7 @@ import FilterSort from '../components/FilterSort';
 import SEO from '../components/SEO';
 import { LINKS } from '../config/links';
 import { SOCIAL_PROFILES } from '../data/socialProfiles';
+import { useConfig } from '../hooks/useConfig';
 import { useImagesPageEnabled } from '../hooks/useImagesPageEnabled';
 
 const SOCIAL = SOCIAL_PROFILES.filter((profile) =>
@@ -33,6 +34,8 @@ const fileIconColor = (type) => {
 
 /* ── Contact Form ─────────────────────────────────── */
 function ContactForm() {
+  const cfg = useConfig();
+  const emailAddr = cfg.socialLinks?.email ?? LINKS.email;
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [files, setFiles] = useState([]);
   const [errors, setErrors] = useState({});
@@ -145,7 +148,7 @@ function ContactForm() {
               </button>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(LINKS.email);
+                  navigator.clipboard.writeText(emailAddr);
                   toast.success('Email copied');
                   setMenuOpen(false);
                 }}
@@ -355,6 +358,8 @@ const PEOPLE_ALSO_SEARCH = [
 
 export default function Contact() {
   const navigate = useNavigate();
+  const cfg = useConfig();
+  const emailAddr = cfg.socialLinks?.email ?? LINKS.email;
   const imagesEnabled = useImagesPageEnabled();
   const [filters,    setFilters]    = useState([]);
   const [sort,       setSort]       = useState('relevance');

@@ -106,7 +106,16 @@ export default function SearchLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const cfg = useConfig();
-  const altPortfolioUrl = cfg.socialLinks?.alternatePortfolio ?? LINKS.alternatePortfolio;
+  const sl = cfg.socialLinks ?? {};
+  const altPortfolioUrl = sl.alternatePortfolio ?? LINKS.alternatePortfolio;
+  const linkedinUrl     = sl.linkedin ?? LINKS.linkedin;
+  const emailAddr       = sl.email    ?? LINKS.email;
+  const resumeUrl       = sl.resume   ?? LINKS.resume;
+  const githubUrl       = sl.github   ?? LINKS.github;
+  const twitterUrl      = sl.twitter  ?? LINKS.twitter;
+  const leetcodeUrl     = sl.leetcode ?? LINKS.leetcode;
+  const codechefUrl     = sl.codechef ?? LINKS.codechef;
+  const name            = cfg.profile?.name ?? 'Anurag';
   const { isDark, toggle } = useTheme();
 
   const [imagesPageEnabled, setImagesPageEnabled] = useState(
@@ -770,7 +779,7 @@ export default function SearchLayout() {
                         {
                           label: "Twitter",
                           action: () => {
-                            window.open(LINKS.twitter, "_blank");
+                            window.open(twitterUrl, "_blank");
                             setAppsOpen(false);
                           },
                           icon: (
@@ -784,7 +793,7 @@ export default function SearchLayout() {
                         {
                           label: "LinkedIn",
                           action: () => {
-                            window.open(LINKS.linkedin, "_blank");
+                            window.open(linkedinUrl, "_blank");
                             setAppsOpen(false);
                           },
                           icon: (
@@ -798,7 +807,7 @@ export default function SearchLayout() {
                         {
                           label: "GitHub",
                           action: () => {
-                            window.open(LINKS.github, "_blank");
+                            window.open(githubUrl, "_blank");
                             setAppsOpen(false);
                           },
                           icon: (
@@ -812,7 +821,7 @@ export default function SearchLayout() {
                         {
                           label: "LeetCode",
                           action: () => {
-                            window.open(LINKS.leetcode, "_blank");
+                            window.open(leetcodeUrl, "_blank");
                             setAppsOpen(false);
                           },
                           icon: (
@@ -824,7 +833,7 @@ export default function SearchLayout() {
                         {
                           label: "CodeChef",
                           action: () => {
-                            window.open(LINKS.codechef, "_blank");
+                            window.open(codechefUrl, "_blank");
                             setAppsOpen(false);
                           },
                           icon: (
@@ -886,17 +895,17 @@ export default function SearchLayout() {
                       </div>
                       <div className="text-center">
                         <p className="text-[15px] font-semibold text-[#202124] dark:text-[#e8eaed] leading-snug">
-                          Anurag
+                          {name}
                         </p>
                         <button
                           onClick={() => {
-                            navigator.clipboard.writeText(LINKS.email);
+                            navigator.clipboard.writeText(emailAddr);
                             setCopiedEmail(true);
                             setTimeout(() => setCopiedEmail(false), 2000);
                           }}
                           className="text-[12.5px] text-[#5f6368] dark:text-[#9aa0a6] leading-snug hover:underline cursor-pointer"
                         >
-                          {copiedEmail ? "Copied!" : LINKS.email}
+                          {copiedEmail ? "Copied!" : emailAddr}
                         </button>
                       </div>
                       <button
@@ -917,7 +926,7 @@ export default function SearchLayout() {
                     {/* Alt Portfolio + Resume + Copy Email */}
                     <div className="py-1.5">
                       <a
-                        href={LINKS.resume}
+                        href={resumeUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-full flex items-center gap-3 px-5 py-2.5
@@ -2023,7 +2032,7 @@ export default function SearchLayout() {
         >
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <a
-              href={LINKS.github}
+              href={githubUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors"
@@ -2031,7 +2040,7 @@ export default function SearchLayout() {
               GitHub
             </a>
             <a
-              href={LINKS.linkedin}
+              href={linkedinUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors"

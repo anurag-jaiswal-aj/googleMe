@@ -43,6 +43,7 @@ function Sitelinks({ links, onLinkClick }) {
 export default function About() {
   const imagesEnabled = useImagesPageEnabled();
   const cfg = useConfig();
+  const linkedinUrl = cfg.socialLinks?.linkedin ?? LINKS.linkedin;
 
   // Fall back to hardcoded data if nothing saved in DB yet
   const SKILLS       = cfg.skills        ?? DEFAULT_SKILLS;
@@ -105,7 +106,7 @@ export default function About() {
     {
       label: "View on LinkedIn",
       icon: "M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14",
-      action: () => window.open(LINKS.linkedin, "_blank", "noopener,noreferrer"),
+      action: () => window.open(linkedinUrl, "_blank", "noopener,noreferrer"),
     },
   ];
 

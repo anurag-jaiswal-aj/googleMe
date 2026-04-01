@@ -16,6 +16,7 @@ import { SOCIAL_PROFILES } from "../data/socialProfiles";
 import { getToolCards } from "../data/toolsData";
 import { ABOUT_QA, PEOPLE_ALSO_ASK } from "../data/allPageData";
 import { useImagesPageEnabled } from "../hooks/useImagesPageEnabled";
+import { useConfig } from "../hooks/useConfig";
 
 /* ── People also ask accordion ───────────────────────── */
 const PAA = PEOPLE_ALSO_ASK;
@@ -351,7 +352,7 @@ function ArticleReader({ post, onClose }) {
             For more such articles, follow me on Medium.
           </p>
           <a
-            href={LINKS.medium}
+            href={mediumUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#292929] dark:bg-[#e6e6e6] text-white dark:text-[#292929] text-sm font-medium hover:bg-[#1a1a1a] dark:hover:bg-white transition-colors"
@@ -369,6 +370,10 @@ function ArticleReader({ post, onClose }) {
 
 export default function All() {
   const navigate = useNavigate();
+  const cfg = useConfig();
+  const mediumUrl = cfg.mediumUsername
+    ? `https://medium.com/@${cfg.mediumUsername.replace(/^@/, '')}`
+    : mediumUrl;
   const imagesEnabled = useImagesPageEnabled();
   const [expandedQA, setExpandedQA] = useState(null);
   const [expandedProject, setExpandedProject] = useState(null);
@@ -377,7 +382,7 @@ export default function All() {
   const [blogPosts, setBlogPosts] = useState(
     getBlogCards(3).map((post) => ({
       ...post,
-      href: LINKS.medium,
+      href: mediumUrl,
       content: "",
       tags: [],
       date: "",
@@ -621,19 +626,19 @@ export default function All() {
               {
                 label: 'Copy link',
                 icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
-                action: () => navigator.clipboard.writeText(post.href || LINKS.medium),
+                action: () => navigator.clipboard.writeText(post.href || mediumUrl),
               },
               {
                 label: 'Open on Medium',
                 icon: 'M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14',
-                action: () => window.open(post.href || LINKS.medium, '_blank', 'noopener,noreferrer'),
+                action: () => window.open(post.href || mediumUrl, '_blank', 'noopener,noreferrer'),
               },
               {
                 label: 'Share',
                 icon: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z',
                 action: () => {
-                  if (navigator.share) navigator.share({ title: post.title, url: post.href || LINKS.medium });
-                  else navigator.clipboard.writeText(post.href || LINKS.medium);
+                  if (navigator.share) navigator.share({ title: post.title, url: post.href || mediumUrl });
+                  else navigator.clipboard.writeText(post.href || mediumUrl);
                 },
               },
             ]}

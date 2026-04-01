@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Parser = require('rss-parser');
+const SiteConfig = require('../models/SiteConfig');
 
-const MEDIUM_USER = 'janurag582004';
-const MEDIUM_RSS = `https://medium.com/feed/@${MEDIUM_USER}`;
+const DEFAULT_MEDIUM_USER = 'janurag582004';
 
-// Use a browser-like user-agent — Medium rate-limits generic Node.js agents
 const parser = new Parser({
   customFields: { item: [['content:encoded', 'contentEncoded']] },
   requestOptions: {
@@ -14,6 +13,16 @@ const parser = new Parser({
     },
   },
 });
+
+// Read username from DB so admin changes take effect without redeploying
+async function getMediumUser() {
+  try {
+    const doc = await SiteConfig.findOne({ key: 'mediumUsername' }).lean();
+    return (doc?.value || DEFAULT_MEDIUM_USER).replace(/^@/, '');
+  } catch {
+    return DEFAULT_MEDIUM_USER;
+  }
+}
 
 function estimateReadTime(html = '') {
   const text = html.replace(/<[^>]+>/g, ' ');
@@ -30,28 +39,32 @@ function extractSnippet(html = '') {
   return text.length > 160 ? text.slice(0, 157) + '…' : text;
 }
 
-function cleanUrl(href = '') {
+function cleanUrl(href = '', user = '') {
   try {
     const url = new URL(href);
     const parts = url.pathname.split('/').filter(Boolean);
     const slug = parts[1] ? parts[1].replace(/-[a-f0-9]{10,}$/, '').replace(/-/g, ' ') : '';
-    return `medium.com/@${MEDIUM_USER}${slug ? '/' + slug : ''}`;
+    return `medium.com/@${user}${slug ? '/' + slug : ''}`;
   } catch {
-    return `medium.com/@${MEDIUM_USER}`;
+    return `medium.com/@${user}`;
   }
 }
 
 let cache = null;
 let cacheTime = 0;
+let cachedUser = null;
 const CACHE_TTL = 30 * 60 * 1000;
 
-router.get('/', async (req, res) => {
+router.get('/', async (_req, res) => {
   try {
-    if (cache && Date.now() - cacheTime < CACHE_TTL) {
+    const user = await getMediumUser();
+
+    // Invalidate cache if username changed since last fetch
+    if (cache && cachedUser === user && Date.now() - cacheTime < CACHE_TTL) {
       return res.json(cache);
     }
 
-    const feed = await parser.parseURL(MEDIUM_RSS);
+    const feed = await parser.parseURL(`https://medium.com/feed/@${user}`);
 
     const posts = feed.items.map((item, i) => {
       const rawContent = item.contentEncoded || item.content || '';
@@ -62,7 +75,7 @@ router.get('/', async (req, res) => {
       return {
         id: item.guid || String(i),
         title: item.title || 'Untitled',
-        url: cleanUrl(href),
+        url: cleanUrl(href, user),
         href,
         snippet: extractSnippet(content),
         date: new Date(item.pubDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
@@ -76,6 +89,7 @@ router.get('/', async (req, res) => {
 
     cache = posts;
     cacheTime = Date.now();
+    cachedUser = user;
     res.json(posts);
   } catch (err) {
     console.error('Medium RSS fetch failed:', err.message);

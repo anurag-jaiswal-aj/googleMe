@@ -183,7 +183,17 @@ export default function Home() {
   const navigate = useNavigate();
   const { isDark, toggle } = useTheme();
   const cfg = useConfig();
-  const altPortfolioUrl = cfg.socialLinks?.alternatePortfolio ?? LINKS.alternatePortfolio;
+  const sl = cfg.socialLinks ?? {};
+  const altPortfolioUrl = sl.alternatePortfolio ?? LINKS.alternatePortfolio;
+  const githubUrl   = sl.github   ?? LINKS.github;
+  const linkedinUrl = sl.linkedin ?? LINKS.linkedin;
+  const twitterUrl  = sl.twitter  ?? LINKS.twitter;
+  const leetcodeUrl = sl.leetcode ?? LINKS.leetcode;
+  const codechefUrl = sl.codechef ?? LINKS.codechef;
+  const emailAddr   = sl.email    ?? LINKS.email;
+  const mailtoUrl   = sl.mailto   ?? LINKS.mailto;
+  const resumeUrl   = sl.resume   ?? LINKS.resume;
+  const name        = cfg.profile?.name ?? 'Anurag';
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
@@ -198,7 +208,7 @@ export default function Home() {
     { icon: "search", text: "Anurag full-stack developer", to: "/about" },
     { icon: "search", text: "Anurag open source", to: "/projects" },
     { icon: "search", text: "Anurag MERN stack", to: "/about" },
-    { icon: "search", text: "Anurag GitHub", to: LINKS.github, external: true },
+    { icon: "search", text: "Anurag GitHub", to: githubUrl, external: true },
     { icon: "search", text: "Anurag contact", to: "/contact" },
     { icon: "search", text: "Anurag resume", to: "/contact" },
   ];
@@ -658,7 +668,7 @@ export default function Home() {
         {/* Right side */}
         <div className="flex items-center gap-1">
           <a
-            href={LINKS.mailto}
+            href={mailtoUrl}
             className="hidden sm:inline text-sm text-[#202124] dark:text-[#e8eaed] hover:underline px-3 py-1.5 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
           >
             {t.gmail}
@@ -770,7 +780,7 @@ export default function Home() {
                       },
                       {
                         label: "Twitter",
-                        action: () => { window.open(LINKS.twitter, "_blank"); setAppsOpen(false); },
+                        action: () => { window.open(twitterUrl, "_blank"); setAppsOpen(false); },
                         icon: (
                           <div className="w-12 h-12 rounded-xl bg-black flex items-center justify-center">
                             <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -781,7 +791,7 @@ export default function Home() {
                       },
                       {
                         label: "LinkedIn",
-                        action: () => { window.open(LINKS.linkedin, "_blank"); setAppsOpen(false); },
+                        action: () => { window.open(linkedinUrl, "_blank"); setAppsOpen(false); },
                         icon: (
                           <div className="w-12 h-12 rounded-xl bg-[#0A66C2] flex items-center justify-center">
                             <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -792,7 +802,7 @@ export default function Home() {
                       },
                       {
                         label: "GitHub",
-                        action: () => { window.open(LINKS.github, "_blank"); setAppsOpen(false); },
+                        action: () => { window.open(githubUrl, "_blank"); setAppsOpen(false); },
                         icon: (
                           <div className="w-12 h-12 rounded-xl bg-[#1b1f23] flex items-center justify-center">
                             <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -803,7 +813,7 @@ export default function Home() {
                       },
                       {
                         label: "LeetCode",
-                        action: () => { window.open(LINKS.leetcode, "_blank"); setAppsOpen(false); },
+                        action: () => { window.open(leetcodeUrl, "_blank"); setAppsOpen(false); },
                         icon: (
                           <div className="w-12 h-12 rounded-xl bg-[#FFA116] flex items-center justify-center">
                             <img src="https://cdn.simpleicons.org/leetcode/ffffff" className="w-8 h-8" alt="LeetCode"/>
@@ -812,7 +822,7 @@ export default function Home() {
                       },
                       {
                         label: "CodeChef",
-                        action: () => { window.open(LINKS.codechef, "_blank"); setAppsOpen(false); },
+                        action: () => { window.open(codechefUrl, "_blank"); setAppsOpen(false); },
                         icon: (
                           <div className="w-12 h-12 rounded-xl bg-[#5B4638] flex items-center justify-center">
                             <img src="https://cdn.simpleicons.org/codechef/ffffff" className="w-8 h-8" alt="CodeChef"/>
@@ -871,17 +881,17 @@ export default function Home() {
                     </div>
                     <div className="text-center">
                       <p className="text-[15px] font-semibold text-[#202124] dark:text-[#e8eaed] leading-snug">
-                        Anurag
+                        {name}
                       </p>
                       <button
                         onClick={() => {
-                          navigator.clipboard.writeText(LINKS.email);
+                          navigator.clipboard.writeText(emailAddr);
                           setCopiedEmail(true);
                           setTimeout(() => setCopiedEmail(false), 2000);
                         }}
                         className="text-[12.5px] text-[#5f6368] dark:text-[#9aa0a6] leading-snug hover:underline cursor-pointer"
                       >
-                        {copiedEmail ? "Copied!" : LINKS.email}
+                        {copiedEmail ? "Copied!" : emailAddr}
                       </button>
                     </div>
                     <button
@@ -902,7 +912,7 @@ export default function Home() {
                   {/* Alt Portfolio + Resume + Copy Email */}
                   <div className="py-1.5">
                     <a
-                      href={LINKS.resume}
+                      href={resumeUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full flex items-center gap-3 px-5 py-2.5
@@ -2865,7 +2875,7 @@ export default function Home() {
         >
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <a
-              href={LINKS.github}
+              href={githubUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors"
@@ -2873,7 +2883,7 @@ export default function Home() {
               {t.github}
             </a>
             <a
-              href={LINKS.linkedin}
+              href={linkedinUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors"

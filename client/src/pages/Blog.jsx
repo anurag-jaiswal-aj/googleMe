@@ -6,6 +6,7 @@ import SEO from '../components/SEO';
 import api from '../api';
 import { getMediumPosts } from '../utils/prefetch';
 import { LINKS } from '../config/links';
+import { useConfig } from '../hooks/useConfig';
 import { FALLBACK_BLOG_POSTS } from '../data/blogPosts';
 
 const POSTS = FALLBACK_BLOG_POSTS;
@@ -36,7 +37,7 @@ const SORT_OPTS = [
 ];
 
 /* ── Article Reader Modal ───────────────────────── */
-function ArticleReader({ post, onClose }) {
+function ArticleReader({ post, onClose, mediumUrl }) {
   const scrollRef = useRef(null);
 
   // Sanitise: strip scripts/styles, broken images, fix relative hrefs
@@ -154,7 +155,7 @@ function ArticleReader({ post, onClose }) {
           <p className="text-sm text-[#6b6b6b] dark:text-[#999] mb-4">
             For more such articles, follow me on Medium.
           </p>
-           <a href={LINKS.medium} target="_blank" rel="noopener noreferrer"
+           <a href={mediumUrl} target="_blank" rel="noopener noreferrer"
              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full
                         bg-[#292929] dark:bg-[#e6e6e6] text-white dark:text-[#292929]
                         text-sm font-medium hover:bg-[#1a1a1a] dark:hover:bg-white transition-colors">
@@ -291,6 +292,10 @@ function PostCard({ post, onRead }) {
 }
 
 export default function Blog() {
+  const cfg = useConfig();
+  const mediumUrl = cfg.mediumUsername
+    ? `https://medium.com/@${cfg.mediumUsername.replace(/^@/, '')}`
+    : LINKS.medium;
   const [posts,       setPosts]       = useState(POSTS);
   const [loading,     setLoading]     = useState(true);
   const [activeTag,   setActiveTag]   = useState('All');
@@ -342,7 +347,7 @@ export default function Blog() {
       />
       {/* Reader modal */}
       <AnimatePresence>
-        {reading && <ArticleReader post={reading} onClose={closeReader} />}
+        {reading && <ArticleReader post={reading} onClose={closeReader} mediumUrl={mediumUrl} />}
       </AnimatePresence>
 
       {/* Stats + controls */}
