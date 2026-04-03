@@ -373,7 +373,7 @@ export default function All() {
   const cfg = useConfig();
   const mediumUrl = cfg.mediumUsername
     ? `https://medium.com/@${cfg.mediumUsername.replace(/^@/, '')}`
-    : mediumUrl;
+    : LINKS.medium;
   const imagesEnabled = useImagesPageEnabled();
   const [expandedQA, setExpandedQA] = useState(null);
   const [expandedProject, setExpandedProject] = useState(null);
