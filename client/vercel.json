@@ -1,12 +1,8 @@
 {
-  "routes": [
+  "rewrites": [
     {
-      "src": "/Resume_aj.pdf",
-      "dest": "/Resume_aj.pdf"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/((?!assets|Resume_aj\\.pdf|favicon\\.svg|robots\\.txt|sitemap\\.xml|manifest\\.webmanifest|registerSW\\.js|sw\\.js|workbox.*).*)",
+      "destination": "/index.html"
     }
   ]
 }
