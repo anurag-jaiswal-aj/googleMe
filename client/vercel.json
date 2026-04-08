@@ -1,8 +1,6 @@
 {
   "rewrites": [
-    {
-      "source": "/((?!assets|Resume_aj\\.pdf|favicon\\.svg|robots\\.txt|sitemap\\.xml|manifest\\.webmanifest|registerSW\\.js|sw\\.js|workbox.*).*)",
-      "destination": "/index.html"
-    }
+    { "source": "/Resume_aj.pdf", "destination": "/Resume_aj.pdf" },
+    { "source": "/:path*", "destination": "/index.html" }
   ]
 }
