@@ -1,6 +1,8 @@
 {
   "rewrites": [
-    { "source": "/Resume_aj.pdf", "destination": "/Resume_aj.pdf" },
-    { "source": "/:path*", "destination": "/index.html" }
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
