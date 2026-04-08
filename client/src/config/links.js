@@ -10,7 +10,7 @@ export const LINKS = {
     gmailWeb: 'https://mail.google.com',
     email: 'janurag582004@gmail.com',
     mailto: 'mailto:janurag582004@gmail.com',
-    resume: '/Resume_aj.pdf', 
+    resume: 'https://www.anuragjaiswal.me/Resume_aj.pdf',
 
     alternatePortfolio: 'https://html5up.net/read-only/demo',
 };
