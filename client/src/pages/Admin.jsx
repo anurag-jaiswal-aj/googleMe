@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import api, {
   fetchGithubRepos, saveGithubSelection,
   fetchImages, uploadImage, updateImage, deleteImage,
-  fetchConfig, saveConfig, saveConfigBulk,
+  fetchConfig, saveConfig, saveConfigBulk, uploadResume,
   adminLogin, adminVerify,
 } from '../api';
 import { LINKS } from '../config/links';
@@ -147,6 +147,8 @@ function ProfileTab({ cfg, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [resumeUrl, setResumeUrl] = useState(cfg.resumeUrl ?? '');
 
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setSaved(false); };
   const setEdu = (k, v) => { setForm(f => ({ ...f, education: { ...f.education, [k]: v } })); setSaved(false); };
@@ -159,6 +161,7 @@ function ProfileTab({ cfg, onSaved }) {
         { key: 'profile',       value: form },
         { key: 'socialLinks',   value: { ...links, mailto: `mailto:${links.email}` } },
         { key: 'githubUsername', value: githubUsername },
+        { key: 'resumeUrl',     value: resumeUrl },
       ]);
       clearConfigCache();
       setSaved(true);
@@ -234,6 +237,19 @@ function ProfileTab({ cfg, onSaved }) {
         <Field label="GitHub Username">
           <input className={inputCls} value={githubUsername} onChange={e => { setGithubUsername(e.target.value); setSaved(false); }} placeholder="your-github-username" />
         </Field>
+      </div>
+
+      <div className="border-t border-[#e8eaed] dark:border-[#3c4043] pt-4">
+        <p className="text-xs font-semibold text-[#5f6368] dark:text-[#9aa0a6] uppercase tracking-wide mb-3">Resume</p>
+        <Field label="Resume URL (Google Drive or any public PDF link)">
+          <input
+            className={inputCls}
+            value={resumeUrl}
+            onChange={e => { setResumeUrl(e.target.value); setSaved(false); }}
+            placeholder="https://drive.google.com/file/d/FILE_ID/view"
+          />
+        </Field>
+        <p className="text-xs text-[#9aa0a6] mt-1">Tip: use a Google Drive share link — set access to "Anyone with the link"</p>
       </div>
 
       <SaveBar saving={saving} saved={saved} error={error} onSave={save} />

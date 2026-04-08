@@ -7,6 +7,7 @@ import { submitFeedback } from "../api";
 import { useConfig } from "../hooks/useConfig";
 import SEO from "../components/SEO";
 import KnowledgePanel from "../components/KnowledgePanel";
+import { inlineResumeUrl } from '../utils/resumeUrl';
 
 const LANGUAGES = [
   { label: "हिन्दी", code: "hi" },
@@ -192,7 +193,7 @@ export default function Home() {
   const codechefUrl = sl.codechef ?? LINKS.codechef;
   const emailAddr   = sl.email    ?? LINKS.email;
   const mailtoUrl   = sl.mailto   ?? LINKS.mailto;
-  const resumeUrl   = sl.resume   ?? LINKS.resume;
+  const resumeUrl   = cfg.resumeUrl  ?? sl.resume   ?? LINKS.resume;
   const name        = cfg.profile?.name ?? 'Anurag';
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
@@ -912,7 +913,7 @@ export default function Home() {
                   {/* Alt Portfolio + Resume + Copy Email */}
                   <div className="py-1.5">
                     <a
-                      href={resumeUrl}
+                      href={inlineResumeUrl(resumeUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full flex items-center gap-3 px-5 py-2.5

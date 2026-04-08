@@ -103,6 +103,12 @@ export const fetchConfig = () => api.get('/config').then(r => r.data);
 export const saveConfig  = (key, value) => api.post('/config', { key, value }).then(r => r.data);
 export const saveConfigBulk = (updates) => api.post('/config', { updates }).then(r => r.data);
 
+export const uploadResume = (file) => {
+  const fd = new FormData();
+  fd.append('resume', file);
+  return api.post('/config/resume', fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data);
+};
+
 export const submitFeedback = async (data) => {
   const fd = new FormData();
   fd.append('type', data.type);

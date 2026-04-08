@@ -9,6 +9,7 @@ import { SKILLS as DEFAULT_SKILLS, EDUCATION as DEFAULT_EDUCATION, EXPERIENCE as
 import { LINKS } from "../config/links";
 import { useConfig } from "../hooks/useConfig";
 import { useImagesPageEnabled } from "../hooks/useImagesPageEnabled";
+import { inlineResumeUrl } from "../utils/resumeUrl";
 
 const SECTIONS = ["Bio", "Skills", "Education", "Experience", "Certifications"];
 const SORT_OPTS = [
@@ -81,12 +82,7 @@ export default function About() {
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const downloadResume = () => {
-    const link = document.createElement("a");
-    link.href = "/Resume_aj.pdf";
-    link.download = "Resume_aj.pdf";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    window.open(inlineResumeUrl(cfg.resumeUrl ?? LINKS.resume), '_blank', 'noopener,noreferrer');
   };
 
   const aboutMenuItems = [

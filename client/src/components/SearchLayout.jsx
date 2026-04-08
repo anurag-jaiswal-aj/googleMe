@@ -6,6 +6,7 @@ import KnowledgePanel from "./KnowledgePanel";
 import { LINKS } from "../config/links";
 import { submitFeedback } from "../api";
 import { useConfig } from "../hooks/useConfig";
+import { inlineResumeUrl } from "../utils/resumeUrl";
 
 const TABS = [
   { label: "All",     to: "/all",      query: "anurag developer portfolio" },
@@ -110,7 +111,7 @@ export default function SearchLayout() {
   const altPortfolioUrl = sl.alternatePortfolio ?? LINKS.alternatePortfolio;
   const linkedinUrl     = sl.linkedin ?? LINKS.linkedin;
   const emailAddr       = sl.email    ?? LINKS.email;
-  const resumeUrl       = sl.resume   ?? LINKS.resume;
+  const resumeUrl       = cfg.resumeUrl  ?? sl.resume   ?? LINKS.resume;
   const githubUrl       = sl.github   ?? LINKS.github;
   const twitterUrl      = sl.twitter  ?? LINKS.twitter;
   const leetcodeUrl     = sl.leetcode ?? LINKS.leetcode;
@@ -926,7 +927,7 @@ export default function SearchLayout() {
                     {/* Alt Portfolio + Resume + Copy Email */}
                     <div className="py-1.5">
                       <a
-                        href={resumeUrl}
+                        href={inlineResumeUrl(resumeUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-full flex items-center gap-3 px-5 py-2.5
