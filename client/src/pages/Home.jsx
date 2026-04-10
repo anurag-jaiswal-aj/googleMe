@@ -5,9 +5,11 @@ import { useTheme } from "../context/ThemeContext";
 import { LINKS } from "../config/links";
 import { submitFeedback } from "../api";
 import { useConfig } from "../hooks/useConfig";
+import { useVoiceSearch } from '../hooks/useVoiceSearch';
 import SEO from "../components/SEO";
 import KnowledgePanel from "../components/KnowledgePanel";
 import { inlineResumeUrl } from '../utils/resumeUrl';
+import { getAiReply } from '../utils/aiChat';
 
 const LANGUAGES = [
   { label: "हिन्दी", code: "hi" },
@@ -223,11 +225,9 @@ export default function Home() {
   const [appsOpen, setAppsOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
-  const [micOpen, setMicOpen] = useState(false);
-  const [micState, setMicState] = useState("idle"); // idle | listening | result | error
-  const [micTranscript, setMicTranscript] = useState("");
-  const [micError, setMicError] = useState("");
-  const recognitionRef = useRef(null);
+  const { micOpen, setMicOpen, micState, micTranscript, micError, startVoiceSearch, stopVoice } =
+    useVoiceSearch((transcript) => setQuery(transcript));
+
   const [lensOpen, setLensOpen] = useState(false);
   const [lensImage, setLensImage] = useState(null);
   const [lensDrag, setLensDrag] = useState(false);
@@ -286,57 +286,6 @@ export default function Home() {
     }
   };
 
-  const AI_REPLIES = {
-    who: "Anurag is a full-stack developer specialising in the MERN stack: React, Node.js, Express and MongoDB. He loves clean UI and fast developer tooling. Visit the About section for the full story!",
-    projects:
-      "Anurag has shipped several web apps and open-source projects. Head to the Projects section for deep-dives, or check out his GitHub for the source code.",
-    hire: "Anurag is open to freelance and full-time opportunities. Drop him a message through the Contact page, there's an email form and links to all his socials.",
-    stack:
-      "Primary stack: React, Node.js, Express, MongoDB, TailwindCSS. He's also comfortable with TypeScript, Docker, REST and GraphQL APIs, and Vite.",
-    blog: "Anurag writes about web development, design systems, and side-project journeys. Browse the Blog section to catch his latest posts.",
-    experience:
-      "Anurag has hands-on experience building full-stack web applications, working with REST APIs, and contributing to team projects. Check the Projects section for detailed case studies.",
-    opensource:
-      "Yes! Anurag actively contributes to open-source projects and publishes all his own work on GitHub. Visit his profile to explore repositories and contributions.",
-    education:
-      "Anurag is studying Information Science & Engineering. He complements his academics with self-driven learning in modern web dev, system design, and software engineering.",
-    contact:
-      "Reach Anurag through the Contact page. There's a direct email form and links to all his social profiles. He typically responds within 24 hours.",
-    github:
-      "All of Anurag's code lives on GitHub. You'll find the link in the top-right corner of every page, feel free to explore and star his repos!",
-    greet:
-      "Hey! I'm an AI assistant built into Anurag's portfolio. Ask me about his background, projects, tech stack, blog, or how to get in touch!",
-  };
-
-  const getAiReply = (input) => {
-    const q = input.toLowerCase();
-    // Greeting
-    if (/\b(hello|hi|hey|howdy)\b/.test(q)) return AI_REPLIES.greet;
-    // Education — checked before generic "who/about" to avoid `background` collision
-    if (/education|studying|degree|university|college|academic/.test(q))
-      return AI_REPLIES.education;
-    // Who / About
-    if (/who|about|yourself|introduce|bio|background/.test(q))
-      return AI_REPLIES.who;
-    // Open source — before projects so "open source" isn't eaten by "code"
-    if (/open.?source|contribut/.test(q)) return AI_REPLIES.opensource;
-    // Projects
-    if (/project|built|portfolio|app|code/.test(q)) return AI_REPLIES.projects;
-    // GitHub
-    if (/github/.test(q)) return AI_REPLIES.github;
-    // Blog
-    if (/blog|article|post|writ/.test(q)) return AI_REPLIES.blog;
-    // Hire / Contact
-    if (/hire|freelance|opportunit|availab/.test(q)) return AI_REPLIES.hire;
-    if (/contact|email|touch|reach|message|connect/.test(q))
-      return AI_REPLIES.contact;
-    // Tech stack
-    if (/skill|tech|stack|language|framework|tool|work with|use/.test(q))
-      return AI_REPLIES.stack;
-    // Experience
-    if (/experience|work history|career/.test(q)) return AI_REPLIES.experience;
-    return "Hmm, not sure about that one. Try one of the suggestion chips or ask about Anurag's projects, stack, blog, or contact info!";
-  };
 
   const handleAiSend = (preset) => {
     const text = (preset ?? aiInput).trim();
@@ -359,100 +308,6 @@ export default function Home() {
   useEffect(() => {
     if (aiOpen) setTimeout(() => aiInputRef.current?.focus(), 80);
   }, [aiOpen]);
-
-  const startVoiceSearch = () => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) {
-      setMicError("SpeechRecognition API not found. Try Chrome or Edge.");
-      setMicState("error");
-      setMicOpen(true);
-      return;
-    }
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.abort();
-      } catch (_) {}
-    }
-    const recognition = new SR();
-    recognitionRef.current = recognition;
-    recognition.lang = "en-US";
-    recognition.interimResults = true;
-    recognition.continuous = false;
-    recognition.maxAlternatives = 1;
-    setMicTranscript("");
-    setMicError("");
-    setMicState("listening");
-    setMicOpen(true);
-    recognition.onresult = (e) => {
-      const transcript = Array.from(e.results)
-        .map((r) => r[0].transcript)
-        .join("");
-      setMicTranscript(transcript);
-      if (e.results[e.results.length - 1].isFinal) {
-        setMicState("result");
-        setQuery(transcript);
-      }
-    };
-    recognition.onerror = (e) => {
-      if (e.error === "no-speech") {
-        // not fatal — onend will fire and reset to idle
-        return;
-      } else if (
-        e.error === "not-allowed" ||
-        e.error === "service-not-allowed"
-      ) {
-        setMicError(
-          "Microphone access denied. Please allow mic access and try again.",
-        );
-        setMicState("error");
-      } else if (e.error === "network") {
-        // Transient browser bug — silently retry once
-        setMicState("retrying");
-        setTimeout(() => {
-          try {
-            const r2 = new SR();
-            recognitionRef.current = r2;
-            r2.lang = "en-US";
-            r2.interimResults = true;
-            r2.continuous = false;
-            r2.maxAlternatives = 1;
-            r2.onresult = recognition.onresult;
-            r2.onerror = () => {
-              setMicError(
-                "Speech service unavailable. Check your internet and try again.",
-              );
-              setMicState("error");
-            };
-            r2.onend = () =>
-              setMicState((s) => (s === "listening" ? "idle" : s));
-            r2.start();
-            setMicState("listening");
-          } catch (_) {
-            setMicError("Speech service unavailable. Try again.");
-            setMicState("error");
-          }
-        }, 400);
-      } else {
-        setMicError(`Something went wrong (${e.error}). Try again.`);
-        setMicState("error");
-      }
-    };
-    recognition.onend = () => {
-      setMicState((s) => (s === "listening" ? "idle" : s));
-    };
-    try {
-      recognition.start();
-    } catch (err) {
-      setMicError(`Could not start: ${err.message}`);
-      setMicState("error");
-    }
-  };
-
-  const stopVoice = () => {
-    recognitionRef.current?.abort();
-    setMicOpen(false);
-    setMicState("idle");
-  };
 
   // Clock — tick every second
   useEffect(() => {
@@ -674,17 +529,6 @@ export default function Home() {
           >
             {t.gmail}
           </a>
-          {/*
-        <a
-          href={LINKS.github}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-[#202124] dark:text-[#e8eaed] hover:underline px-3 py-1.5 rounded-full hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
-        >
-          GitHub
-        </a>
-        */}
-
           {/* Apps grid */}
           <div className="relative ml-2 mr-2" ref={appsRef}>
             <button
