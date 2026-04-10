@@ -7,6 +7,8 @@ import { LINKS } from "../config/links";
 import { submitFeedback } from "../api";
 import { useConfig } from "../hooks/useConfig";
 import { inlineResumeUrl } from "../utils/resumeUrl";
+import { getAiReply } from "../utils/aiChat";
+import { useVoiceSearch } from "../hooks/useVoiceSearch";
 
 const TABS = [
   { label: "All",     to: "/all",      query: "anurag developer portfolio" },
@@ -179,10 +181,9 @@ export default function SearchLayout() {
   const [bugSent, setBugSent] = useState(false);
   const [bugSubmitting, setBugSubmitting] = useState(false);
   const [bugError, setBugError] = useState("");
-  const [micOpen, setMicOpen] = useState(false);
-  const [micState, setMicState] = useState("idle");
-  const [micTranscript, setMicTranscript] = useState("");
-  const [micError, setMicError] = useState("");
+  const { micOpen, setMicOpen, micState, micTranscript, micError, startVoiceSearch, stopVoice } =
+    useVoiceSearch((transcript) => setQuery(transcript));
+
   const [lensOpen, setLensOpen] = useState(false);
   const [lensImage, setLensImage] = useState(null);
   const [lensDrag, setLensDrag] = useState(false);
@@ -191,7 +192,6 @@ export default function SearchLayout() {
   const [aiInput, setAiInput] = useState("");
   const [aiMessages, setAiMessages] = useState([]);
   const [aiTyping, setAiTyping] = useState(false);
-  const recognitionRef = useRef(null);
   const lensFileRef = useRef(null);
   const aiEndRef = useRef(null);
   const aiInputRef = useRef(null);
@@ -248,36 +248,6 @@ export default function SearchLayout() {
     if (route) handleSelect(route);
   };
 
-  const AI_REPLIES = {
-    who: "Anurag is a full-stack developer specialising in the MERN stack: React, Node.js, Express and MongoDB. He loves clean UI and fast developer tooling. Visit the About section for the full story!",
-    projects: "Anurag has shipped several web apps and open-source projects. Head to the Projects section for deep-dives, or check out his GitHub for the source code.",
-    hire: "Anurag is open to freelance and full-time opportunities. Drop him a message through the Contact page, there's an email form and links to all his socials.",
-    stack: "Primary stack: React, Node.js, Express, MongoDB, TailwindCSS. He's also comfortable with TypeScript, Docker, REST and GraphQL APIs, and Vite.",
-    blog: "Anurag writes about web development, design systems, and side-project journeys. Browse the Blog section to catch his latest posts.",
-    experience: "Anurag has hands-on experience building full-stack web applications, working with REST APIs, and contributing to team projects. Check the Projects section for detailed case studies.",
-    opensource: "Yes! Anurag actively contributes to open-source projects and publishes all his own work on GitHub. Visit his profile to explore repositories and contributions.",
-    education: "Anurag is studying Information Science and Engineering. He complements his academics with self-driven learning in modern web dev, system design, and software engineering.",
-    contact: "Reach Anurag through the Contact page. There's a direct email form and links to all his social profiles. He typically responds within 24 hours.",
-    github: "All of Anurag's code lives on GitHub. You'll find the link in the top-right corner of every page, feel free to explore and star his repos!",
-    greet: "Hey! I'm an AI assistant built into Anurag's portfolio. Ask me about his background, projects, tech stack, blog, or how to get in touch!",
-  };
-
-  const getAiReply = (input) => {
-    const q = input.toLowerCase();
-    if (/\b(hello|hi|hey|howdy)\b/.test(q)) return AI_REPLIES.greet;
-    if (/education|studying|degree|university|college|academic/.test(q)) return AI_REPLIES.education;
-    if (/who|about|yourself|introduce|bio|background/.test(q)) return AI_REPLIES.who;
-    if (/open.?source|contribut/.test(q)) return AI_REPLIES.opensource;
-    if (/project|built|portfolio|app|code/.test(q)) return AI_REPLIES.projects;
-    if (/github/.test(q)) return AI_REPLIES.github;
-    if (/blog|article|post|writ/.test(q)) return AI_REPLIES.blog;
-    if (/hire|freelance|opportunit|availab/.test(q)) return AI_REPLIES.hire;
-    if (/contact|email|touch|reach|message|connect/.test(q)) return AI_REPLIES.contact;
-    if (/skill|tech|stack|language|framework|tool|work with|use/.test(q)) return AI_REPLIES.stack;
-    if (/experience|work history|career/.test(q)) return AI_REPLIES.experience;
-    return "Hmm, not sure about that one. Try one of the suggestion chips or ask about Anurag's projects, stack, blog, or contact info!";
-  };
-
   const handleAiSend = (preset) => {
     const text = (preset ?? aiInput).trim();
     if (!text || aiTyping) return;
@@ -292,33 +262,6 @@ export default function SearchLayout() {
 
   useEffect(() => { aiEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [aiMessages, aiTyping]);
   useEffect(() => { if (aiOpen) setTimeout(() => aiInputRef.current?.focus(), 80); }, [aiOpen]);
-
-  const startVoiceSearch = () => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { setMicError("SpeechRecognition API not found. Try Chrome or Edge."); setMicState("error"); setMicOpen(true); return; }
-    if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch (_) {} }
-    const recognition = new SR();
-    recognitionRef.current = recognition;
-    recognition.lang = "en-US";
-    recognition.interimResults = true;
-    recognition.continuous = false;
-    recognition.maxAlternatives = 1;
-    setMicTranscript(""); setMicError(""); setMicState("listening"); setMicOpen(true);
-    recognition.onresult = (e) => {
-      const transcript = Array.from(e.results).map((r) => r[0].transcript).join("");
-      setMicTranscript(transcript);
-      if (e.results[e.results.length - 1].isFinal) { setMicState("result"); setQuery(transcript); }
-    };
-    recognition.onerror = (e) => {
-      if (e.error === "no-speech") return;
-      else if (e.error === "not-allowed" || e.error === "service-not-allowed") { setMicError("Microphone access denied. Please allow mic access and try again."); setMicState("error"); }
-      else { setMicError(`Something went wrong (${e.error}). Try again.`); setMicState("error"); }
-    };
-    recognition.onend = () => { setMicState((s) => (s === "listening" ? "idle" : s)); };
-    try { recognition.start(); } catch (err) { setMicError(`Could not start: ${err.message}`); setMicState("error"); }
-  };
-
-  const stopVoice = () => { recognitionRef.current?.abort(); setMicOpen(false); setMicState("idle"); };
 
   useEffect(() => {
     const handler = (e) => {

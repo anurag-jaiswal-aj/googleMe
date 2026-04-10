@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import api, {
   fetchGithubRepos, saveGithubSelection,
   fetchImages, uploadImage, updateImage, deleteImage,
-  fetchConfig, saveConfig, saveConfigBulk, uploadResume,
+  fetchConfig, saveConfig, saveConfigBulk,
   adminLogin, adminVerify,
 } from '../api';
 import { LINKS } from '../config/links';
@@ -147,7 +147,6 @@ function ProfileTab({ cfg, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
-  const [resumeUploading, setResumeUploading] = useState(false);
   const [resumeUrl, setResumeUrl] = useState(cfg.resumeUrl ?? '');
 
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setSaved(false); };
