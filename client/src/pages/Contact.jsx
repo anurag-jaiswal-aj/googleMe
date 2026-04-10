@@ -7,13 +7,9 @@ import SearchResult from '../components/SearchResult';
 import FilterSort from '../components/FilterSort';
 import SEO from '../components/SEO';
 import { LINKS } from '../config/links';
-import { SOCIAL_PROFILES } from '../data/socialProfiles';
+import { getSocialProfiles } from '../data/socialProfiles';
 import { useConfig } from '../hooks/useConfig';
 import { useImagesPageEnabled } from '../hooks/useImagesPageEnabled';
-
-const SOCIAL = SOCIAL_PROFILES.filter((profile) =>
-  ['LinkedIn', 'Twitter / X', 'GitHub', 'Medium'].includes(profile.name)
-);
 
 const SUBJECTS = ['Job Opportunity', 'Collaboration', 'Project Inquiry', 'General Question', 'Feedback', 'Other'];
 
@@ -361,6 +357,9 @@ export default function Contact() {
   const cfg = useConfig();
   const emailAddr = cfg.socialLinks?.email ?? LINKS.email;
   const imagesEnabled = useImagesPageEnabled();
+  const SOCIAL = getSocialProfiles(cfg).filter((p) =>
+    ['LinkedIn', 'Twitter / X', 'GitHub', 'Medium'].includes(p.name)
+  );
   const [filters,    setFilters]    = useState([]);
   const [sort,       setSort]       = useState('relevance');
   const [filterOpen, setFilterOpen] = useState(false);

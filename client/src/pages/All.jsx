@@ -12,7 +12,7 @@ import sharedProjects from "../../../shared/projects.json";
 import api from "../api";
 import { LINKS } from "../config/links";
 import { getBlogCards } from "../data/blogPosts";
-import { SOCIAL_PROFILES } from "../data/socialProfiles";
+import { getSocialProfiles } from "../data/socialProfiles";
 import { getToolCards } from "../data/toolsData";
 import { ABOUT_QA, PEOPLE_ALSO_ASK } from "../data/allPageData";
 import { useImagesPageEnabled } from "../hooks/useImagesPageEnabled";
@@ -193,7 +193,6 @@ const PROJECTS = sharedProjects.map((project) => ({
 }));
 
 const TOOLS = getToolCards();
-const SOCIALS = SOCIAL_PROFILES;
 
 /* ── Section heading ─────────────────────────────────── */
 function SectionLabel({ label }) {
@@ -371,6 +370,7 @@ function ArticleReader({ post, onClose }) {
 export default function All() {
   const navigate = useNavigate();
   const cfg = useConfig();
+  const SOCIALS = getSocialProfiles(cfg);
   const mediumUrl = cfg.mediumUsername
     ? `https://medium.com/@${cfg.mediumUsername.replace(/^@/, '')}`
     : LINKS.medium;
