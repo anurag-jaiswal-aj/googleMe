@@ -368,7 +368,7 @@ export default function SearchLayout() {
           {/* Search bar */}
           <div
             ref={wrapperRef}
-            className="relative flex-1 min-w-0 max-w-[240px] sm:max-w-[480px]"
+            className="relative flex-1 min-w-0 max-w-[240px] sm:max-w-[710px]"
           >
             <div
               className={`flex items-center gap-2 px-4 py-2 bg-white dark:bg-[#303134]

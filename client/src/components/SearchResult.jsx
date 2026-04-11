@@ -32,7 +32,9 @@ export default function SearchResult({
   const resolvedBg     = faviconBg     ?? derived.color;
   const resolvedLetter = faviconLetter ?? derived.letter;
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuUp, setMenuUp] = useState(false);
   const menuRef = useRef(null);
+  const btnRef = useRef(null);
   const isExternal = !!href && !to;
   const isInternal = !!to;
 
@@ -43,16 +45,24 @@ export default function SearchResult({
         setMenuOpen(false);
       }
     };
-
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [menuOpen]);
+
+  const handleMenuToggle = () => {
+    if (!menuOpen && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setMenuUp(spaceBelow < 160); // flip up if less than 160px below
+    }
+    setMenuOpen((o) => !o);
+  };
 
   const titleClass =
     'block text-[18px] sm:text-[20px] leading-[1.3] font-normal text-[#1a73e8] dark:text-[#8ab4f8] hover:underline cursor-pointer mb-1 text-left';
 
   return (
-    <div className="max-w-[680px] mb-8 min-w-0 overflow-hidden">
+    <div className="max-w-[680px] mb-8 min-w-0">
       {/* ── URL row ────────────────────────────────── */}
       <div className="flex items-center gap-2 mb-0.5">
         {/* Favicon */}
@@ -72,7 +82,8 @@ export default function SearchResult({
         {menuItems.length > 0 && (
           <div className="relative ml-auto" ref={menuRef}>
             <button
-              onClick={() => setMenuOpen((open) => !open)}
+              ref={btnRef}
+              onClick={handleMenuToggle}
               className="p-0.5 rounded-full text-[#70757a] dark:text-[#9aa0a6]
                          hover:text-[#202124] dark:hover:text-[#e8eaed]
                          hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
@@ -84,17 +95,15 @@ export default function SearchResult({
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 top-full mt-1 z-50 w-max max-w-[220px] rounded-xl
+              <div className={`absolute right-0 z-50 w-max max-w-[220px] rounded-xl
                               bg-white dark:bg-[#303134]
                               border border-[#e8eaed] dark:border-[#5f6368]
-                              shadow-[0_4px_16px_rgba(0,0,0,0.15)] overflow-hidden">
+                              shadow-[0_4px_16px_rgba(0,0,0,0.15)] overflow-hidden
+                              top-7`}>
                 {menuItems.map(({ label, icon, action }) => (
                   <button
                     key={label}
-                    onClick={() => {
-                      action();
-                      setMenuOpen(false);
-                    }}
+                    onClick={() => { action(); setMenuOpen(false); }}
                     className="w-full flex items-center gap-2.5 pl-4 pr-3 py-2.5 text-left whitespace-nowrap
                                text-[13px] text-[#202124] dark:text-[#e8eaed]
                                hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
