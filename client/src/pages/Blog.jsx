@@ -8,6 +8,7 @@ import { getMediumPosts } from '../utils/prefetch';
 import { LINKS } from '../config/links';
 import { useConfig } from '../hooks/useConfig';
 import { FALLBACK_BLOG_POSTS } from '../data/blogPosts';
+import { getFaviconProps } from '../utils/favicon';
 
 const POSTS = FALLBACK_BLOG_POSTS;
 
@@ -238,8 +239,8 @@ function PostCard({ post, onRead }) {
       <div className="flex items-center gap-2 mb-0.5">
         <div className="w-[18px] h-[18px] rounded-full flex items-center justify-center
                         text-white text-[9px] font-bold shrink-0"
-             style={{ backgroundColor: post.faviconBg || '#00ab6c' }}>
-          {post.title[0]}
+             style={{ backgroundColor: getFaviconProps(post.url).color }}>
+          {getFaviconProps(post.url).letter}
         </div>
         <span className="min-w-0 flex-1 text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-snug truncate">
           {post.url}

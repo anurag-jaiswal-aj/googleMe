@@ -140,8 +140,6 @@ export default function About() {
             title="About Me | Anurag Jaiswal"
             snippet={aboutSummaryById.Bio.answer}
             onTitleClick={() => openSection("bio")}
-            faviconBg="#4285F4"
-            faviconLetter="A"
             menuItems={aboutMenuItems}
           >
             <AnimatePresence initial={false}>
@@ -198,8 +196,6 @@ export default function About() {
             title="Education | Academic Timeline"
             snippet="Bachelor of Engineering in Information Science & Engineering at JSS Academy of Technical Education, Bengaluru with a CGPA of 9.1. Pursued Pre-University in PCM and High School from J.B.P.I.C with 91% and 90% respectively."
             onTitleClick={() => openSection("edu")}
-            faviconBg="#4285F4"
-            faviconLetter="E"
             menuItems={aboutMenuItems}
           >
             <AnimatePresence initial={false}>
@@ -257,8 +253,6 @@ export default function About() {
             title="Skills & Technologies | My Tech Stack"
             snippet={aboutSummaryById.Skills.answer}
             onTitleClick={() => openSection("skills")}
-            faviconBg="#4285F4"
-            faviconLetter="S"
             menuItems={aboutMenuItems}
           >
             <AnimatePresence initial={false}>
@@ -313,8 +307,6 @@ export default function About() {
             title="Experience | Work & Internships"
             snippet={aboutSummaryById.Experience.answer}
             onTitleClick={() => openSection("exp")}
-            faviconBg="#4285F4"
-            faviconLetter="E"
             menuItems={aboutMenuItems}
           >
             <AnimatePresence initial={false}>
@@ -375,8 +367,6 @@ export default function About() {
             title="Certifications & Courses | Verified Learning"
             snippet={`${CERTIFICATIONS.length} verified certifications from platforms including Udemy, Coursera, and IBM covering web development, Python, machine learning, and data structures.`}
             onTitleClick={() => openSection("certs")}
-            faviconBg="#FBBC05"
-            faviconLetter="C"
             menuItems={aboutMenuItems}
           >
             <AnimatePresence initial={false}>

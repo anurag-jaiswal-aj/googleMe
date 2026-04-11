@@ -80,8 +80,6 @@ export default function Tools() {
             url={`anuragjaiswal.me/toolkit/${group.category.toLowerCase().replace(/[\s/]+/g, '-')}`}
             title={group.title || group.category}
             snippet={group.snippet}
-            faviconBg={group.color}
-            faviconLetter={group.category[0]}
             onTitleClick={() => setExpandedCat(group.category)}
             menuItems={[
               {

@@ -13,6 +13,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { getFaviconProps } from '../utils/favicon';
 
 export default function SearchResult({
   url,
@@ -21,11 +22,15 @@ export default function SearchResult({
   to,
   href,
   onTitleClick,
-  faviconBg = '#1a73e8',
-  faviconLetter = 'A',
+  faviconBg,
+  faviconLetter,
   children,
   menuItems = [],
 }) {
+  // Auto-derive favicon from URL if not explicitly passed
+  const derived = getFaviconProps(url);
+  const resolvedBg     = faviconBg     ?? derived.color;
+  const resolvedLetter = faviconLetter ?? derived.letter;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const isExternal = !!href && !to;
@@ -54,9 +59,9 @@ export default function SearchResult({
         <div
           className="w-[18px] h-[18px] rounded-full flex items-center justify-center
                      text-white text-[9px] font-bold shrink-0"
-          style={{ backgroundColor: faviconBg }}
+          style={{ backgroundColor: resolvedBg }}
         >
-          {faviconLetter}
+          {resolvedLetter}
         </div>
 
         {/* Breadcrumb */}

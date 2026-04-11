@@ -146,8 +146,6 @@ export default function Projects() {
             url={project.repoUrl ? project.repoUrl.replace('https://', '') : `github.com/${toSlug(project.title)}`}
             title={`${project.title} | GitHub`}
             snippet=""
-            faviconBg="#24292e"
-            faviconLetter="G"
             onTitleClick={() => setExpandedId(project._id)}
             menuItems={[
               {
