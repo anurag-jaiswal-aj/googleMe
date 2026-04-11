@@ -439,8 +439,6 @@ export default function Contact() {
                 title={item.title}
                 snippet={item.snippet}
                 href={item.href}
-                faviconBg={item.faviconBg}
-                faviconLetter={item.faviconLetter}
                 menuItems={getMenuItems(item)}>
                 {/* 
                 <a href={item.href} target="_blank" rel="noopener noreferrer"

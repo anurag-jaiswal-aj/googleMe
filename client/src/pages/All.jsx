@@ -450,8 +450,6 @@ export default function All() {
               title={item.question}
               snippet={item.answer}
               onTitleClick={() => setExpandedQA(item.question)}
-              faviconBg={item.faviconBg}
-              faviconLetter={item.faviconLetter}
               menuItems={[
                 {
                   label: `Open ${item.pageName}`,
@@ -524,8 +522,6 @@ export default function All() {
               url={url}
               title={title}
               snippet=""
-              faviconBg="#24292e"
-              faviconLetter="G"
               onTitleClick={() => setExpandedProject(key)}
               menuItems={[
                 {
@@ -615,8 +611,6 @@ export default function All() {
             snippet={post.snippet}
             to={post.content ? undefined : "/blog"}
             onTitleClick={post.content ? () => setReading(post) : undefined}
-            faviconBg={post.faviconBg || "#4285F4"}
-            faviconLetter="B"
             menuItems={[
               {
                 label: 'Read here',
@@ -662,8 +656,6 @@ export default function All() {
             url={r.url}
             title={r.title}
             snippet={r.snippet}
-            faviconBg={r.faviconBg}
-            faviconLetter={r.faviconLetter}
             onTitleClick={() => setExpandedTool(r.url)}
             menuItems={[
               {
@@ -738,8 +730,6 @@ export default function All() {
             title={r.title}
             snippet={r.snippet}
             href={r.href}
-            faviconBg={r.faviconBg}
-            faviconLetter={r.faviconLetter}
             menuItems={[
               {
                 label: 'Open profile',
