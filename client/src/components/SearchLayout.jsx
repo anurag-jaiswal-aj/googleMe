@@ -9,6 +9,7 @@ import { inlineResumeUrl } from "../utils/resumeUrl";
 import { getAiReply } from "../utils/aiChat";
 import { useVoiceSearch } from "../hooks/useVoiceSearch";
 import BugReportModal from "./BugReportModal";
+import { resolveSearchRoute, filterSuggestions } from "../utils/searchRoute";
 
 const TABS = [
   { label: "All",     to: "/all",      query: "anurag developer portfolio" },
@@ -203,11 +204,7 @@ export default function SearchLayout() {
     setQuery(tab?.label ?? "");
   }, [location.pathname]);
 
-  const filtered = query.trim()
-    ? SUGGESTIONS.filter((s) =>
-        s.label.toLowerCase().includes(query.toLowerCase()),
-      )
-    : SUGGESTIONS;
+  const filtered = filterSuggestions(query);
   const showDropdown = focused && filtered.length > 0;
 
   const handleSelect = useCallback(
@@ -230,7 +227,7 @@ export default function SearchLayout() {
       if (highlighted >= 0 && filtered[highlighted]) {
         handleSelect(filtered[highlighted].to);
       } else {
-        const route = fuzzyRoute(query) ?? filtered[0]?.to;
+        const route = resolveSearchRoute(query) ?? filtered[0]?.to;
         if (route) handleSelect(route);
       }
     } else if (e.key === "Escape") {
@@ -240,7 +237,7 @@ export default function SearchLayout() {
   };
 
   const handleSearch = () => {
-    const route = fuzzyRoute(query) ?? filtered[0]?.to;
+    const route = resolveSearchRoute(query) ?? filtered[0]?.to;
     if (route) handleSelect(route);
   };
 

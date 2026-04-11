@@ -9,6 +9,7 @@ import SEO from "../components/SEO";
 import KnowledgePanel from "../components/KnowledgePanel";
 import { inlineResumeUrl } from '../utils/resumeUrl';
 import { getAiReply } from '../utils/aiChat';
+import { resolveSearchRoute, filterSuggestions, SEARCH_SUGGESTIONS } from '../utils/searchRoute';
 import BugReportModal from '../components/BugReportModal';
 
 const LANGUAGES = [
@@ -202,24 +203,23 @@ export default function Home() {
   const [activeIdx, setActiveIdx] = useState(-1);
 
   const SUGGESTIONS = [
-    { icon: "clock", text: "Who is Anurag?", to: "/about" },
-    { icon: "clock", text: "Anurag projects", to: "/projects" },
-    { icon: "clock", text: "Anurag tech stack", to: "/about" },
-    { icon: "clock", text: "Hire Anurag", to: "/contact" },
-    { icon: "clock", text: "Anurag blog", to: "/blog" },
-    { icon: "search", text: "Anurag portfolio", to: "/projects" },
-    { icon: "search", text: "Anurag full-stack developer", to: "/about" },
-    { icon: "search", text: "Anurag open source", to: "/projects" },
-    { icon: "search", text: "Anurag MERN stack", to: "/about" },
-    { icon: "search", text: "Anurag GitHub", to: githubUrl, external: true },
-    { icon: "search", text: "Anurag contact", to: "/contact" },
-    { icon: "search", text: "Anurag resume", to: "/contact" },
+    { icon: "clock", text: "Who is Anurag?",              to: "/about"    },
+    { icon: "clock", text: "Anurag projects",             to: "/projects" },
+    { icon: "clock", text: "Anurag tech stack",           to: "/tools"    },
+    { icon: "clock", text: "Hire Anurag",                 to: "/contact"  },
+    { icon: "clock", text: "Anurag blog",                 to: "/blog"     },
+    { icon: "search", text: "Anurag portfolio",           to: "/all"      },
+    { icon: "search", text: "Anurag full-stack developer",to: "/about"    },
+    { icon: "search", text: "Anurag open source",         to: "/projects" },
+    { icon: "search", text: "Anurag MERN stack",          to: "/about"    },
+    { icon: "search", text: "Anurag GitHub",              to: githubUrl, external: true },
+    { icon: "search", text: "Anurag contact",             to: "/contact"  },
+    { icon: "search", text: "Anurag toolkit",             to: "/tools"    },
+    { icon: "search", text: "Anurag images",              to: "/images"   },
   ];
 
   const filtered = query.trim()
-    ? SUGGESTIONS.filter((s) =>
-        s.text.toLowerCase().includes(query.toLowerCase()),
-      )
+    ? SUGGESTIONS.filter((s) => s.text.toLowerCase().includes(query.toLowerCase()))
     : SUGGESTIONS;
   const [lang, setLang] = useState("en");
   const [appsOpen, setAppsOpen] = useState(false);
@@ -270,15 +270,17 @@ export default function Home() {
       setActiveIdx(-1);
     } else if (e.key === "Enter") {
       const suggestion = activeIdx >= 0 ? filtered[activeIdx] : null;
-      const text = suggestion ? suggestion.text : query;
-      if (text.trim()) {
-        setQuery(text);
+      if (suggestion?.external) {
+        window.open(suggestion.to, "_blank", "noopener,noreferrer");
         setFocused(false);
         setActiveIdx(-1);
-        if (suggestion?.external)
-          window.open(suggestion.to, "_blank", "noopener,noreferrer");
-        else navigate(suggestion?.to ?? "/about");
+        return;
       }
+      const destination = suggestion?.to ?? resolveSearchRoute(query) ?? "/all";
+      setQuery(suggestion?.text ?? query);
+      setFocused(false);
+      setActiveIdx(-1);
+      navigate(destination);
     }
   };
 
@@ -1290,7 +1292,7 @@ export default function Home() {
           className="flex flex-wrap justify-center gap-3 mt-7"
         >
           <button
-            onClick={() => navigate("/all")}
+            onClick={() => navigate(resolveSearchRoute(query) ?? "/all")}
             className="px-5 py-2.5 rounded text-sm font-medium
                        bg-[#f8f9fa] dark:bg-[#303134]
                        text-[#3c4043] dark:text-[#e8eaed]
@@ -1302,7 +1304,7 @@ export default function Home() {
           </button>
           <button
             onClick={() => {
-              const pages = ["/about", "/projects", "/contact", "/blog"];
+              const pages = ["/about", "/projects", "/contact", "/blog", "/tools"];
               navigate(pages[Math.floor(Math.random() * pages.length)]);
             }}
             className="px-5 py-2.5 rounded text-sm font-medium
