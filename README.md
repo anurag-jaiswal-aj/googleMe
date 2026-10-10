@@ -135,7 +135,7 @@ googleMe/
 ## Local Setup
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 22.x (>=22.22.0)
 - MongoDB (local or Atlas)
 - Cloudinary account (free tier)
 - Resend account or Gmail App Password
