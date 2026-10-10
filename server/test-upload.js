@@ -24,12 +24,14 @@ SiteConfig.findOneAndUpdate = async (filter, update) => {
   return { ok: true };
 };
 // Mock find to prevent GET /api/config from crashing if it's hit, though we only test POST
-SiteConfig.find = () => ({ lean: async () => [] }); 
+SiteConfig.find = () => ({ lean: async () => [] });
 
 const { v2: cloudinary } = require('cloudinary');
 let cloudinaryCallCount = 0;
 let cloudinaryShouldFail = false;
+let lastCloudinaryOpts = null;
 cloudinary.uploader.upload_stream = (opts, cb) => {
+  lastCloudinaryOpts = opts;
   cloudinaryCallCount++;
   if (cloudinaryShouldFail) {
     return new Writable({
@@ -80,6 +82,7 @@ test.beforeEach(() => {
   lastDbUpdate = null;
   cloudinaryCallCount = 0;
   cloudinaryShouldFail = false;
+  lastCloudinaryOpts = null;
 });
 
 test('1. Unauthenticated request is rejected', async () => {
@@ -140,6 +143,10 @@ test('6. Valid PDF upload succeeds and saves', async () => {
   assert.deepStrictEqual(lastDbFilter, { key: 'resumeUrl' });
   assert.strictEqual(lastDbUpdate.key, 'resumeUrl');
   assert.strictEqual(lastDbUpdate.value, 'https://res.cloudinary.com/mock/resume.pdf');
+
+  // Assert Cloudinary options
+  assert.strictEqual(lastCloudinaryOpts.resource_type, 'raw');
+  assert.match(lastCloudinaryOpts.public_id, /\.pdf$/);
 });
 
 test('7. Cloudinary failure returns a safe error and does not update setting', async () => {

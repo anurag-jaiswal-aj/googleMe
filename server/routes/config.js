@@ -98,7 +98,7 @@ router.post('/resume-upload', requireAuth, (req, res) => {
 
       const uploadPromise = new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
-          { folder: 'gfolio', format: 'pdf' },
+          { folder: 'gfolio', resource_type: 'raw', public_id: `resume_${Date.now()}.pdf` },
           (uploadErr, result) => (uploadErr ? reject(uploadErr) : resolve(result))
         );
         streamifier.createReadStream(req.file.buffer).pipe(stream);
