@@ -16,6 +16,8 @@ function once(key, fetcher) {
 export const getProjects = () => once('projects', fetchProjects);
 export const getMediumPosts = () => once('medium', () => api.get('/medium').then((r) => r.data));
 
+export const clearProjectCache = () => { delete cache['projects']; };
+
 /** Call this as early as possible (main.jsx). */
 export function prefetchAll() {
   getProjects();
