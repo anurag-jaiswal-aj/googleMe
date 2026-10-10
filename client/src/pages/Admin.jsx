@@ -70,7 +70,7 @@ function Field({ label, children }) {
 const inputCls = "w-full px-3 py-2 text-sm border border-[#dadce0] dark:border-[#5f6368] rounded-lg bg-white dark:bg-[#202124] text-[#202124] dark:text-[#e8eaed] focus:outline-none focus:ring-1 focus:ring-[#1a73e8] transition-colors";
 const textareaCls = `${inputCls} resize-none`;
 
-function SaveBar({ saving, saved, onSave, error }) {
+function SaveBar({ saving, saved, onSave, error, disabled }) {
   return (
     <div className="flex items-center justify-between pt-4 mt-4 border-t border-[#e8eaed] dark:border-[#3c4043]">
       {saved ? (
@@ -84,7 +84,7 @@ function SaveBar({ saving, saved, onSave, error }) {
         <span className="text-sm text-[#d93025]">{error}</span>
       ) : <span />}
       <button
-        disabled={saving}
+        disabled={saving || disabled}
         onClick={onSave}
         className="flex items-center gap-2 px-5 py-2 bg-[#1a73e8] text-white rounded-lg text-sm font-normal hover:bg-[#1967d2] disabled:opacity-50 transition-colors"
       >
@@ -165,12 +165,46 @@ function ProfileTab({ cfg, onSaved }) {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const [resumeUrl, setResumeUrl] = useState(cfg.resumeUrl ?? '');
+  const [resumeMode, setResumeMode] = useState('external');
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState('');
+  const fileInputRef = useRef(null);
+
+  const handleResumeUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadMsg('File size must be under 5MB');
+      return;
+    }
+    if (file.type !== 'application/pdf') {
+      setUploadMsg('Only PDF files are allowed');
+      return;
+    }
+    setUploadingResume(true);
+    setUploadMsg('Uploading...');
+    try {
+      const fd = new FormData();
+      fd.append('resume', file);
+      const { data } = await api.post('/config/resume-upload', fd);
+      setResumeUrl(data.resumeUrl);
+      clearConfigCache();
+      setUploadMsg('Resume uploaded successfully!');
+      setSaved(true);
+    } catch (err) {
+      setUploadMsg(err.response?.data?.error || 'Failed to upload resume');
+    } finally {
+      setUploadingResume(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setSaved(false); };
   const setEdu = (k, v) => { setForm(f => ({ ...f, education: { ...f.education, [k]: v } })); setSaved(false); };
   const setLink = (k, v) => { setLinks(l => ({ ...l, [k]: v })); setSaved(false); };
 
   const save = async () => {
+    if (saving || uploadingResume) return;
     setSaving(true); setSaved(false); setError('');
     try {
       await saveConfigBulk([
@@ -257,18 +291,58 @@ function ProfileTab({ cfg, onSaved }) {
 
       <div className="border-t border-[#e8eaed] dark:border-[#3c4043] pt-4">
         <p className="text-xs font-semibold text-[#5f6368] dark:text-[#9aa0a6] uppercase tracking-wide mb-3">Resume</p>
-        <Field label="Resume URL (Google Drive or any public PDF link)">
-          <input
-            className={inputCls}
-            value={resumeUrl}
-            onChange={e => { setResumeUrl(e.target.value); setSaved(false); }}
-            placeholder="https://drive.google.com/file/d/FILE_ID/view"
-          />
-        </Field>
-        <p className="text-xs text-[#9aa0a6] mt-1">Tip: use a Google Drive share link — set access to "Anyone with the link"</p>
+        <div className="flex gap-4 mb-4">
+          <label className="flex items-center gap-2 text-sm text-[#202124] dark:text-[#e8eaed] cursor-pointer">
+            <input type="radio" name="resumeMode" value="upload" checked={resumeMode === 'upload'} onChange={() => setResumeMode('upload')} />
+            Upload PDF
+          </label>
+          <label className="flex items-center gap-2 text-sm text-[#202124] dark:text-[#e8eaed] cursor-pointer">
+            <input type="radio" name="resumeMode" value="external" checked={resumeMode === 'external'} onChange={() => setResumeMode('external')} />
+            External URL
+          </label>
+        </div>
+
+        {resumeMode === 'upload' ? (
+          <div className="bg-[#f8f9fa] dark:bg-[#202124] p-4 rounded-xl border border-[#e8eaed] dark:border-[#3c4043]">
+            <input
+              type="file"
+              accept="application/pdf"
+              ref={fileInputRef}
+              onChange={handleResumeUpload}
+              disabled={uploadingResume}
+              className="block w-full text-sm text-[#5f6368] dark:text-[#9aa0a6]
+                         file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0
+                         file:text-sm file:font-semibold file:bg-[#e8f0fe] file:text-[#1a73e8]
+                         dark:file:bg-[#3c4043] dark:file:text-[#8ab4f8]
+                         hover:file:bg-[#d2e3fc] dark:hover:file:bg-[#5f6368] transition-colors"
+            />
+            {uploadMsg && (
+              <p className={`text-xs mt-3 ${uploadMsg.includes('success') ? 'text-[#137333] dark:text-[#81c995]' : uploadMsg === 'Uploading...' ? 'text-[#1a73e8] dark:text-[#8ab4f8]' : 'text-[#d93025] dark:text-[#f28b82]'}`}>
+                {uploadMsg}
+              </p>
+            )}
+            {resumeUrl && resumeUrl.includes('cloudinary') && !uploadingResume && (
+              <p className="text-xs text-[#5f6368] dark:text-[#9aa0a6] mt-2">
+                Active Resume: <a href={resumeUrl} target="_blank" rel="noreferrer" className="text-[#1a73e8] hover:underline">View Uploaded PDF</a>
+              </p>
+            )}
+          </div>
+        ) : (
+          <div>
+            <Field label="Resume URL (Google Drive or any public PDF link)">
+              <input
+                className={inputCls}
+                value={resumeUrl}
+                onChange={e => { setResumeUrl(e.target.value); setSaved(false); }}
+                placeholder="https://drive.google.com/file/d/FILE_ID/view"
+              />
+            </Field>
+            <p className="text-xs text-[#9aa0a6] mt-1">Tip: use a Google Drive share link — set access to "Anyone with the link"</p>
+          </div>
+        )}
       </div>
 
-      <SaveBar saving={saving} saved={saved} error={error} onSave={save} />
+      <SaveBar saving={saving} saved={saved} error={error} onSave={save} disabled={uploadingResume} />
     </div>
   );
 }

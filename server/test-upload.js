@@ -1,0 +1,169 @@
+process.env.JWT_SECRET = 'test-secret';
+process.env.CLOUDINARY_CLOUD_NAME = 'test';
+process.env.CLOUDINARY_API_KEY = 'test';
+process.env.CLOUDINARY_API_SECRET = 'test';
+
+const test = require('node:test');
+const assert = require('node:assert');
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const { Writable } = require('stream');
+
+// 1. Mocks
+const SiteConfig = require('./models/SiteConfig');
+let dbCallCount = 0;
+let dbShouldFail = false;
+let lastDbFilter = null;
+let lastDbUpdate = null;
+// Preserve original in case it's needed, mock findOneAndUpdate
+SiteConfig.findOneAndUpdate = async (filter, update) => {
+  if (dbShouldFail) throw new Error('DB Error');
+  dbCallCount++;
+  lastDbFilter = filter;
+  lastDbUpdate = update;
+  return { ok: true };
+};
+// Mock find to prevent GET /api/config from crashing if it's hit, though we only test POST
+SiteConfig.find = () => ({ lean: async () => [] }); 
+
+const { v2: cloudinary } = require('cloudinary');
+let cloudinaryCallCount = 0;
+let cloudinaryShouldFail = false;
+cloudinary.uploader.upload_stream = (opts, cb) => {
+  cloudinaryCallCount++;
+  if (cloudinaryShouldFail) {
+    return new Writable({
+      write(chunk, enc, next) {
+        cb(new Error('Cloudinary Error'));
+        next();
+      }
+    });
+  }
+  return new Writable({
+    write(chunk, enc, next) { next(); },
+    final(cbStream) {
+      cb(null, { secure_url: 'https://res.cloudinary.com/mock/resume.pdf' });
+      cbStream();
+    }
+  });
+};
+
+// 2. Setup Express app
+const app = express();
+app.use(express.json());
+// Important: mount the routes AFTER setting process.env so cloudinary gets configured in config.js
+const configRoutes = require('./routes/config');
+app.use('/api/config', configRoutes);
+
+// 3. Tests
+const PORT = 5555;
+const BASE_URL = `http://localhost:${PORT}/api/config/resume-upload`;
+const token = jwt.sign({ admin: true }, process.env.JWT_SECRET);
+const headers = { 'Authorization': `Bearer ${token}` };
+
+let server;
+
+test.before(() => {
+  return new Promise(resolve => {
+    server = app.listen(PORT, resolve);
+  });
+});
+
+test.after(() => {
+  server.close();
+});
+
+test.beforeEach(() => {
+  dbCallCount = 0;
+  dbShouldFail = false;
+  lastDbFilter = null;
+  lastDbUpdate = null;
+  cloudinaryCallCount = 0;
+  cloudinaryShouldFail = false;
+});
+
+test('1. Unauthenticated request is rejected', async () => {
+  const res = await fetch(BASE_URL, { method: 'POST' });
+  assert.strictEqual(res.status, 401);
+});
+
+test('2. Missing file is rejected', async () => {
+  const fd = new FormData();
+  // no file appended
+  const res = await fetch(BASE_URL, { method: 'POST', headers, body: fd });
+  assert.strictEqual(res.status, 400);
+  const data = await res.json();
+  assert.match(data.error, /PDF file is required/);
+});
+
+test('3. Non-PDF file is rejected', async () => {
+  const fd = new FormData();
+  fd.append('resume', new Blob(['fake image data'], { type: 'image/png' }), 'test.png');
+  const res = await fetch(BASE_URL, { method: 'POST', headers, body: fd });
+  assert.strictEqual(res.status, 400);
+  const data = await res.json();
+  assert.match(data.error, /Only PDF files are allowed/);
+});
+
+test('4. Invalid PDF signature is rejected', async () => {
+  const fd = new FormData();
+  // Valid mimetype, but invalid content bytes
+  fd.append('resume', new Blob(['Not a PDF file'], { type: 'application/pdf' }), 'test.pdf');
+  const res = await fetch(BASE_URL, { method: 'POST', headers, body: fd });
+  assert.strictEqual(res.status, 400);
+  const data = await res.json();
+  assert.match(data.error, /Invalid file content. Must be a PDF/);
+});
+
+test('5. File larger than 5 MB is rejected', async () => {
+  const fd = new FormData();
+  // 6MB buffer
+  const largeBuffer = Buffer.alloc(6 * 1024 * 1024, 'a');
+  fd.append('resume', new Blob([largeBuffer], { type: 'application/pdf' }), 'large.pdf');
+  const res = await fetch(BASE_URL, { method: 'POST', headers, body: fd });
+  assert.strictEqual(res.status, 400);
+  const data = await res.json();
+  assert.match(data.error, /File too large/); // Multer default error message
+});
+
+test('6. Valid PDF upload succeeds and saves', async () => {
+  const fd = new FormData();
+  // Needs to start with %PDF
+  const validBuffer = Buffer.from('%PDF-1.4 mock content');
+  fd.append('resume', new Blob([validBuffer], { type: 'application/pdf' }), 'resume.pdf');
+  const res = await fetch(BASE_URL, { method: 'POST', headers, body: fd });
+  assert.strictEqual(res.status, 200);
+  const data = await res.json();
+  assert.strictEqual(data.resumeUrl, 'https://res.cloudinary.com/mock/resume.pdf');
+  assert.strictEqual(cloudinaryCallCount, 1);
+  assert.strictEqual(dbCallCount, 1);
+  assert.deepStrictEqual(lastDbFilter, { key: 'resumeUrl' });
+  assert.strictEqual(lastDbUpdate.key, 'resumeUrl');
+  assert.strictEqual(lastDbUpdate.value, 'https://res.cloudinary.com/mock/resume.pdf');
+});
+
+test('7. Cloudinary failure returns a safe error and does not update setting', async () => {
+  cloudinaryShouldFail = true;
+  const fd = new FormData();
+  const validBuffer = Buffer.from('%PDF-1.4 mock content');
+  fd.append('resume', new Blob([validBuffer], { type: 'application/pdf' }), 'resume.pdf');
+  const res = await fetch(BASE_URL, { method: 'POST', headers, body: fd });
+  assert.strictEqual(res.status, 500);
+  const data = await res.json();
+  assert.match(data.error, /Cloudinary Error/);
+  assert.strictEqual(cloudinaryCallCount, 1);
+  assert.strictEqual(dbCallCount, 0); // Should not have hit the database
+});
+
+test('8. Database update failure is handled safely', async () => {
+  dbShouldFail = true;
+  const fd = new FormData();
+  const validBuffer = Buffer.from('%PDF-1.4 mock content');
+  fd.append('resume', new Blob([validBuffer], { type: 'application/pdf' }), 'resume.pdf');
+  const res = await fetch(BASE_URL, { method: 'POST', headers, body: fd });
+  assert.strictEqual(res.status, 500);
+  const data = await res.json();
+  assert.match(data.error, /DB Error/);
+  assert.strictEqual(cloudinaryCallCount, 1); // Cloudinary still uploaded
+  assert.strictEqual(dbCallCount, 0); // The mock throws before incrementing
+});

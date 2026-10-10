@@ -2533,18 +2533,26 @@ export default function Home() {
             </a>
           </div>
           <div className="flex flex-wrap gap-x-6 gap-y-2">
-            {[
-              { label: t.about, to: "/about" },
-              { label: t.contact, to: "/contact" },
-            ].map(({ label, to }) => (
-              <button
-                key={to}
-                onClick={() => navigate(to)}
-                className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors"
-              >
-                {label}
-              </button>
-            ))}
+            <button
+              onClick={() => navigate("/about")}
+              className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors"
+            >
+              {t.about}
+            </button>
+            <a
+              href={inlineResumeUrl(resumeUrl)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors"
+            >
+              Resume
+            </a>
+            <button
+              onClick={() => navigate("/contact")}
+              className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors"
+            >
+              {t.contact}
+            </button>
           </div>
         </div>
       </footer>
