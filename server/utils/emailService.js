@@ -65,7 +65,7 @@ async function sendViaSmtp({ replyTo, subject, html, attachments = [] }) {
   const transporter = nodemailer.createTransport({
     host: EMAIL_HOST || 'smtp.gmail.com',
     port: parseInt(EMAIL_PORT, 10) || 465,
-    secure: true,
+    secure: (parseInt(EMAIL_PORT, 10) || 465) === 465,
     auth: { user: EMAIL_USER, pass: EMAIL_PASS },
     connectionTimeout: 10_000,
     greetingTimeout: 10_000,
