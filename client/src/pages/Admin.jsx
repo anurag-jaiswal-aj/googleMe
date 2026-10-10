@@ -186,7 +186,7 @@ function ProfileTab({ cfg, onSaved }) {
     try {
       const fd = new FormData();
       fd.append('resume', file);
-      const { data } = await api.post('/config/resume-upload', fd);
+      const { data } = await api.post('/config/resume-upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       setResumeUrl(data.resumeUrl);
       clearConfigCache();
       setUploadMsg('Resume uploaded successfully!');
