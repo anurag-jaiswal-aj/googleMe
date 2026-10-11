@@ -134,6 +134,29 @@ Feedback.findByIdAndUpdate = (id, update) => {
   };
 };
 
+Feedback.findById = async (id) => {
+  const item = savedFeedbacks.find(f => f._id.toString() === id.toString());
+  return item ? { ...item } : null;
+};
+
+Feedback.findByIdAndDelete = async (id) => {
+  const idx = savedFeedbacks.findIndex(f => f._id.toString() === id.toString());
+  if (idx === -1) return null;
+  const [removed] = savedFeedbacks.splice(idx, 1);
+  return removed;
+};
+
+const { v2: cloudinary } = require('cloudinary');
+let cloudinaryDestroyCalls = [];
+let cloudinaryDestroyShouldFail = false;
+cloudinary.uploader.destroy = async (publicId, options) => {
+  cloudinaryDestroyCalls.push({ publicId, options });
+  if (cloudinaryDestroyShouldFail) {
+    throw new Error('Cloudinary destroy failure');
+  }
+  return { result: 'ok' };
+};
+
 const GalleryImage = require('./models/GalleryImage');
 GalleryImage.create = async (doc) => doc;
 GalleryImage.find = () => ({ sort: () => ({ select: async () => [] }) });
@@ -972,5 +995,186 @@ test('Inbox 11. Page context preserves readable paths, query strings, and safely
   assert.ok(
     dataDangerous.errors.some(e => e.msg && /Dangerous URL scheme/.test(e.msg)),
     'Error message must indicate dangerous URL scheme'
+  );
+});
+
+test('Inbox 12. Deletes feedback record securely with authentication and validation', async () => {
+  // 1. Unauthenticated deletion returns 401
+  const fakeId = new mongoose.Types.ObjectId().toString();
+  const resNoAuth = await fetch(`${BASE_URL}/feedback/${fakeId}`, { method: 'DELETE' });
+  assert.strictEqual(resNoAuth.status, 401, 'Unauthenticated DELETE must return 401');
+
+  // 2. Invalid ObjectId returns 400
+  const resInvalid = await fetch(`${BASE_URL}/feedback/not-a-valid-id`, {
+    method: 'DELETE',
+    headers: authHeaders,
+  });
+  assert.strictEqual(resInvalid.status, 400, 'Invalid ObjectId must return 400');
+  const invalidData = await resInvalid.json();
+  assert.strictEqual(invalidData.error, 'Invalid feedback ID');
+
+  // 3. Deleting nonexistent record returns 404
+  const resNotFound = await fetch(`${BASE_URL}/feedback/${fakeId}`, {
+    method: 'DELETE',
+    headers: authHeaders,
+  });
+  assert.strictEqual(resNotFound.status, 404, 'Deleting non-existent record must return 404');
+  const notFoundData = await resNotFound.json();
+  assert.strictEqual(notFoundData.error, 'Feedback record not found');
+
+  // 4. Authenticated admin deletes specific record; others remain untouched
+  savedFeedbacks = [];
+  const itemA = await Feedback.create({
+    type: 'bug',
+    message: 'Bug report A to delete',
+    name: 'Alice',
+  });
+  const itemB = await Feedback.create({
+    type: 'feature',
+    message: 'Feature request B to keep',
+    name: 'Bob',
+  });
+  assert.strictEqual(savedFeedbacks.length, 2);
+
+  const resDeleteA = await fetch(`${BASE_URL}/feedback/${itemA._id}`, {
+    method: 'DELETE',
+    headers: authHeaders,
+  });
+  assert.strictEqual(resDeleteA.status, 200, 'Deleting existing record must return 200');
+  const deleteData = await resDeleteA.json();
+  assert.strictEqual(deleteData.success, true);
+  assert.strictEqual(deleteData.id, itemA._id.toString());
+
+  // Confirm itemA was removed and itemB remains untouched
+  assert.strictEqual(savedFeedbacks.length, 1);
+  assert.strictEqual(savedFeedbacks[0]._id.toString(), itemB._id.toString());
+  assert.strictEqual(savedFeedbacks[0].message, 'Feature request B to keep');
+
+  // 5. Invalid request bodies or operators cannot change the deletion target
+  const resPayloadAttack = await fetch(`${BASE_URL}/feedback/${itemB._id}`, {
+    method: 'DELETE',
+    headers: { ...authHeaders, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id: fakeId,
+      _id: fakeId,
+      $or: [{ _id: { $exists: true } }],
+      filter: { message: 'fake' },
+    }),
+  });
+  assert.strictEqual(resPayloadAttack.status, 200);
+  assert.strictEqual(savedFeedbacks.length, 0);
+});
+
+test('Inbox 13. Handles Cloudinary attachment cleanup safely on feedback deletion', async () => {
+  savedFeedbacks = [];
+  cloudinaryDestroyCalls = [];
+  cloudinaryDestroyShouldFail = false;
+  process.env.CLOUDINARY_CLOUD_NAME = 'test-cloud';
+
+  // 1. Safe Cloudinary cleanup for feedback asset in gfolio/feedback/
+  const itemCloudinary = await Feedback.create({
+    type: 'bug',
+    message: 'Bug with attachment',
+    attachment: {
+      filename: 'sample.pdf',
+      contentType: 'application/pdf',
+      size: 1024,
+      url: 'https://res.cloudinary.com/test-cloud/raw/upload/v1/gfolio/feedback/safe123.pdf',
+      publicId: 'gfolio/feedback/safe123.pdf',
+      resourceType: 'raw',
+    },
+  });
+
+  const resCloud = await fetch(`${BASE_URL}/feedback/${itemCloudinary._id}`, {
+    method: 'DELETE',
+    headers: authHeaders,
+  });
+  assert.strictEqual(resCloud.status, 200);
+  const cloudData = await resCloud.json();
+  assert.strictEqual(cloudData.success, true);
+  assert.strictEqual(cloudData.attachmentCleanup.attempted, true);
+  assert.strictEqual(cloudData.attachmentCleanup.cleaned, true);
+  assert.strictEqual(cloudinaryDestroyCalls.length, 1);
+  assert.strictEqual(cloudinaryDestroyCalls[0].publicId, 'gfolio/feedback/safe123.pdf');
+  assert.strictEqual(cloudinaryDestroyCalls[0].options.resource_type, 'raw');
+
+  // 2. Skips Cloudinary cleanup if publicId is outside gfolio/feedback/ (e.g. resume or gallery)
+  cloudinaryDestroyCalls = [];
+  const itemUnsafeFolder = await Feedback.create({
+    type: 'bug',
+    message: 'Malicious attempt to delete resume',
+    attachment: {
+      filename: 'resume.pdf',
+      contentType: 'application/pdf',
+      url: 'https://res.cloudinary.com/test-cloud/raw/upload/v1/gfolio/resume/anurag_resume.pdf',
+      publicId: 'gfolio/resume/anurag_resume.pdf',
+      resourceType: 'raw',
+    },
+  });
+
+  const resUnsafe = await fetch(`${BASE_URL}/feedback/${itemUnsafeFolder._id}`, {
+    method: 'DELETE',
+    headers: authHeaders,
+  });
+  assert.strictEqual(resUnsafe.status, 200);
+  const unsafeData = await resUnsafe.json();
+  assert.strictEqual(unsafeData.success, true);
+  assert.strictEqual(unsafeData.attachmentCleanup.attempted, false);
+  assert.strictEqual(cloudinaryDestroyCalls.length, 0, 'Must NOT call Cloudinary for assets outside feedback folder');
+  assert.ok(
+    unsafeData.attachmentCleanup.note && /outside feedback folder/.test(unsafeData.attachmentCleanup.note),
+    'Note must state asset is outside feedback folder'
+  );
+
+  // 3. Handles Cloudinary destroy failure gracefully without failing DB record deletion
+  cloudinaryDestroyCalls = [];
+  cloudinaryDestroyShouldFail = true;
+  const itemFail = await Feedback.create({
+    type: 'suggestion',
+    message: 'Feedback with failing Cloudinary destroy',
+    attachment: {
+      publicId: 'gfolio/feedback/fail123.pdf',
+      resourceType: 'raw',
+    },
+  });
+
+  const resFail = await fetch(`${BASE_URL}/feedback/${itemFail._id}`, {
+    method: 'DELETE',
+    headers: authHeaders,
+  });
+  assert.strictEqual(resFail.status, 200, 'DB deletion succeeds even if Cloudinary fails');
+  const failData = await resFail.json();
+  assert.strictEqual(failData.success, true);
+  assert.strictEqual(failData.attachmentCleanup.attempted, true);
+  assert.strictEqual(failData.attachmentCleanup.cleaned, false);
+  assert.ok(
+    failData.attachmentCleanup.warning && /Failed to delete attachment from Cloudinary/.test(failData.attachmentCleanup.warning),
+    'Warning must explicitly disclose Cloudinary cleanup failure'
+  );
+
+  // 4. Handles legacy record lacking trusted publicId
+  cloudinaryDestroyCalls = [];
+  cloudinaryDestroyShouldFail = false;
+  const itemLegacy = await Feedback.create({
+    type: 'other',
+    message: 'Legacy feedback without publicId',
+    attachment: {
+      filename: 'old.pdf',
+      url: 'https://res.cloudinary.com/test-cloud/raw/upload/v1/gfolio/feedback/old.pdf',
+    },
+  });
+
+  const resLegacy = await fetch(`${BASE_URL}/feedback/${itemLegacy._id}`, {
+    method: 'DELETE',
+    headers: authHeaders,
+  });
+  assert.strictEqual(resLegacy.status, 200);
+  const legacyData = await resLegacy.json();
+  assert.strictEqual(legacyData.success, true);
+  assert.strictEqual(legacyData.attachmentCleanup.attempted, false);
+  assert.strictEqual(cloudinaryDestroyCalls.length, 0);
+  assert.ok(
+    legacyData.attachmentCleanup.note && /legacy record lacks trusted Cloudinary identifier/.test(legacyData.attachmentCleanup.note),
+    'Must document attachment cleanup limitation for legacy records'
   );
 });

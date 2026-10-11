@@ -22,10 +22,12 @@ const feedbackSchema = new mongoose.Schema(
       index: true,
     },
     attachment: {
-      filename:    { type: String, default: '' },
-      contentType: { type: String, default: '' },
-      size:        { type: Number, default: 0 },
-      url:         { type: String, default: '' },
+      filename:     { type: String, default: '' },
+      contentType:  { type: String, default: '' },
+      size:         { type: Number, default: 0 },
+      url:          { type: String, default: '' },
+      publicId:     { type: String, default: '' },
+      resourceType: { type: String, default: '' },
     },
   },
   { timestamps: true }

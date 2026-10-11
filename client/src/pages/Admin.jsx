@@ -5,7 +5,7 @@ import api, {
   fetchImages, uploadImage, updateImage, deleteImage,
   fetchConfig, saveConfig, saveConfigBulk,
   adminLogin, adminVerify,
-  fetchAdminFeedback, updateFeedbackStatus,
+  fetchAdminFeedback, updateFeedbackStatus, deleteFeedback,
 } from '../api';
 import { LINKS } from '../config/links';
 import { clearConfigCache } from '../hooks/useConfig';
@@ -1249,14 +1249,27 @@ function formatFeedbackPage(page) {
   return normalized || '/';
 }
 
-function FeedbackDetailModal({ item, onClose, onStatusChange, updating }) {
+function FeedbackDetailModal({ item, onClose, onStatusChange, updating, onDelete, deleting }) {
   if (!item) return null;
+
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const typeConfig = FEEDBACK_TYPES[item.type] || FEEDBACK_TYPES.other;
   const statusConfig = FEEDBACK_STATUSES[item.status] || FEEDBACK_STATUSES.new;
 
   const handleBackdrop = (e) => {
-    if (e.target === e.currentTarget) onClose();
+    if (e.target === e.currentTarget && !deleting) onClose();
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleting) return;
+    setDeleteError('');
+    try {
+      await onDelete(item._id);
+    } catch (err) {
+      setDeleteError(err?.response?.data?.error || err.message || 'Failed to delete feedback');
+    }
   };
 
   return (
@@ -1269,7 +1282,7 @@ function FeedbackDetailModal({ item, onClose, onStatusChange, updating }) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
         transition={{ duration: 0.18 }}
-        className="bg-white dark:bg-[#303134] rounded-2xl shadow-2xl border border-[#dadce0] dark:border-[#5f6368] w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+        className="relative bg-white dark:bg-[#303134] rounded-2xl shadow-2xl border border-[#dadce0] dark:border-[#5f6368] w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
       >
         {/* Top Google Bar */}
         <div className="h-1.5 w-full flex shrink-0">
@@ -1306,7 +1319,8 @@ function FeedbackDetailModal({ item, onClose, onStatusChange, updating }) {
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full text-[#5f6368] dark:text-[#9aa0a6] hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
+            disabled={deleting}
+            className="p-1.5 rounded-full text-[#5f6368] dark:text-[#9aa0a6] hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors disabled:opacity-40"
             aria-label="Close"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1329,7 +1343,7 @@ function FeedbackDetailModal({ item, onClose, onStatusChange, updating }) {
                 return (
                   <button
                     key={stKey}
-                    disabled={updating}
+                    disabled={updating || deleting}
                     onClick={() => onStatusChange(item._id, stKey)}
                     className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border
                       ${isActive
@@ -1430,14 +1444,94 @@ function FeedbackDetailModal({ item, onClose, onStatusChange, updating }) {
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 bg-[#f8f9fa] dark:bg-[#202124] border-t border-[#e8eaed] dark:border-[#3c4043] flex justify-end">
+        <div className="p-4 bg-[#f8f9fa] dark:bg-[#202124] border-t border-[#e8eaed] dark:border-[#3c4043] flex items-center justify-between gap-3">
+          <button
+            onClick={() => setConfirmDelete(true)}
+            disabled={updating || deleting}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#d93025] dark:text-[#f28b82] hover:bg-[#fce8e6] dark:hover:bg-[#3c1e1e] border border-transparent hover:border-[#f5c2be] dark:hover:border-[#602525] transition-colors disabled:opacity-40"
+            title="Delete this submission permanently"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            <span>Delete Feedback</span>
+          </button>
+
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-lg bg-[#dadce0] dark:bg-[#5f6368] hover:bg-[#bdc1c6] dark:hover:bg-[#4a4d51] text-[#202124] dark:text-[#e8eaed] text-xs font-medium transition-colors"
+            disabled={deleting}
+            className="px-5 py-2 rounded-lg bg-[#dadce0] dark:bg-[#5f6368] hover:bg-[#bdc1c6] dark:hover:bg-[#4a4d51] text-[#202124] dark:text-[#e8eaed] text-xs font-medium transition-colors disabled:opacity-40"
           >
             Close
           </button>
         </div>
+
+        {/* Confirmation Overlay */}
+        {confirmDelete && (
+          <div className="absolute inset-0 bg-white/95 dark:bg-[#303134]/95 backdrop-blur-sm z-20 flex flex-col justify-center items-center p-6 text-center">
+            <div className="w-12 h-12 rounded-full bg-[#fce8e6] dark:bg-[#3c1e1e] text-[#d93025] dark:text-[#f28b82] flex items-center justify-center mb-3">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </div>
+            <h4 className="text-base font-semibold text-[#202124] dark:text-[#e8eaed] mb-1">
+              Delete Feedback Permanently?
+            </h4>
+            <p className="text-xs text-[#5f6368] dark:text-[#9aa0a6] max-w-md mb-3">
+              This action is permanent and cannot be undone. The feedback record and its associated data will be deleted from the database.
+            </p>
+
+            {/* Identifying record detail */}
+            <div className="w-full max-w-md p-3 mb-4 rounded-lg bg-[#f8f9fa] dark:bg-[#202124] border border-[#dadce0] dark:border-[#5f6368] text-left text-xs space-y-1">
+              <div className="flex items-center justify-between text-[11px] text-[#5f6368] dark:text-[#9aa0a6]">
+                <span className="font-medium text-[#202124] dark:text-[#e8eaed]">
+                  {item.name || 'Anonymous'}{item.email ? ` (${item.email})` : ''}
+                </span>
+                <span>{formatFeedbackDate(item.createdAt)}</span>
+              </div>
+              <p className="text-xs text-[#202124] dark:text-[#e8eaed] line-clamp-2 italic">
+                "{item.message}"
+              </p>
+              {item.attachment && (item.attachment.filename || item.attachment.url) && (
+                <p className="text-[11px] text-[#5f6368] dark:text-[#9aa0a6]">
+                  Attachment: {item.attachment.filename || 'Attached file'}
+                </p>
+              )}
+            </div>
+
+            {deleteError && (
+              <div className="w-full max-w-md p-2.5 mb-3 rounded-lg bg-[#fce8e6] dark:bg-[#3c1e1e] border border-[#f5c2be] dark:border-[#602525] text-xs text-[#d93025] dark:text-[#f28b82]">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => { setConfirmDelete(false); setDeleteError(''); }}
+                disabled={deleting}
+                className="px-4 py-2 rounded-lg border border-[#dadce0] dark:border-[#5f6368] text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors disabled:opacity-40"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                className="px-4 py-2 rounded-lg bg-[#d93025] hover:bg-[#b3261e] text-white text-xs font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {deleting ? (
+                  <>
+                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Confirm Delete</span>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </motion.div>
     </div>
   );
@@ -1458,6 +1552,8 @@ function FeedbackInboxTab({ onCountsUpdate }) {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [inboxNotice, setInboxNotice] = useState(null);
 
   // Debounce search input
   useEffect(() => {
@@ -1523,6 +1619,49 @@ function FeedbackInboxTab({ onCountsUpdate }) {
     }
   };
 
+  const handleDelete = async (id) => {
+    setDeletingId(id);
+    try {
+      const res = await deleteFeedback(id);
+      setItems((prev) => prev.filter((it) => it._id !== id));
+      if (selectedItem && selectedItem._id === id) {
+        setSelectedItem(null);
+      }
+
+      if (res?.attachmentCleanup?.warning) {
+        setInboxNotice({
+          type: 'warning',
+          message: `Feedback deleted. Warning: ${res.attachmentCleanup.warning}`,
+        });
+      } else {
+        setInboxNotice({
+          type: 'success',
+          message: 'Feedback submission deleted permanently.',
+        });
+      }
+
+      // Refresh count breakdown
+      const countData = await fetchAdminFeedback({ limit: 1 }).catch(() => null);
+      if (countData?.counts) {
+        setCounts(countData.counts);
+        onCountsUpdate?.(countData.counts);
+      }
+
+      // If this was the last item on a page > 1, go back one page
+      if (items.length <= 1 && page > 1) {
+        setPage((p) => Math.max(1, p - 1));
+      } else {
+        loadFeedback();
+      }
+
+      return res;
+    } catch (err) {
+      throw err;
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -1542,6 +1681,25 @@ function FeedbackInboxTab({ onCountsUpdate }) {
           Refresh
         </button>
       </div>
+
+      {/* Notice Banner */}
+      {inboxNotice && (
+        <div
+          className={`p-3 rounded-lg text-xs flex items-center justify-between gap-2 border ${
+            inboxNotice.type === 'warning'
+              ? 'bg-[#fef7e0] dark:bg-[#3d3214] text-[#b06000] dark:text-[#fdd663] border-[#fce8b2] dark:border-[#604e18]'
+              : 'bg-[#e6f4ea] dark:bg-[#133320] text-[#137333] dark:text-[#81c995] border-[#ceead6] dark:border-[#1e5233]'
+          }`}
+        >
+          <span>{inboxNotice.message}</span>
+          <button
+            onClick={() => setInboxNotice(null)}
+            className="text-xs font-semibold hover:opacity-80 ml-2"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Summary Status Filters */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
@@ -1783,6 +1941,8 @@ function FeedbackInboxTab({ onCountsUpdate }) {
             onClose={() => setSelectedItem(null)}
             onStatusChange={handleStatusChange}
             updating={updatingId === selectedItem._id}
+            onDelete={handleDelete}
+            deleting={deletingId === selectedItem._id}
           />
         )}
       </AnimatePresence>

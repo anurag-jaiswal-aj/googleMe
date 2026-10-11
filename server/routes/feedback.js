@@ -247,6 +247,70 @@ router.patch('/:id/status', requireAuth, async (req, res, next) => {
   }
 });
 
+// ── DELETE /api/feedback/:id (Admin Only) ───────────────────
+router.delete('/:id', requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid feedback ID' });
+    }
+
+    const feedback = await Feedback.findById(id);
+    if (!feedback) {
+      return res.status(404).json({ error: 'Feedback record not found' });
+    }
+
+    // Explicitly delete only this record by its validated ObjectId
+    await Feedback.findByIdAndDelete(id);
+
+    const attachmentCleanup = {
+      attempted: false,
+      cleaned: false,
+    };
+
+    // Safe Cloudinary attachment cleanup: only delete assets strictly within gfolio/feedback/
+    if (feedback.attachment?.publicId) {
+      if (feedback.attachment.publicId.startsWith('gfolio/feedback/')) {
+        if (process.env.CLOUDINARY_CLOUD_NAME) {
+          attachmentCleanup.attempted = true;
+          try {
+            const destroyOpts = {};
+            if (feedback.attachment.resourceType) {
+              destroyOpts.resource_type = feedback.attachment.resourceType;
+            }
+            const result = await cloudinary.uploader.destroy(feedback.attachment.publicId, destroyOpts);
+            if (result && (result.result === 'ok' || result.result === 'not found')) {
+              attachmentCleanup.cleaned = true;
+            } else {
+              attachmentCleanup.cleaned = false;
+              attachmentCleanup.warning = `Cloudinary returned ${result?.result || 'unknown status'}`;
+            }
+          } catch (cloudErr) {
+            console.error('[feedback] Attachment Cloudinary deletion failed:', cloudErr.message);
+            attachmentCleanup.cleaned = false;
+            attachmentCleanup.warning = 'Failed to delete attachment from Cloudinary';
+          }
+        } else {
+          attachmentCleanup.note = 'Cloudinary not configured on server';
+        }
+      } else {
+        attachmentCleanup.note = 'Attachment cleanup skipped: public ID outside feedback folder';
+      }
+    } else if (feedback.attachment?.url) {
+      attachmentCleanup.note = 'Attachment cleanup skipped: legacy record lacks trusted Cloudinary identifier';
+    }
+
+    res.json({
+      success: true,
+      message: 'Feedback deleted successfully',
+      id,
+      attachmentCleanup,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ── POST /api/feedback (Public submission) ──────────────────
 router.post('/', handleUpload, validation, async (req, res, next) => {
   const errors = validationResult(req);
@@ -275,6 +339,8 @@ router.post('/', handleUpload, validation, async (req, res, next) => {
           const result = await uploadToCloudinary(file.buffer);
           if (result && result.secure_url) {
             attachmentData.url = result.secure_url;
+            attachmentData.publicId = result.public_id || '';
+            attachmentData.resourceType = result.resource_type || '';
           }
         } catch (uploadErr) {
           console.error('[feedback] Attachment Cloudinary upload failed:', uploadErr.message);

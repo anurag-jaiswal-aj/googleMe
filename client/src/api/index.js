@@ -127,3 +127,6 @@ export const fetchAdminFeedback = (params = {}) =>
 
 export const updateFeedbackStatus = (id, status) =>
   api.patch(`/feedback/${id}/status`, { status }).then((r) => r.data);
+
+export const deleteFeedback = (id) =>
+  api.delete(`/feedback/${id}`).then((r) => r.data);
