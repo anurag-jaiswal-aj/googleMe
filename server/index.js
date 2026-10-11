@@ -85,6 +85,7 @@ const submissionLimiter = rateLimit({
   message: { error: 'Too many submissions, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.method !== 'POST',
 });
 app.use('/api/contact', submissionLimiter);
 app.use('/api/feedback', submissionLimiter);

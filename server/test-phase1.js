@@ -6,6 +6,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 
 // 1. Mocks
 const SiteConfig = require('./models/SiteConfig');
@@ -29,8 +30,108 @@ Contact.create = async (doc) => {
 const Feedback = require('./models/Feedback');
 let savedFeedbacks = [];
 Feedback.create = async (doc) => {
-  savedFeedbacks.push(doc);
-  return { _id: 'mock-feedback-id', ...doc };
+  const newDoc = {
+    _id: new mongoose.Types.ObjectId().toString(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    status: 'new',
+    ...doc,
+  };
+  savedFeedbacks.push(newDoc);
+  return newDoc;
+};
+
+const matchFilter = (doc, query) => {
+  if (!query || Object.keys(query).length === 0) return true;
+
+  if (query.$and) {
+    return query.$and.every(cond => matchFilter(doc, cond));
+  }
+
+  if (query.$or) {
+    return query.$or.some(cond => {
+      for (const [k, v] of Object.entries(cond)) {
+        if (k === 'status') {
+          if (v === 'new' && (doc.status === 'new' || !doc.status)) return true;
+          if (v && v.$exists === false && (doc.status === undefined || doc.status === null)) return true;
+          if (v === null && (doc.status === null || doc.status === undefined)) return true;
+          if (doc.status === v) return true;
+          return false;
+        }
+        if (v instanceof RegExp) {
+          if (typeof doc[k] === 'string' && v.test(doc[k])) return true;
+          return false;
+        }
+        if (doc[k] === v) return true;
+      }
+      return false;
+    });
+  }
+
+  for (const [k, v] of Object.entries(query)) {
+    if (k === 'status') {
+      if (v === 'new' && (doc.status === 'new' || !doc.status)) continue;
+      if (doc.status !== v) return false;
+    } else if (k === 'type') {
+      if (doc.type !== v) return false;
+    } else if (v instanceof RegExp) {
+      if (!doc[k] || !v.test(doc[k])) return false;
+    } else if (doc[k] !== v) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+Feedback.countDocuments = async (query = {}) => {
+  return savedFeedbacks.filter(doc => matchFilter(doc, query)).length;
+};
+
+Feedback.find = (query = {}) => {
+  let matched = savedFeedbacks.filter(doc => matchFilter(doc, query));
+  let skipCount = 0;
+  let limitCount = matched.length;
+
+  const chain = {
+    sort: () => chain,
+    skip: (n) => {
+      skipCount = n;
+      return chain;
+    },
+    limit: (n) => {
+      limitCount = n;
+      return chain;
+    },
+    lean: async () => {
+      // Sort newest first
+      return matched
+        .slice()
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(skipCount, skipCount + limitCount);
+    },
+  };
+  return chain;
+};
+
+Feedback.findByIdAndUpdate = (id, update) => {
+  const item = savedFeedbacks.find(f => f._id.toString() === id.toString());
+  return {
+    lean: async () => {
+      if (!item) return null;
+      if (update.$set && update.$set.status) {
+        item.status = update.$set.status;
+      }
+      return { ...item };
+    },
+    then: (resolve) => {
+      if (!item) return resolve(null);
+      if (update.$set && update.$set.status) {
+        item.status = update.$set.status;
+      }
+      return resolve({ ...item });
+    },
+  };
 };
 
 const GalleryImage = require('./models/GalleryImage');
@@ -403,4 +504,473 @@ test('H4. getApiBaseUrl returns Render API URL on custom domain when VITE_API_UR
   } finally {
     global.window = originalWindow;
   }
+});
+
+// ── Protected Admin Feedback Inbox Tests ────────────────────────────────────
+
+test('Inbox 1. Rejects unauthenticated GET /api/feedback with 401', async () => {
+  const res = await fetch(`${BASE_URL}/feedback`);
+  assert.strictEqual(res.status, 401);
+  const data = await res.json();
+  assert.strictEqual(data.error, 'Authentication required');
+});
+
+test('Inbox 1. Rejects unauthenticated PATCH /api/feedback/:id/status with 401', async () => {
+  const dummyId = new mongoose.Types.ObjectId().toString();
+  const res = await fetch(`${BASE_URL}/feedback/${dummyId}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'resolved' }),
+  });
+  assert.strictEqual(res.status, 401);
+});
+
+test('Inbox 2. Returns empty feedback list and zero counts on empty collection', async () => {
+  const res = await fetch(`${BASE_URL}/feedback`, {
+    headers: { ...authHeaders },
+  });
+  assert.strictEqual(res.status, 200);
+  const data = await res.json();
+  assert.deepStrictEqual(data.feedback, []);
+  assert.strictEqual(data.total, 0);
+  assert.strictEqual(data.totalPages, 1);
+  assert.strictEqual(data.counts.all, 0);
+  assert.strictEqual(data.counts.new, 0);
+  assert.strictEqual(data.counts['in-progress'], 0);
+  assert.strictEqual(data.counts.resolved, 0);
+});
+
+test('Inbox 3. Authenticated inbox returns submissions with pagination and count breakdown', async () => {
+  // Populate mock feedback items
+  for (let i = 1; i <= 5; i++) {
+    savedFeedbacks.push({
+      _id: new mongoose.Types.ObjectId().toString(),
+      type: i % 2 === 0 ? 'bug' : 'feature',
+      message: `Test feedback message ${i}`,
+      name: `User ${i}`,
+      email: `user${i}@example.com`,
+      page: `/page-${i}`,
+      status: i === 1 ? 'resolved' : i === 2 ? 'in-progress' : 'new',
+      createdAt: new Date(Date.now() - (5 - i) * 1000),
+      updatedAt: new Date(),
+    });
+  }
+
+  // Request page 1 with limit 2
+  const resPage1 = await fetch(`${BASE_URL}/feedback?page=1&limit=2`, {
+    headers: { ...authHeaders },
+  });
+  assert.strictEqual(resPage1.status, 200);
+  const data1 = await resPage1.json();
+  assert.strictEqual(data1.feedback.length, 2);
+  assert.strictEqual(data1.total, 5);
+  assert.strictEqual(data1.totalPages, 3);
+  assert.strictEqual(data1.page, 1);
+  assert.strictEqual(data1.limit, 2);
+  assert.strictEqual(data1.counts.all, 5);
+  assert.strictEqual(data1.counts.new, 3);
+  assert.strictEqual(data1.counts['in-progress'], 1);
+  assert.strictEqual(data1.counts.resolved, 1);
+
+  // Newest items first check: first item is User 5
+  assert.strictEqual(data1.feedback[0].name, 'User 5');
+});
+
+test('Inbox 4. Filters submissions by category (type) and status', async () => {
+  savedFeedbacks = [
+    {
+      _id: new mongoose.Types.ObjectId().toString(),
+      type: 'bug',
+      status: 'new',
+      message: 'Bug report 1',
+      createdAt: new Date(),
+    },
+    {
+      _id: new mongoose.Types.ObjectId().toString(),
+      type: 'feature',
+      status: 'in-progress',
+      message: 'Feature request 1',
+      createdAt: new Date(),
+    },
+    {
+      _id: new mongoose.Types.ObjectId().toString(),
+      type: 'bug',
+      status: 'resolved',
+      message: 'Resolved bug',
+      createdAt: new Date(),
+    },
+    {
+      _id: new mongoose.Types.ObjectId().toString(),
+      type: 'suggestion',
+      // Legacy document missing status field
+      message: 'Legacy suggestion without status',
+      createdAt: new Date(),
+    },
+  ];
+
+  // Category filter: type=bug
+  const resBug = await fetch(`${BASE_URL}/feedback?type=bug`, {
+    headers: { ...authHeaders },
+  });
+  assert.strictEqual(resBug.status, 200);
+  const bugData = await resBug.json();
+  assert.strictEqual(bugData.feedback.length, 2);
+  assert.ok(bugData.feedback.every(f => f.type === 'bug'));
+
+  // Status filter: status=in-progress
+  const resProg = await fetch(`${BASE_URL}/feedback?status=in-progress`, {
+    headers: { ...authHeaders },
+  });
+  assert.strictEqual(resProg.status, 200);
+  const progData = await resProg.json();
+  assert.strictEqual(progData.feedback.length, 1);
+  assert.strictEqual(progData.feedback[0].type, 'feature');
+
+  // Backward compatibility: status=new includes legacy documents missing status
+  const resNew = await fetch(`${BASE_URL}/feedback?status=new`, {
+    headers: { ...authHeaders },
+  });
+  assert.strictEqual(resNew.status, 200);
+  const newData = await resNew.json();
+  assert.strictEqual(newData.feedback.length, 2); // Bug report 1 + Legacy suggestion
+  assert.ok(newData.feedback.some(f => f.message === 'Legacy suggestion without status'));
+});
+
+test('Inbox 5. Search matches message, sender, email, and page context safely without regex injection', async () => {
+  savedFeedbacks = [
+    {
+      _id: new mongoose.Types.ObjectId().toString(),
+      type: 'bug',
+      status: 'new',
+      message: 'Vite build breaks on [special] regex query',
+      name: 'Alice Cooper',
+      email: 'alice@example.com',
+      page: '/projects',
+      createdAt: new Date(),
+    },
+    {
+      _id: new mongoose.Types.ObjectId().toString(),
+      type: 'suggestion',
+      status: 'new',
+      message: 'Make the dark mode darker',
+      name: 'Bob Ross',
+      email: 'bob@paintings.com',
+      page: '/about',
+      createdAt: new Date(),
+    },
+  ];
+
+  // Search by special characters (regex meta-characters)
+  const resSpecial = await fetch(`${BASE_URL}/feedback?search=${encodeURIComponent('[special]')}`, {
+    headers: { ...authHeaders },
+  });
+  assert.strictEqual(resSpecial.status, 200);
+  const specialData = await resSpecial.json();
+  assert.strictEqual(specialData.feedback.length, 1);
+  assert.strictEqual(specialData.feedback[0].name, 'Alice Cooper');
+
+  // Search by page context
+  const resPage = await fetch(`${BASE_URL}/feedback?search=/about`, {
+    headers: { ...authHeaders },
+  });
+  assert.strictEqual(resPage.status, 200);
+  const pageData = await resPage.json();
+  assert.strictEqual(pageData.feedback.length, 1);
+  assert.strictEqual(pageData.feedback[0].name, 'Bob Ross');
+});
+
+test('Inbox 6. Validates and rejects invalid query filters with HTTP 400', async () => {
+  const resBadStatus = await fetch(`${BASE_URL}/feedback?status=invalid_status`, {
+    headers: { ...authHeaders },
+  });
+  assert.strictEqual(resBadStatus.status, 400);
+
+  const resBadType = await fetch(`${BASE_URL}/feedback?type=invalid_type`, {
+    headers: { ...authHeaders },
+  });
+  assert.strictEqual(resBadType.status, 400);
+});
+
+test('Inbox 7. Successfully updates feedback status (new -> in-progress -> resolved)', async () => {
+  const item = {
+    _id: new mongoose.Types.ObjectId().toString(),
+    type: 'bug',
+    status: 'new',
+    message: 'Navbar overlaps logo on mobile',
+    createdAt: new Date(),
+  };
+  savedFeedbacks = [item];
+
+  // Update to in-progress
+  const res1 = await fetch(`${BASE_URL}/feedback/${item._id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders },
+    body: JSON.stringify({ status: 'in-progress' }),
+  });
+  assert.strictEqual(res1.status, 200);
+  const data1 = await res1.json();
+  assert.strictEqual(data1.success, true);
+  assert.strictEqual(data1.feedback.status, 'in-progress');
+
+  // Update to resolved
+  const res2 = await fetch(`${BASE_URL}/feedback/${item._id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders },
+    body: JSON.stringify({ status: 'resolved' }),
+  });
+  assert.strictEqual(res2.status, 200);
+  const data2 = await res2.json();
+  assert.strictEqual(data2.feedback.status, 'resolved');
+});
+
+test('Inbox 8. Rejects invalid status values and invalid IDs on PATCH', async () => {
+  const validId = new mongoose.Types.ObjectId().toString();
+  savedFeedbacks = [{ _id: validId, status: 'new', type: 'bug', message: 'Test' }];
+
+  // Invalid status value
+  const resInvalidStatus = await fetch(`${BASE_URL}/feedback/${validId}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders },
+    body: JSON.stringify({ status: 'closed' }),
+  });
+  assert.strictEqual(resInvalidStatus.status, 400);
+
+  // Invalid MongoDB ObjectId
+  const resInvalidId = await fetch(`${BASE_URL}/feedback/123-not-an-id/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders },
+    body: JSON.stringify({ status: 'resolved' }),
+  });
+  assert.strictEqual(resInvalidId.status, 400);
+
+  // Non-existent ID
+  const nonExistentId = new mongoose.Types.ObjectId().toString();
+  const resNotFound = await fetch(`${BASE_URL}/feedback/${nonExistentId}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders },
+    body: JSON.stringify({ status: 'resolved' }),
+  });
+  assert.strictEqual(resNotFound.status, 404);
+});
+
+test('Inbox 9. Prevents clients from updating arbitrary database fields via status endpoint', async () => {
+  const id = new mongoose.Types.ObjectId().toString();
+  savedFeedbacks = [
+    {
+      _id: id,
+      type: 'bug',
+      status: 'new',
+      message: 'Original untouched message',
+      name: 'Original Author',
+      email: 'original@example.com',
+      createdAt: new Date(),
+    },
+  ];
+
+  const maliciousPayload = {
+    status: 'resolved',
+    message: 'MALICIOUS OVERWRITE',
+    name: 'Hacker',
+    email: 'hacker@malicious.com',
+    type: 'compliment',
+  };
+
+  const res = await fetch(`${BASE_URL}/feedback/${id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders },
+    body: JSON.stringify(maliciousPayload),
+  });
+  assert.strictEqual(res.status, 200);
+
+  // Verify only status changed in DB
+  const doc = savedFeedbacks[0];
+  assert.strictEqual(doc.status, 'resolved', 'Status must be updated');
+  assert.strictEqual(doc.message, 'Original untouched message', 'Message must NOT be overwritten');
+  assert.strictEqual(doc.name, 'Original Author', 'Name must NOT be overwritten');
+  assert.strictEqual(doc.email, 'original@example.com', 'Email must NOT be overwritten');
+  assert.strictEqual(doc.type, 'bug', 'Type must NOT be overwritten');
+});
+
+test('Inbox 10. Public feedback submission persists status: new, attachment info, and triggers email notification', async () => {
+  const fd = new FormData();
+  fd.append('type', 'bug');
+  fd.append('message', 'Form layout breaks on mobile viewport');
+  fd.append('name', 'Tester Jane');
+  fd.append('email', 'jane@example.com');
+  fd.append('page', '/contact');
+  fd.append('attachment', new Blob(['screenshot content'], { type: 'image/png' }), 'screenshot.png');
+  fd.append('_hp', '');
+
+  const res = await fetch(`${BASE_URL}/feedback`, { method: 'POST', body: fd });
+  assert.strictEqual(res.status, 201);
+  const data = await res.json();
+  assert.strictEqual(data.success, true);
+
+  // Check persisted feedback document
+  assert.strictEqual(savedFeedbacks.length, 1);
+  const created = savedFeedbacks[0];
+  assert.strictEqual(created.type, 'bug');
+  assert.strictEqual(created.status, 'new');
+  assert.strictEqual(created.name, 'Tester Jane');
+  assert.strictEqual(created.email, 'jane@example.com');
+  assert.strictEqual(created.page, '/contact');
+  assert.ok(created.attachment, 'Attachment info must be stored');
+  assert.strictEqual(created.attachment.filename, 'screenshot.png');
+  assert.strictEqual(created.attachment.contentType, 'image/png');
+
+  // Check email was sent
+  assert.strictEqual(sentEmails.length, 1);
+  assert.match(sentEmails[0].subject, /\[Portfolio Feedback\] Bug from Tester Jane/);
+  assert.ok(sentEmails[0].html.includes('<code>/contact</code>'), 'Email must contain readable /contact code');
+});
+
+// ── Inbox 11: Page Context Display & Sanitization Regression Tests ──────────
+test('Inbox 11. Page context preserves readable paths, query strings, and safely handles legacy entities', async () => {
+  // 1. Submit feedback with '/'
+  const fdRoot = new FormData();
+  fdRoot.append('type', 'suggestion');
+  fdRoot.append('message', 'Root page test');
+  fdRoot.append('page', '/');
+  fdRoot.append('_hp', '');
+  const resRoot = await fetch(`${BASE_URL}/feedback`, { method: 'POST', body: fdRoot });
+  assert.strictEqual(resRoot.status, 201);
+  assert.strictEqual(savedFeedbacks[0].page, '/', 'Root path "/" must remain "/"');
+
+  // 2. Submit feedback with '/projects'
+  const fdProjects = new FormData();
+  fdProjects.append('type', 'feature');
+  fdProjects.append('message', 'Projects page feature');
+  fdProjects.append('page', '/projects');
+  fdProjects.append('_hp', '');
+  const resProjects = await fetch(`${BASE_URL}/feedback`, { method: 'POST', body: fdProjects });
+  assert.strictEqual(resProjects.status, 201);
+  assert.strictEqual(savedFeedbacks[1].page, '/projects', '"/projects" must remain "/projects"');
+
+  // 3. Submit feedback with complex query strings & ordinary text
+  const fdQuery = new FormData();
+  fdQuery.append('type', 'bug');
+  fdQuery.append('message', 'Query string path test');
+  fdQuery.append('page', '/search?q=machine+learning&sort=desc&page=2');
+  fdQuery.append('_hp', '');
+  const resQuery = await fetch(`${BASE_URL}/feedback`, { method: 'POST', body: fdQuery });
+  assert.strictEqual(resQuery.status, 201);
+  assert.strictEqual(
+    savedFeedbacks[2].page,
+    '/search?q=machine+learning&sort=desc&page=2',
+    'Query strings and ordinary text must not be corrupted'
+  );
+
+  // 4. Legacy records with &#x2F;all and &#x2F; are normalized on GET /api/feedback
+  savedFeedbacks = [
+    {
+      _id: new mongoose.Types.ObjectId().toString(),
+      type: 'bug',
+      status: 'new',
+      message: 'Legacy bug 1',
+      page: '&#x2F;all',
+      createdAt: new Date(),
+    },
+    {
+      _id: new mongoose.Types.ObjectId().toString(),
+      type: 'suggestion',
+      status: 'new',
+      message: 'Legacy suggestion 2',
+      page: '&#x2F;',
+      createdAt: new Date(),
+    },
+    {
+      _id: new mongoose.Types.ObjectId().toString(),
+      type: 'feature',
+      status: 'new',
+      message: 'Modern clean path',
+      page: '/projects',
+      createdAt: new Date(),
+    },
+  ];
+
+  const resGet = await fetch(`${BASE_URL}/feedback`, { headers: { ...authHeaders } });
+  assert.strictEqual(resGet.status, 200);
+  const dataGet = await resGet.json();
+  const legacyAll = dataGet.feedback.find(f => f.message === 'Legacy bug 1');
+  const legacyRoot = dataGet.feedback.find(f => f.message === 'Legacy suggestion 2');
+  const cleanProjects = dataGet.feedback.find(f => f.message === 'Modern clean path');
+  assert.strictEqual(legacyAll.page, '/all', 'Legacy "&#x2F;all" must be normalized to "/all"');
+  assert.strictEqual(legacyRoot.page, '/', 'Legacy "&#x2F;" must be normalized to "/"');
+  assert.strictEqual(cleanProjects.page, '/projects', 'Clean "/projects" must remain "/projects"');
+
+  // 5. Verification that &#x3C;script&#x3E; and double-encoded entities cannot become executable HTML
+  savedFeedbacks = [
+    {
+      _id: new mongoose.Types.ObjectId().toString(),
+      type: 'bug',
+      status: 'new',
+      message: 'Testing entity safety &amp; untouched message',
+      name: 'Safe &amp; Untouched',
+      page: '&#x3C;script&#x3E;alert(1)&#x3C;&#x2F;script&#x3E;',
+      createdAt: new Date(),
+    },
+    {
+      _id: new mongoose.Types.ObjectId().toString(),
+      type: 'suggestion',
+      status: 'new',
+      message: 'Double-encoded entity test',
+      name: 'Double Tester',
+      page: '&amp;lt;script&amp;gt;',
+      createdAt: new Date(),
+    },
+  ];
+
+  const resEntityCheck = await fetch(`${BASE_URL}/feedback`, { headers: { ...authHeaders } });
+  assert.strictEqual(resEntityCheck.status, 200);
+  const dataEntityCheck = await resEntityCheck.json();
+  const entityItem = dataEntityCheck.feedback.find(f => f.message === 'Testing entity safety &amp; untouched message');
+  // &#x3C; and &#x3E; must NEVER be decoded into < or >
+  assert.strictEqual(
+    entityItem.page,
+    '&#x3C;script&#x3E;alert(1)&#x3C;/script&#x3E;',
+    '&#x3C; and &#x3E; entities must NOT be decoded into raw HTML brackets'
+  );
+  // Messages and names must NOT be touched by normalizePage
+  assert.strictEqual(entityItem.message, 'Testing entity safety &amp; untouched message', 'Message must not be normalized by normalizePage');
+  assert.strictEqual(entityItem.name, 'Safe &amp; Untouched', 'Name must not be normalized by normalizePage');
+
+  const doubleItem = dataEntityCheck.feedback.find(f => f.message === 'Double-encoded entity test');
+  assert.strictEqual(
+    doubleItem.page,
+    '&lt;script&gt;',
+    'Double-encoded &amp;lt; decodes to &lt; without becoming raw unescaped "<"'
+  );
+
+  // 6. Malicious HTML injection in page context is inert and escaped in email HTML
+  const fdMalicious = new FormData();
+  fdMalicious.append('type', 'bug');
+  fdMalicious.append('message', 'Testing HTML injection');
+  fdMalicious.append('page', '/<script>alert(1)</script>');
+  fdMalicious.append('_hp', '');
+  sentEmails = [];
+  const resMalicious = await fetch(`${BASE_URL}/feedback`, { method: 'POST', body: fdMalicious });
+  assert.strictEqual(resMalicious.status, 201);
+  assert.strictEqual(sentEmails.length, 1);
+  assert.ok(
+    sentEmails[0].html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'),
+    'Email HTML must escape HTML tags in page context'
+  );
+  assert.ok(
+    !sentEmails[0].html.includes('<script>alert(1)</script>'),
+    'Email HTML must NOT contain raw executable script tags'
+  );
+
+  // 6. Dangerous URL schemes (e.g. javascript:) are rejected by validation
+  const fdDangerous = new FormData();
+  fdDangerous.append('type', 'bug');
+  fdDangerous.append('message', 'Testing dangerous scheme');
+  fdDangerous.append('page', 'javascript:alert(document.cookie)');
+  fdDangerous.append('_hp', '');
+  const resDangerous = await fetch(`${BASE_URL}/feedback`, { method: 'POST', body: fdDangerous });
+  assert.strictEqual(resDangerous.status, 400, 'Dangerous URL schemes must be rejected with HTTP 400');
+  const dataDangerous = await resDangerous.json();
+  assert.ok(
+    dataDangerous.errors.some(e => e.msg && /Dangerous URL scheme/.test(e.msg)),
+    'Error message must indicate dangerous URL scheme'
+  );
 });

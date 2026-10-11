@@ -15,6 +15,18 @@ const feedbackSchema = new mongoose.Schema(
     name:  { type: String, maxlength: 100, default: '' },
     email: { type: String, maxlength: 200, default: '' },
     page:  { type: String, maxlength: 200, default: '' },
+    status: {
+      type: String,
+      enum: ['new', 'in-progress', 'resolved'],
+      default: 'new',
+      index: true,
+    },
+    attachment: {
+      filename:    { type: String, default: '' },
+      contentType: { type: String, default: '' },
+      size:        { type: Number, default: 0 },
+      url:         { type: String, default: '' },
+    },
   },
   { timestamps: true }
 );

@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import api, {
   fetchGithubRepos, saveGithubSelection,
   fetchImages, uploadImage, updateImage, deleteImage,
   fetchConfig, saveConfig, saveConfigBulk,
   adminLogin, adminVerify,
+  fetchAdminFeedback, updateFeedbackStatus,
 } from '../api';
 import { LINKS } from '../config/links';
 import { clearConfigCache } from '../hooks/useConfig';
@@ -1173,10 +1174,628 @@ function ContactTab({ cfg, onSaved }) {
 }
 
 /* ══════════════════════════════════════════════════════
+   FEEDBACK INBOX HELPERS & COMPONENTS
+══════════════════════════════════════════════════════ */
+const FEEDBACK_TYPES = {
+  bug:        { label: 'Bug',            color: '#EA4335', bg: '#fce8e6', textDark: '#f28b82' },
+  feature:    { label: 'Feature',        color: '#4285F4', bg: '#e8f0fe', textDark: '#8ab4f8' },
+  suggestion: { label: 'Suggestion',     color: '#34A853', bg: '#e6f4ea', textDark: '#81c995' },
+  typo:       { label: 'Typo / Content', color: '#FBBC05', bg: '#fef7e0', textDark: '#fdd663' },
+  compliment: { label: 'Compliment',     color: '#34A853', bg: '#e6f4ea', textDark: '#81c995' },
+  other:      { label: 'Other',          color: '#9aa0a6', bg: '#f1f3f4', textDark: '#bdc1c6' },
+};
+
+const FEEDBACK_STATUSES = {
+  new: {
+    id: 'new',
+    label: 'New',
+    badgeCls: 'bg-[#e8f0fe] text-[#1a73e8] border-[#c5d7f7] dark:bg-[#1a2744] dark:text-[#8ab4f8] dark:border-[#2a4080]',
+  },
+  'in-progress': {
+    id: 'in-progress',
+    label: 'In Progress',
+    badgeCls: 'bg-[#fef7e0] text-[#b06000] border-[#fce8b2] dark:bg-[#3d3214] dark:text-[#fdd663] dark:border-[#604e18]',
+  },
+  resolved: {
+    id: 'resolved',
+    label: 'Resolved',
+    badgeCls: 'bg-[#e6f4ea] text-[#137333] border-[#ceead6] dark:bg-[#133320] dark:text-[#81c995] dark:border-[#1e5233]',
+  },
+};
+
+function formatFeedbackFileSize(bytes) {
+  if (!bytes || isNaN(bytes)) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatFeedbackDate(isoStr) {
+  if (!isoStr) return '';
+  try {
+    const d = new Date(isoStr);
+    return d.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return isoStr;
+  }
+}
+
+function isSafeAttachmentUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function formatFeedbackPage(page) {
+  if (!page || typeof page !== 'string') return '/';
+  const trimmed = page.trim();
+  if (!trimmed) return '/';
+  const normalized = trimmed
+    .replace(/&#x2f;/gi, '/')
+    .replace(/&#47;/g, '/')
+    .replace(/&amp;/g, '&')
+    .replace(/&#x27;/g, "'")
+    .replace(/&quot;/g, '"');
+  return normalized || '/';
+}
+
+function FeedbackDetailModal({ item, onClose, onStatusChange, updating }) {
+  if (!item) return null;
+
+  const typeConfig = FEEDBACK_TYPES[item.type] || FEEDBACK_TYPES.other;
+  const statusConfig = FEEDBACK_STATUSES[item.status] || FEEDBACK_STATUSES.new;
+
+  const handleBackdrop = (e) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={handleBackdrop}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ duration: 0.18 }}
+        className="bg-white dark:bg-[#303134] rounded-2xl shadow-2xl border border-[#dadce0] dark:border-[#5f6368] w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+      >
+        {/* Top Google Bar */}
+        <div className="h-1.5 w-full flex shrink-0">
+          <div className="flex-1 bg-[#4285F4]" />
+          <div className="flex-1 bg-[#EA4335]" />
+          <div className="flex-1 bg-[#FBBC05]" />
+          <div className="flex-1 bg-[#34A853]" />
+        </div>
+
+        {/* Header */}
+        <div className="p-5 border-b border-[#e8eaed] dark:border-[#3c4043] flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap mb-1.5">
+              <span
+                className="px-2.5 py-0.5 rounded-full text-xs font-medium border"
+                style={{
+                  backgroundColor: typeConfig.bg,
+                  color: typeConfig.color,
+                  borderColor: `${typeConfig.color}40`,
+                }}
+              >
+                {typeConfig.label}
+              </span>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusConfig.badgeCls}`}>
+                {statusConfig.label}
+              </span>
+            </div>
+            <h3 className="text-base font-semibold text-[#202124] dark:text-[#e8eaed]">
+              Feedback Submission Details
+            </h3>
+            <p className="text-xs text-[#5f6368] dark:text-[#9aa0a6] mt-0.5">
+              Submitted on {formatFeedbackDate(item.createdAt)}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-full text-[#5f6368] dark:text-[#9aa0a6] hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
+            aria-label="Close"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="p-5 overflow-y-auto space-y-5 flex-1">
+          {/* Status Switcher Bar */}
+          <div className="bg-[#f8f9fa] dark:bg-[#202124] p-3.5 rounded-xl border border-[#dadce0] dark:border-[#5f6368] flex items-center justify-between flex-wrap gap-2">
+            <span className="text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6]">
+              Update Status:
+            </span>
+            <div className="flex items-center gap-1.5">
+              {['new', 'in-progress', 'resolved'].map((stKey) => {
+                const st = FEEDBACK_STATUSES[stKey];
+                const isActive = item.status === stKey;
+                return (
+                  <button
+                    key={stKey}
+                    disabled={updating}
+                    onClick={() => onStatusChange(item._id, stKey)}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border
+                      ${isActive
+                        ? `${st.badgeCls} shadow-sm ring-1 ring-current`
+                        : 'border-[#dadce0] dark:border-[#5f6368] text-[#5f6368] dark:text-[#9aa0a6] hover:bg-white dark:hover:bg-[#303134]'}`}
+                  >
+                    {isActive && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                    )}
+                    {st.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Sender & Context Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div className="p-3 rounded-lg bg-[#f8f9fa] dark:bg-[#202124] border border-[#dadce0] dark:border-[#3c4043]">
+              <span className="block font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">Sender</span>
+              <p className="font-semibold text-[#202124] dark:text-[#e8eaed]">
+                {item.name || <span className="italic text-[#9aa0a6] font-normal">Anonymous</span>}
+              </p>
+              {item.email ? (
+                <a
+                  href={`mailto:${item.email}`}
+                  className="text-[#1a73e8] dark:text-[#8ab4f8] hover:underline break-all mt-0.5 block"
+                >
+                  {item.email}
+                </a>
+              ) : (
+                <span className="italic text-[#9aa0a6] text-[11px]">No email provided</span>
+              )}
+            </div>
+
+            <div className="p-3 rounded-lg bg-[#f8f9fa] dark:bg-[#202124] border border-[#dadce0] dark:border-[#3c4043]">
+              <span className="block font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">Page Context</span>
+              <code className="px-2 py-1 rounded bg-white dark:bg-[#303134] text-[#202124] dark:text-[#e8eaed] font-mono text-[11px] border border-[#e8eaed] dark:border-[#5f6368] block w-fit max-w-full truncate">
+                {formatFeedbackPage(item.page)}
+              </code>
+            </div>
+          </div>
+
+          {/* Message Box */}
+          <div>
+            <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1.5">
+              Message Content
+            </label>
+            <div className="p-4 rounded-xl bg-[#f8f9fa] dark:bg-[#202124] border border-[#dadce0] dark:border-[#3c4043] text-sm text-[#202124] dark:text-[#e8eaed] whitespace-pre-wrap leading-relaxed select-text">
+              {item.message}
+            </div>
+          </div>
+
+          {/* Attachment Info (when available) */}
+          {item.attachment && (item.attachment.filename || item.attachment.url) && (
+            <div>
+              <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1.5">
+                Attachment
+              </label>
+              <div className="p-3.5 rounded-xl border border-[#dadce0] dark:border-[#5f6368] bg-[#f8f9fa] dark:bg-[#202124] flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-[#e8f0fe] dark:bg-[#1a2744] text-[#1a73e8] dark:text-[#8ab4f8] flex items-center justify-center shrink-0">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-[#202124] dark:text-[#e8eaed] truncate">
+                      {item.attachment.filename || 'Attached file'}
+                    </p>
+                    <p className="text-[11px] text-[#5f6368] dark:text-[#9aa0a6]">
+                      {item.attachment.size ? formatFeedbackFileSize(item.attachment.size) : ''}
+                      {item.attachment.contentType ? ` • ${item.attachment.contentType}` : ''}
+                    </p>
+                  </div>
+                </div>
+
+                {isSafeAttachmentUrl(item.attachment.url) ? (
+                  <a
+                    href={item.attachment.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1a73e8] hover:bg-[#1967d2] text-white text-xs font-normal transition-colors shrink-0"
+                  >
+                    <span>View / Download</span>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                ) : (
+                  <span className="text-[11px] text-[#5f6368] dark:text-[#9aa0a6] italic">
+                    Delivered via notification email
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Modal Footer */}
+        <div className="p-4 bg-[#f8f9fa] dark:bg-[#202124] border-t border-[#e8eaed] dark:border-[#3c4043] flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-5 py-2 rounded-lg bg-[#dadce0] dark:bg-[#5f6368] hover:bg-[#bdc1c6] dark:hover:bg-[#4a4d51] text-[#202124] dark:text-[#e8eaed] text-xs font-medium transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function FeedbackInboxTab({ onCountsUpdate }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit] = useState(15);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [counts, setCounts] = useState({ all: 0, new: 0, 'in-progress': 0, resolved: 0 });
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const loadFeedback = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const params = {
+        page,
+        limit,
+        status: statusFilter,
+        type: typeFilter,
+      };
+      if (debouncedSearch) params.search = debouncedSearch;
+
+      const data = await fetchAdminFeedback(params);
+      setItems(data.feedback || []);
+      setTotal(data.total || 0);
+      setTotalPages(data.totalPages || 1);
+      if (data.counts) {
+        setCounts(data.counts);
+        onCountsUpdate?.(data.counts);
+      }
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Failed to load feedback inbox.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFeedback();
+  }, [page, statusFilter, typeFilter, debouncedSearch]);
+
+  const handleStatusChange = async (id, newStatus) => {
+    setUpdatingId(id);
+    try {
+      const res = await updateFeedbackStatus(id, newStatus);
+      const updated = res.feedback;
+      setItems((prev) =>
+        prev.map((item) => (item._id === id ? { ...item, status: updated.status } : item))
+      );
+      if (selectedItem && selectedItem._id === id) {
+        setSelectedItem((prev) => ({ ...prev, status: updated.status }));
+      }
+      // Refresh count breakdown
+      const countData = await fetchAdminFeedback({ limit: 1 });
+      if (countData.counts) {
+        setCounts(countData.counts);
+        onCountsUpdate?.(countData.counts);
+      }
+    } catch (err) {
+      alert(err?.response?.data?.error || 'Failed to update status.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <SectionHeader
+          title="Feedback Inbox"
+          subtitle="Review bug reports, feature suggestions, and visitor feedback submitted from the portfolio."
+        />
+        <button
+          onClick={loadFeedback}
+          disabled={loading}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#5f6368] dark:text-[#9aa0a6] hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] rounded-lg border border-[#dadce0] dark:border-[#5f6368] transition-colors"
+          title="Refresh Inbox"
+        >
+          <svg className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Refresh
+        </button>
+      </div>
+
+      {/* Summary Status Filters */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        {[
+          { id: 'all',         label: 'All Submissions', count: counts.all },
+          { id: 'new',         label: 'New',             count: counts.new,         highlight: counts.new > 0 },
+          { id: 'in-progress', label: 'In Progress',     count: counts['in-progress'] },
+          { id: 'resolved',    label: 'Resolved',        count: counts.resolved },
+        ].map((st) => (
+          <button
+            key={st.id}
+            onClick={() => { setStatusFilter(st.id); setPage(1); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex items-center gap-2 border
+              ${statusFilter === st.id
+                ? 'bg-[#1a73e8] text-white border-[#1a73e8] shadow-sm'
+                : 'bg-white dark:bg-[#202124] text-[#5f6368] dark:text-[#9aa0a6] border-[#dadce0] dark:border-[#5f6368] hover:bg-[#f8f9fa] dark:hover:bg-[#2a2b2e]'}`}
+          >
+            <span>{st.label}</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-semibold
+                ${statusFilter === st.id
+                  ? 'bg-white/20 text-white'
+                  : st.highlight
+                    ? 'bg-[#1a73e8] text-white'
+                    : 'bg-[#f1f3f4] dark:bg-[#303134] text-[#5f6368] dark:text-[#9aa0a6]'}`}
+            >
+              {st.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Search & Category Filter Controls */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <div className="sm:col-span-2 relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by message, sender name, email, or page..."
+            className="w-full pl-9 pr-8 py-2 text-xs border border-[#dadce0] dark:border-[#5f6368] rounded-lg bg-white dark:bg-[#202124] text-[#202124] dark:text-[#e8eaed] focus:outline-none focus:ring-1 focus:ring-[#1a73e8] transition-colors"
+          />
+          <svg className="w-4 h-4 absolute left-2.5 top-2.5 text-[#9aa0a6]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-2 text-[#9aa0a6] hover:text-[#5f6368] dark:hover:text-[#e8eaed]"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        <div>
+          <select
+            value={typeFilter}
+            onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+            className="w-full px-3 py-2 text-xs border border-[#dadce0] dark:border-[#5f6368] rounded-lg bg-white dark:bg-[#202124] text-[#202124] dark:text-[#e8eaed] focus:outline-none focus:ring-1 focus:ring-[#1a73e8] transition-colors"
+          >
+            <option value="all">All Categories</option>
+            <option value="bug">Bug</option>
+            <option value="feature">Feature</option>
+            <option value="suggestion">Suggestion</option>
+            <option value="typo">Typo / Content</option>
+            <option value="compliment">Compliment</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Error state */}
+      {error && (
+        <div className="p-3.5 rounded-lg bg-[#fce8e6] dark:bg-[#3c1e1e] border border-[#f5c2be] dark:border-[#602525] text-xs text-[#d93025] dark:text-[#f28b82] flex items-center justify-between gap-2">
+          <span>{error}</span>
+          <button onClick={loadFeedback} className="font-semibold underline ml-2">Retry</button>
+        </div>
+      )}
+
+      {/* Submissions List */}
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-24 rounded-xl bg-[#f1f3f4] dark:bg-[#2d2e30] animate-pulse" />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="py-12 px-4 text-center rounded-xl border border-dashed border-[#dadce0] dark:border-[#5f6368] bg-[#f8f9fa] dark:bg-[#202124]">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[#e8f0fe] dark:bg-[#1a2744] flex items-center justify-center text-[#1a73e8] dark:text-[#8ab4f8]">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+            </svg>
+          </div>
+          <h3 className="text-sm font-semibold text-[#202124] dark:text-[#e8eaed] mb-1">
+            No feedback submissions found
+          </h3>
+          <p className="text-xs text-[#5f6368] dark:text-[#9aa0a6] max-w-sm mx-auto">
+            {searchQuery || statusFilter !== 'all' || typeFilter !== 'all'
+              ? 'Try adjusting your search criteria or clearing your filters.'
+              : 'Your inbox is clear! Submissions will appear here when users submit feedback.'}
+          </p>
+          {(searchQuery || statusFilter !== 'all' || typeFilter !== 'all') && (
+            <button
+              onClick={() => { setSearchQuery(''); setStatusFilter('all'); setTypeFilter('all'); setPage(1); }}
+              className="mt-3 text-xs text-[#1a73e8] dark:text-[#8ab4f8] hover:underline"
+            >
+              Clear all filters
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {items.map((item) => {
+            const typeConfig = FEEDBACK_TYPES[item.type] || FEEDBACK_TYPES.other;
+            const statusConfig = FEEDBACK_STATUSES[item.status] || FEEDBACK_STATUSES.new;
+            const isUpdating = updatingId === item._id;
+
+            return (
+              <div
+                key={item._id}
+                className="p-4 rounded-xl border border-[#dadce0] dark:border-[#5f6368] bg-white dark:bg-[#202124] hover:border-[#1a73e8]/50 dark:hover:border-[#8ab4f8]/50 transition-all shadow-sm space-y-3"
+              >
+                {/* Header row */}
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="px-2 py-0.5 rounded-full text-[11px] font-medium border"
+                      style={{
+                        backgroundColor: typeConfig.bg,
+                        color: typeConfig.color,
+                        borderColor: `${typeConfig.color}40`,
+                      }}
+                    >
+                      {typeConfig.label}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium border ${statusConfig.badgeCls}`}>
+                      {statusConfig.label}
+                    </span>
+                    {item.status === 'new' && (
+                      <span className="w-2 h-2 rounded-full bg-[#1a73e8]" title="Unresolved" />
+                    )}
+                  </div>
+                  <span className="text-[11px] text-[#5f6368] dark:text-[#9aa0a6]">
+                    {formatFeedbackDate(item.createdAt)}
+                  </span>
+                </div>
+
+                {/* Message snippet */}
+                <p className="text-sm text-[#202124] dark:text-[#e8eaed] line-clamp-2 leading-relaxed">
+                  {item.message}
+                </p>
+
+                {/* Metadata & Actions row */}
+                <div className="pt-2 border-t border-[#f1f3f4] dark:border-[#3c4043] flex items-center justify-between gap-3 flex-wrap text-xs">
+                  <div className="flex items-center gap-3 text-[#5f6368] dark:text-[#9aa0a6] flex-wrap">
+                    <span className="font-medium text-[#202124] dark:text-[#e8eaed]">
+                      {item.name || 'Anonymous'}
+                    </span>
+                    {item.email && (
+                      <span className="text-[11px] truncate max-w-[160px]" title={item.email}>
+                        {item.email}
+                      </span>
+                    )}
+                    {item.page && (
+                      <code className="text-[10px] px-1.5 py-0.5 rounded bg-[#f1f3f4] dark:bg-[#303134] text-[#5f6368] dark:text-[#9aa0a6] font-mono">
+                        {formatFeedbackPage(item.page)}
+                      </code>
+                    )}
+                    {item.attachment && (item.attachment.filename || item.attachment.url) && (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-[#1a73e8] dark:text-[#8ab4f8]">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                        {item.attachment.filename || 'Attachment'}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={item.status}
+                      disabled={isUpdating}
+                      onChange={(e) => handleStatusChange(item._id, e.target.value)}
+                      className="px-2 py-1 text-xs border border-[#dadce0] dark:border-[#5f6368] rounded-md bg-white dark:bg-[#303134] text-[#202124] dark:text-[#e8eaed] focus:outline-none focus:ring-1 focus:ring-[#1a73e8]"
+                    >
+                      <option value="new">New</option>
+                      <option value="in-progress">In Progress</option>
+                      <option value="resolved">Resolved</option>
+                    </select>
+
+                    <button
+                      onClick={() => setSelectedItem(item)}
+                      className="px-3 py-1 rounded-md bg-[#e8f0fe] dark:bg-[#1a2744] hover:bg-[#d2e3fc] dark:hover:bg-[#24355a] text-[#1a73e8] dark:text-[#8ab4f8] text-xs font-medium transition-colors"
+                    >
+                      View Details
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="pt-3 border-t border-[#e8eaed] dark:border-[#3c4043] flex items-center justify-between gap-3 text-xs text-[#5f6368] dark:text-[#9aa0a6]">
+          <span>
+            Showing {(page - 1) * limit + 1}–{Math.min(page * limit, total)} of {total} submissions
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              disabled={page <= 1 || loading}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="px-3 py-1 rounded-lg border border-[#dadce0] dark:border-[#5f6368] hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] disabled:opacity-40 transition-colors"
+            >
+              Previous
+            </button>
+            <span className="px-2 text-xs font-medium">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              disabled={page >= totalPages || loading}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="px-3 py-1 rounded-lg border border-[#dadce0] dark:border-[#5f6368] hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] disabled:opacity-40 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Submission Detail Modal */}
+      <AnimatePresence>
+        {selectedItem && (
+          <FeedbackDetailModal
+            item={selectedItem}
+            onClose={() => setSelectedItem(null)}
+            onStatusChange={handleStatusChange}
+            updating={updatingId === selectedItem._id}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
    MAIN ADMIN COMPONENT
 ══════════════════════════════════════════════════════ */
 const TABS = [
   { id: 'profile',   label: 'Profile' },
+  { id: 'inbox',     label: 'Feedback Inbox' },
   { id: 'panel',     label: 'Knowledge Panel' },
   { id: 'about',     label: 'About' },
   { id: 'projects',  label: 'Projects' },
@@ -1194,13 +1813,18 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState('profile');
   const [cfg, setCfg] = useState({});
   const [cfgLoading, setCfgLoading] = useState(false);
+  const [inboxCounts, setInboxCounts] = useState({ all: 0, new: 0, 'in-progress': 0, resolved: 0 });
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
     if (!token) return;
     // Verify token is still valid with the server
     adminVerify()
-      .then(() => { setIsAuthenticated(true); loadCfg(); })
+      .then(() => {
+        setIsAuthenticated(true);
+        loadCfg();
+        fetchAdminFeedback({ limit: 1 }).then(d => { if (d.counts) setInboxCounts(d.counts); }).catch(() => {});
+      })
       .catch(() => { localStorage.removeItem('adminToken'); });
   }, []);
 
@@ -1218,6 +1842,7 @@ export default function Admin() {
       localStorage.setItem('adminToken', token);
       setIsAuthenticated(true);
       loadCfg();
+      fetchAdminFeedback({ limit: 1 }).then(d => { if (d.counts) setInboxCounts(d.counts); }).catch(() => {});
     } catch (err) {
       setAuthError(err?.response?.data?.error || 'Invalid password');
     } finally {
@@ -1297,16 +1922,21 @@ export default function Admin() {
         </div>
       </div>
 
-      <div className="max-w-[780px] mx-auto px-4 sm:px-6 py-6 flex gap-6">
+      <div className="max-w-[860px] mx-auto px-4 sm:px-6 py-6 flex gap-6">
         {/* Sidebar tabs */}
-        <nav className="hidden sm:flex flex-col gap-0.5 w-40 shrink-0 pt-1">
+        <nav className="hidden sm:flex flex-col gap-0.5 w-44 shrink-0 pt-1">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)}
-              className={`text-left px-3 py-2 rounded-lg text-sm transition-colors
+              className={`text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between
                 ${activeTab === t.id
                   ? 'bg-[#e8f0fe] dark:bg-[#1a2744] text-[#1a73e8] font-medium'
                   : 'text-[#5f6368] dark:text-[#9aa0a6] hover:bg-[#f1f3f4] dark:hover:bg-[#2d2e30]'}`}>
-              {t.label}
+              <span>{t.label}</span>
+              {t.id === 'inbox' && inboxCounts?.new > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[11px] font-bold bg-[#1a73e8] text-white">
+                  {inboxCounts.new}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -1316,9 +1946,14 @@ export default function Admin() {
           <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
             {TABS.map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap
+                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap flex items-center gap-1.5
                   ${activeTab === t.id ? 'bg-[#1a73e8] text-white' : 'text-[#5f6368] dark:text-[#9aa0a6] border border-[#dadce0] dark:border-[#5f6368]'}`}>
-                {t.label}
+                <span>{t.label}</span>
+                {t.id === 'inbox' && inboxCounts?.new > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === t.id ? 'bg-white text-[#1a73e8]' : 'bg-[#1a73e8] text-white'}`}>
+                    {inboxCounts.new}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -1328,7 +1963,9 @@ export default function Admin() {
         <div className="flex-1 min-w-0">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}
             className="bg-white dark:bg-[#303134] rounded-xl shadow-sm border border-[#dadce0] dark:border-[#5f6368] p-5">
-            {cfgLoading ? (
+            {activeTab === 'inbox' ? (
+              <FeedbackInboxTab onCountsUpdate={setInboxCounts} />
+            ) : cfgLoading ? (
               <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-10 rounded-lg bg-[#f1f3f4] dark:bg-[#2d2e30] animate-pulse" />)}</div>
             ) : (
               <>

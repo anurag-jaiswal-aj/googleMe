@@ -21,9 +21,6 @@ export const getApiBaseUrl = () => {
 const api = axios.create({
   baseURL: getApiBaseUrl(),
   timeout: 20000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // Attach JWT token to every request if present
@@ -113,7 +110,6 @@ export const submitFeedback = async (data) => {
 
   const post = (timeout) => api.post('/feedback', fd, {
     timeout,
-    headers: { 'Content-Type': 'multipart/form-data' },
   }).then((r) => r.data);
 
   try {
@@ -124,3 +120,10 @@ export const submitFeedback = async (data) => {
     return await post(20000);
   }
 };
+
+// ── Admin Feedback Inbox ─────────────────────────────
+export const fetchAdminFeedback = (params = {}) =>
+  api.get('/feedback', { params }).then((r) => r.data);
+
+export const updateFeedbackStatus = (id, status) =>
+  api.patch(`/feedback/${id}/status`, { status }).then((r) => r.data);
