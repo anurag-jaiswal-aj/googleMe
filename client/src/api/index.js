@@ -1,24 +1,21 @@
 import axios from 'axios';
 
-const getApiBaseUrl = () => {
+export const getApiBaseUrl = () => {
   const configured = import.meta.env.VITE_API_URL;
 
-  if (configured) {
-    // Ignore accidental localhost config in deployed environments.
-    if (typeof window !== 'undefined') {
-      const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const pointsToLocalApi = /localhost|127\.0\.0\.1/.test(configured);
-      if (!isLocalHost && pointsToLocalApi) {
+  if (typeof window !== 'undefined') {
+    const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (!isLocalHost) {
+      // In any deployed environment (custom domain, Vercel preview, etc.),
+      // fall back to the live Render API if VITE_API_URL is missing or points to localhost.
+      if (!configured || /localhost|127\.0\.0\.1/.test(configured)) {
         return 'https://googleme.onrender.com/api';
       }
+      return configured;
     }
-    return configured;
   }
 
-  if (typeof window !== 'undefined' && window.location.hostname.endsWith('.vercel.app')) {
-    return 'https://googleme.onrender.com/api';
-  }
-  return '/api';
+  return configured || '/api';
 };
 
 const api = axios.create({
@@ -54,6 +51,7 @@ const buildContactFormData = (data) => {
   fd.append('email', data.email);
   fd.append('message', data.message);
   if (data.subject) fd.append('subject', data.subject);
+  if (data._hp !== undefined) fd.append('_hp', data._hp);
   (data.files || []).forEach(f => fd.append('attachments', f));
   return fd;
 };
@@ -111,6 +109,7 @@ export const submitFeedback = async (data) => {
   if (data.email)      fd.append('email', data.email);
   if (data.page)       fd.append('page', data.page);
   if (data.attachment) fd.append('attachment', data.attachment);
+  if (data._hp !== undefined) fd.append('_hp', data._hp);
 
   const post = (timeout) => api.post('/feedback', fd, {
     timeout,

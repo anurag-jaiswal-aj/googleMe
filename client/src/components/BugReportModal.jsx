@@ -36,7 +36,7 @@ const GOOGLE_BAR = (
  */
 export default function BugReportModal({ open, onClose, initial }) {
   const [form, setForm] = useState(
-    initial ?? { type: 'bug', message: '', name: '', email: '', attachment: null }
+    initial ?? { type: 'bug', message: '', name: '', email: '', attachment: null, _hp: '' }
   );
   const [sent,       setSent]       = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -45,7 +45,7 @@ export default function BugReportModal({ open, onClose, initial }) {
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const reset = () => {
-    setForm({ type: 'bug', message: '', name: '', email: '', attachment: null });
+    setForm({ type: 'bug', message: '', name: '', email: '', attachment: null, _hp: '' });
     setSent(false);
     setError('');
   };
@@ -62,6 +62,7 @@ export default function BugReportModal({ open, onClose, initial }) {
         name:       form.name,
         email:      form.email,
         attachment: form.attachment,
+        _hp:        form._hp,
         page:       typeof window !== 'undefined' ? window.location.pathname : '',
       });
       setSent(true);
@@ -131,6 +132,23 @@ export default function BugReportModal({ open, onClose, initial }) {
                         ${form.type === id ? 'border-current' : 'border-[#dadce0] dark:border-[#5f6368] text-[#5f6368] dark:text-[#9aa0a6] hover:bg-[#f1f3f4] dark:hover:bg-[#2d2e30]'}`}
                     >{label}</button>
                   ))}
+                </div>
+
+                {/* Honeypot field for bot spam prevention — hidden visually and from screen readers */}
+                <div
+                  style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0, overflow: 'hidden' }}
+                  aria-hidden="true"
+                >
+                  <label htmlFor="feedback_hp">Do not fill this field</label>
+                  <input
+                    type="text"
+                    id="feedback_hp"
+                    name="_hp"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={form._hp || ''}
+                    onChange={(e) => set('_hp', e.target.value)}
+                  />
                 </div>
 
                 {/* Message */}

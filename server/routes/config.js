@@ -52,20 +52,30 @@ router.get('/', async (req, res) => {
 // POST /api/config — admin only
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { key, value, updates } = req.body;
-    if (updates && Array.isArray(updates)) {
+    const { key, value, updates } = req.body || {};
+    if (updates !== undefined) {
+      if (!Array.isArray(updates) || updates.length === 0) {
+        return res.status(400).json({ error: 'updates must be a non-empty array' });
+      }
+      for (const item of updates) {
+        if (!item || typeof item.key !== 'string' || !item.key.trim()) {
+          return res.status(400).json({ error: 'Each update item must contain a non-empty string key' });
+        }
+      }
       await Promise.all(
         updates.map(({ key: k, value: v }) =>
-          SiteConfig.findOneAndUpdate({ key: k }, { key: k, value: v }, { upsert: true, new: true })
+          SiteConfig.findOneAndUpdate({ key: k.trim() }, { key: k.trim(), value: v }, { upsert: true, new: true })
         )
       );
       invalidateCache();
       return res.json({ ok: true });
     }
-    if (!key) return res.status(400).json({ error: 'key is required' });
+    if (!key || typeof key !== 'string' || !key.trim()) {
+      return res.status(400).json({ error: 'key is required' });
+    }
     const doc = await SiteConfig.findOneAndUpdate(
-      { key },
-      { key, value },
+      { key: key.trim() },
+      { key: key.trim(), value },
       { upsert: true, new: true }
     );
     invalidateCache();

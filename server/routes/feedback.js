@@ -8,12 +8,18 @@ const { sendEmail } = require('../utils/emailService');
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  fileFilter: (req, file, cb) => {
+    if (/\.(exe|bat|cmd|sh|php|pl|cgi|vbs|js|jar|py|msi|dll|scr)$/i.test(file.originalname || '')) {
+      return cb(new Error('File type not allowed for security reasons.'));
+    }
+    cb(null, true);
+  },
 });
 
 const handleUpload = (req, res, next) => {
   upload.single('attachment')(req, res, (err) => {
     if (err instanceof multer.MulterError) return res.status(400).json({ error: err.message });
-    if (err) return next(err);
+    if (err) return res.status(400).json({ error: err.message });
     next();
   });
 };
@@ -27,6 +33,7 @@ const validation = [
   body('name').optional().trim().isLength({ max: 100 }).escape(),
   body('email').optional().trim().isEmail().withMessage('Invalid email').normalizeEmail(),
   body('page').optional().trim().isLength({ max: 200 }).escape(),
+  body('_hp').optional().trim(),
 ];
 
 const buildHtml = ({ type, message, name, email, page, hasAttachment }) => `
@@ -48,6 +55,11 @@ const buildHtml = ({ type, message, name, email, page, hasAttachment }) => `
 router.post('/', handleUpload, validation, async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+  // Bot honeypot: silently discard automated spam
+  if (req.body._hp) {
+    return res.status(201).json({ success: true, message: 'Feedback received. Thank you!' });
+  }
 
   const { type, message, name = '', email = '', page = '' } = req.body;
   const file = req.file || null;

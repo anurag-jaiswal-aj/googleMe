@@ -24,6 +24,17 @@ const upload = multer({
   },
 });
 
+const handleImageUpload = (req, res, next) => {
+  upload.single('image')(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ error: err.message });
+    } else if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+};
+
 // Helper: stream buffer → Cloudinary, returns { secure_url, public_id }
 function uploadToCloudinary(buffer, options = {}) {
   return new Promise((resolve, reject) => {
@@ -46,7 +57,7 @@ router.get('/', async (req, res) => {
 });
 
 // ── POST upload — admin only ─────────────────────────────────────────────────
-router.post('/', requireAuth, upload.single('image'), async (req, res) => {
+router.post('/', requireAuth, handleImageUpload, async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Image file is required' });
     const { title, category, description, link, order } = req.body;

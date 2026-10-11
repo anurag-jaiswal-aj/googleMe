@@ -31,9 +31,19 @@ app.set('trust proxy', 1);
 app.use(helmet());
 
 // CORS
-const allowedOrigins = process.env.ALLOWED_ORIGINS
+const defaultOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://anuragjaiswal.me',
+  'https://www.anuragjaiswal.me',
+];
+
+const envOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : ['http://localhost:3000', 'http://localhost:5173'];
+  : [];
+
+const allowedOrigins = Array.from(new Set([...defaultOrigins, ...envOrigins]));
+const vercelPreviewRegex = /^https:\/\/(?:googleme-aj|googleme|google-me|gfolio)(?:-[a-z0-9-]+)?\.vercel\.app$/;
 
 app.use(
   cors({
@@ -42,9 +52,10 @@ app.use(
       if (!origin) return callback(null, true);
       // Exact match
       if (allowedOrigins.includes(origin)) return callback(null, true);
-      // Allow any *.vercel.app preview URL automatically
-      if (/^https:\/\/[^.]+\.vercel\.app$/.test(origin)) return callback(null, true);
-      callback(new Error('Not allowed by CORS'));
+      // Allow project-specific Vercel preview URLs
+      if (vercelPreviewRegex.test(origin)) return callback(null, true);
+      // Disallow origin cleanly without triggering 500 error handler
+      callback(null, false);
     },
     credentials: true,
   })
@@ -66,6 +77,17 @@ const adminLimiter = rateLimit({
   skipSuccessfulRequests: true,
 });
 app.use('/api/admin/login', adminLimiter);
+
+// Dedicated rate limit for contact and feedback submissions to prevent spam & quota abuse
+const submissionLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 10 : 100,
+  message: { error: 'Too many submissions, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/contact', submissionLimiter);
+app.use('/api/feedback', submissionLimiter);
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));

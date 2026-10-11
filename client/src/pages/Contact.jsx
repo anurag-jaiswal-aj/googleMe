@@ -32,7 +32,7 @@ const fileIconColor = (type) => {
 function ContactForm() {
   const cfg = useConfig();
   const emailAddr = cfg.socialLinks?.email ?? LINKS.email;
-  const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
+  const [form, setForm] = useState({ name: '', email: '', subject: '', message: '', _hp: '' });
   const [files, setFiles] = useState([]);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -86,7 +86,7 @@ function ContactForm() {
     try {
       await submitContact({ ...form, files });
       setSent(true);
-      setForm({ name: '', email: '', subject: '', message: '' });
+      setForm({ name: '', email: '', subject: '', message: '', _hp: '' });
       setFiles([]);
       toast.success("Message sent! I'll get back to you soon.");
     } catch (err) {
@@ -187,6 +187,22 @@ function ContactForm() {
           </motion.div>
         ) : (
           <form onSubmit={handleSubmit} noValidate>
+            {/* Honeypot field for bot spam prevention — hidden visually and from screen readers */}
+            <div
+              style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0, overflow: 'hidden' }}
+              aria-hidden="true"
+            >
+              <label htmlFor="contact_hp">Do not fill this field</label>
+              <input
+                type="text"
+                id="contact_hp"
+                name="_hp"
+                tabIndex={-1}
+                autoComplete="off"
+                value={form._hp}
+                onChange={handleChange}
+              />
+            </div>
             {/* Header strip */}
             <div className="px-3 sm:px-6 pt-2 sm:pt-3 pb-1 sm:pb-2 border-b border-[#f1f3f4] dark:border-[#3c4043]">
               <p className="text-sm text-[#5f6368] dark:text-[#9aa0a6]">
