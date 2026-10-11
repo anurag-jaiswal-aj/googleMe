@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
+import SEO from '../components/SEO';
+import { LINKS } from '../config/links';
 
 const LOGO = [
   { char: 'A', color: '#4285F4' },
@@ -12,68 +13,140 @@ const LOGO = [
   { char: 'g', color: '#EA4335' },
 ];
 
+
+const D4 = [
+  '!@#$      !@#$',
+  '%^&*      %^&*',
+  '!@#$      !@#$',
+  '%^&*      %^&*',
+  '!@#$%^&*!@#$%^',
+  '&*!@#$%^&*!@#$',
+  '          !@#$',
+  '          %^&*',
+  '          !@#$',
+  '          %^&*',
+];
+
+const D0 = [
+  '  !@#$%^&*!@  ',
+  '%^&*!@#$%^&*!@',
+  '!@#$      !@#$',
+  '%^&*      %^&*',
+  '!@#$      !@#$',
+  '%^&*      %^&*',
+  '!@#$      !@#$',
+  '%^&*      %^&*',
+  '%^&*!@#$%^&*!@',
+  '  !@#$%^&*!@  ',
+];
+
 export default function NotFound() {
   const { pathname } = useLocation();
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#202124] flex flex-col">
-      {/* Mini header */}
-      <header className="flex items-center justify-between px-3 sm:px-6 py-2 sm:py-3 border-b border-[#e8eaed] dark:border-[#3c4043]">
-        <Link to="/" className="text-2xl font-bold">
-          {LOGO.map(({ char, color }, i) => <span key={i} style={{ color }}>{char}</span>)}
+    <div className="min-h-screen bg-white dark:bg-[#202124] flex flex-col text-[#202124] dark:text-[#e8eaed] relative overflow-x-hidden">
+      <SEO
+        title="Page not found"
+        description="The requested URL was not found on this server."
+        path={pathname}
+        noIndex={true}
+      />
+
+      {/* Decorative Full-Screen Typographic 404 Background */}
+      <div
+        className="fixed inset-0 pointer-events-none select-none flex items-center justify-center overflow-hidden z-0"
+        aria-hidden="true"
+      >
+        <div className="w-full max-w-[96vw] flex items-center justify-between sm:justify-around px-2 sm:px-6 -translate-y-4 sm:-translate-y-8 text-[#202124]/[0.08] dark:text-[#e8eaed]/[0.09] transition-colors">
+          <pre className="font-mono font-bold text-[3.2vw] sm:text-[3.0vw] md:text-[2.5vw] lg:text-[2.1vw] xl:text-[1.8vw] leading-[1.08] tracking-tight select-none">
+            {D4.join('\n')}
+          </pre>
+          <pre className="font-mono font-bold text-[3.2vw] sm:text-[3.0vw] md:text-[2.5vw] lg:text-[2.1vw] xl:text-[1.8vw] leading-[1.08] tracking-tight select-none">
+            {D0.join('\n')}
+          </pre>
+          <pre className="font-mono font-bold text-[3.2vw] sm:text-[3.0vw] md:text-[2.5vw] lg:text-[2.1vw] xl:text-[1.8vw] leading-[1.08] tracking-tight select-none">
+            {D4.join('\n')}
+          </pre>
+        </div>
+      </div>
+
+      {/* Header matching portfolio standards */}
+      <header className="relative z-10 flex items-center justify-between px-4 sm:px-8 py-3 border-b border-[#e8eaed] dark:border-[#3c4043] bg-white/90 dark:bg-[#202124]/90 backdrop-blur-sm">
+        <Link
+          to="/"
+          className="select-none text-2xl sm:text-[28px] font-bold tracking-tight leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a73e8] dark:focus-visible:ring-[#8ab4f8] rounded"
+          aria-label="Anurag Portfolio Home"
+        >
+          {LOGO.map(({ char, color }, i) => (
+            <span key={i} style={{ color }}>{char}</span>
+          ))}
         </Link>
         <ThemeToggle />
       </header>
 
-      {/* Content */}
-      <main className="flex-1 flex items-start justify-center px-4 sm:px-8 md:px-16 pt-12 sm:pt-16">
+      {/* Main Content Area */}
+      <main className="relative z-10 flex-1 flex items-center justify-center px-4 sm:px-8 md:px-16 py-12">
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="max-w-[680px] w-full"
+          transition={{ duration: 0.3 }}
+          className="text-center flex flex-col items-center"
         >
-          {/* Stats line */}
-          <p className="text-sm text-[#133780] dark:text-[#bdc1c6] mb-4">
-            Your search for <span className="italic">{pathname}</span> did not match any documents.
-          </p>
-          <div className="h-px bg-[#e8eaed] dark:bg-[#3c4043] mb-6" />
+          {/* Heading */}
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-medium text-[#202124] dark:text-[#e8eaed] tracking-tight mb-6">
+            Page not found
+          </h1>
 
-          {/* Google-style "no results" copy */}
-          <p className="text-[#202124] dark:text-[#e8eaed] text-base mb-1 font-medium">Suggestions:</p>
-          <ul className="list-disc list-inside text-sm text-[#133780] dark:text-[#bdc1c6] space-y-1 mb-8">
-            <li>Make sure all words are spelled correctly.</li>
-            <li>Try different keywords.</li>
-            <li>Try more general keywords.</li>
-            <li>Try fewer keywords.</li>
-          </ul>
-
-          {/* Quick nav links */}
-          <div className="border-t border-[#e8eaed] dark:border-[#3c4043] pt-6">
-            <p className="text-sm text-[#5f6368] dark:text-[#9aa0a6] mb-3">You may also be interested in:</p>
-            <div className="flex flex-wrap gap-3">
-              {[
-                { label: '← Back to Home', to: '/' },
-                { label: 'About Me',        to: '/about' },
-                { label: 'Projects',        to: '/projects' },
-                { label: 'Contact',         to: '/contact' },
-              ].map(({ label, to }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  className="text-sm text-[#1a73e8] dark:text-[#8ab4f8] hover:underline"
-                >
-                  {label}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Error code */}
-          <p className="mt-10 text-7xl font-bold text-[#e8eaed] dark:text-[#3c4043] select-none">404</p>
+          {/* Primary Action Button */}
+          <Link
+            to="/"
+            className="px-6 py-2.5 rounded-full text-sm font-medium bg-[#1a73e8] hover:bg-[#1557b0] text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#1a73e8] dark:focus-visible:ring-offset-[#202124]"
+          >
+            Return to Home
+          </Link>
         </motion.div>
       </main>
+
+      {/* Footer matching standard portfolio footer */}
+      <footer className="relative z-10 mt-auto border-t border-[#e8eaed] dark:border-[#3c4043] bg-[#f2f2f2] dark:bg-[#171717] text-sm text-[#70757a] dark:text-[#9aa0a6]">
+        <div className="px-6 py-2.5 border-b border-[#e8eaed] dark:border-[#3c4043]">
+          Earth
+        </div>
+        <div className="px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <Link to="/" className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[#1a73e8] rounded">
+              Home
+            </Link>
+            <Link to="/about" className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[#1a73e8] rounded">
+              About
+            </Link>
+            <Link to="/projects" className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[#1a73e8] rounded">
+              Projects
+            </Link>
+            <Link to="/contact" className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[#1a73e8] rounded">
+              Contact
+            </Link>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <a
+              href={LINKS.github}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[#1a73e8] rounded"
+            >
+              GitHub
+            </a>
+            <a
+              href={LINKS.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[#1a73e8] rounded"
+            >
+              LinkedIn
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
-
