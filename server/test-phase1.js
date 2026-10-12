@@ -158,7 +158,20 @@ cloudinary.uploader.destroy = async (publicId, options) => {
 };
 
 const GalleryImage = require('./models/GalleryImage');
-GalleryImage.create = async (doc) => doc;
+let galleryImageCreateShouldFail = false;
+let galleryImageUpdateShouldFail = false;
+GalleryImage.create = async (doc) => {
+  if (galleryImageCreateShouldFail) {
+    throw new Error('Database connection timed out: mongodb://admin:s3cr3t_pass@atlas-db.internal:27017/prod');
+  }
+  return doc;
+};
+GalleryImage.findByIdAndUpdate = async (id, update, options) => {
+  if (galleryImageUpdateShouldFail) {
+    throw new Error('MongoNetworkTimeoutError: connection timed out to shard-01.mongodb.net:27017');
+  }
+  return { _id: id, ...update };
+};
 GalleryImage.find = () => ({ sort: () => ({ select: async () => [] }) });
 
 // Mock emailService to inspect generated HTML without sending real emails
@@ -235,6 +248,9 @@ test.beforeEach(() => {
   savedContacts = [];
   savedFeedbacks = [];
   sentEmails = [];
+  galleryImageCreateShouldFail = false;
+  galleryImageUpdateShouldFail = false;
+  delete process.env.CLOUDINARY_CLOUD_NAME;
 });
 
 // ── H1: Admin Login Validation & Error Handling ──────────────────────────────
@@ -821,7 +837,11 @@ test('Inbox 10. Public feedback submission persists status: new, attachment info
   fd.append('name', 'Tester Jane');
   fd.append('email', 'jane@example.com');
   fd.append('page', '/contact');
-  fd.append('attachment', new Blob(['screenshot content'], { type: 'image/png' }), 'screenshot.png');
+  const validPngBuffer = Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]),
+    Buffer.from('screenshot content'),
+  ]);
+  fd.append('attachment', new Blob([validPngBuffer], { type: 'image/png' }), 'screenshot.png');
   fd.append('_hp', '');
 
   const res = await fetch(`${BASE_URL}/feedback`, { method: 'POST', body: fd });
@@ -1280,4 +1300,287 @@ test('Resume 5. useConfig exports getCachedConfig and App.jsx handles dynamic re
   assert.ok(appContent.includes('fetchConfig'), 'App.jsx ResumeRedirect must call fetchConfig');
   assert.ok(appContent.includes('getCachedConfig'), 'App.jsx ResumeRedirect must check getCachedConfig');
   assert.ok(appContent.includes('inlineResumeUrl'), 'App.jsx ResumeRedirect must normalize url');
+});
+
+// ── Batch 2 Security & Hardening Tests ─────────────────────────────────
+test('Batch 2: HTTP security headers configured in vercel.json without breaking required features', async () => {
+  const fs = require('fs');
+  const path = require('path');
+  const vercelConfig = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../client/vercel.json'), 'utf-8'));
+
+  assert.ok(Array.isArray(vercelConfig.headers), 'vercel.json must have headers array');
+  const catchAll = vercelConfig.headers.find(h => h.source === '/(.*)');
+  assert.ok(catchAll, 'vercel.json must have catch-all headers entry');
+
+  const headerMap = Object.fromEntries(catchAll.headers.map(h => [h.key, h.value]));
+  assert.strictEqual(headerMap['X-Content-Type-Options'], 'nosniff');
+  assert.strictEqual(headerMap['X-Frame-Options'], 'DENY');
+  assert.strictEqual(headerMap['Referrer-Policy'], 'strict-origin-when-cross-origin');
+  assert.ok(headerMap['Permissions-Policy'].includes('camera=()'));
+  assert.ok(headerMap['Permissions-Policy'].includes('microphone=(self)'));
+  assert.ok(headerMap['Permissions-Policy'].includes('geolocation=(self)'));
+});
+
+test('Batch 2: Feedback attachment validation enforces allowlist and validates buffer content', async () => {
+  // 1. Disallowed extension (.exe) is rejected with 400
+  const fdExe = new FormData();
+  fdExe.append('type', 'bug');
+  fdExe.append('message', 'Testing exe rejection');
+  fdExe.append('attachment', new Blob(['binary'], { type: 'application/x-msdownload' }), 'test.exe');
+  const resExe = await fetch(`${BASE_URL}/feedback`, { method: 'POST', body: fdExe });
+  assert.strictEqual(resExe.status, 400);
+  const dataExe = await resExe.json();
+  assert.match(dataExe.error, /File extension not allowed/);
+
+  // 2. Disallowed extension (.svg) is rejected with 400
+  const fdSvg = new FormData();
+  fdSvg.append('type', 'bug');
+  fdSvg.append('message', 'Testing svg rejection');
+  fdSvg.append('attachment', new Blob(['<svg></svg>'], { type: 'image/svg+xml' }), 'test.svg');
+  const resSvg = await fetch(`${BASE_URL}/feedback`, { method: 'POST', body: fdSvg });
+  assert.strictEqual(resSvg.status, 400);
+
+  // 3. Mismatched MIME type is rejected with 400
+  const fdMime = new FormData();
+  fdMime.append('type', 'bug');
+  fdMime.append('message', 'Testing mime mismatch');
+  fdMime.append('attachment', new Blob(['%PDF-1.4'], { type: 'image/png' }), 'test.pdf');
+  const resMime = await fetch(`${BASE_URL}/feedback`, { method: 'POST', body: fdMime });
+  assert.strictEqual(resMime.status, 400);
+  const dataMime = await resMime.json();
+  assert.match(dataMime.error, /File MIME type does not match/);
+
+  // 4. Fake PNG with invalid magic bytes is rejected with 400
+  const fdFakePng = new FormData();
+  fdFakePng.append('type', 'bug');
+  fdFakePng.append('message', 'Testing fake png rejection');
+  fdFakePng.append('attachment', new Blob(['NotAPngImage'], { type: 'image/png' }), 'fake.png');
+  const resFakePng = await fetch(`${BASE_URL}/feedback`, { method: 'POST', body: fdFakePng });
+  assert.strictEqual(resFakePng.status, 400);
+  const dataFakePng = await resFakePng.json();
+  assert.match(dataFakePng.error, /Invalid PNG content/);
+
+  // 5. Fake PDF without %PDF is rejected with 400
+  const fdFakePdf = new FormData();
+  fdFakePdf.append('type', 'bug');
+  fdFakePdf.append('message', 'Testing fake pdf rejection');
+  fdFakePdf.append('attachment', new Blob(['NotAPdfFile'], { type: 'application/pdf' }), 'fake.pdf');
+  const resFakePdf = await fetch(`${BASE_URL}/feedback`, { method: 'POST', body: fdFakePdf });
+  assert.strictEqual(resFakePdf.status, 400);
+  const dataFakePdf = await resFakePdf.json();
+  assert.match(dataFakePdf.error, /Invalid PDF content/);
+
+  // 6. Text file with binary null bytes is rejected with 400
+  const fdNullTxt = new FormData();
+  fdNullTxt.append('type', 'bug');
+  fdNullTxt.append('message', 'Testing null byte text rejection');
+  fdNullTxt.append('attachment', new Blob([Buffer.from([0x61, 0x00, 0x62])], { type: 'text/plain' }), 'evil.txt');
+  const resNullTxt = await fetch(`${BASE_URL}/feedback`, { method: 'POST', body: fdNullTxt });
+  assert.strictEqual(resNullTxt.status, 400);
+  const dataNullTxt = await resNullTxt.json();
+  assert.match(dataNullTxt.error, /Binary data is not allowed/);
+
+  // 7. Legitimate text file succeeds with 201
+  const fdValidTxt = new FormData();
+  fdValidTxt.append('type', 'bug');
+  fdValidTxt.append('message', 'Testing valid text file');
+  fdValidTxt.append('attachment', new Blob(['Clean error log output\nLine 2'], { type: 'text/plain' }), 'error.log');
+  const resValidTxt = await fetch(`${BASE_URL}/feedback`, { method: 'POST', body: fdValidTxt });
+  assert.strictEqual(resValidTxt.status, 201);
+});
+
+test('Batch 2: PWA workbox configuration excludes og-image.jpg from precache', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const viteConfig = fs.readFileSync(path.resolve(__dirname, '../client/vite.config.js'), 'utf-8');
+
+  assert.ok(viteConfig.includes("globIgnores: ['**/og-image.jpg']"), 'vite.config.js must exclude og-image.jpg from precache');
+});
+
+test('Batch 2: All results page incorporates SEO metadata component', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const allPageContent = fs.readFileSync(path.resolve(__dirname, '../client/src/pages/All.jsx'), 'utf-8');
+
+  assert.ok(allPageContent.includes("import SEO from \"../components/SEO\"") || allPageContent.includes("import SEO from '../components/SEO'"), 'All.jsx must import SEO component');
+  assert.ok(allPageContent.includes('path="/all"'), 'All.jsx must set path to /all in SEO component');
+});
+
+test('Batch 2: Feedback attachment filename normalization handles path traversal, Windows paths, and malformed names safely', async () => {
+  const { sanitizeAttachmentFilename } = feedbackRoutes;
+  assert.strictEqual(typeof sanitizeAttachmentFilename, 'function', 'feedbackRoutes must export sanitizeAttachmentFilename');
+
+  // Unit tests:
+  // POSIX traversal paths
+  assert.strictEqual(sanitizeAttachmentFilename('../../evil/screenshot.png'), 'screenshot.png');
+  assert.strictEqual(sanitizeAttachmentFilename('/var/log/app.log'), 'app.log');
+
+  // Windows paths and backslashes
+  assert.strictEqual(sanitizeAttachmentFilename('C:\\Users\\admin\\Desktop\\crash.log'), 'crash.log');
+  assert.strictEqual(sanitizeAttachmentFilename('..\\..\\nested\\file.pdf'), 'file.pdf');
+
+  // Mixed path separators
+  assert.strictEqual(sanitizeAttachmentFilename('folder/sub\\mixed/image.webp'), 'image.webp');
+
+  // Traversal-only or root-only
+  assert.strictEqual(sanitizeAttachmentFilename('..'), 'attachment');
+  assert.strictEqual(sanitizeAttachmentFilename('.'), 'attachment');
+  assert.strictEqual(sanitizeAttachmentFilename('../../../'), 'attachment');
+  assert.strictEqual(sanitizeAttachmentFilename('\\..\\'), 'attachment');
+
+  // Missing, empty, or whitespace
+  assert.strictEqual(sanitizeAttachmentFilename(''), 'attachment');
+  assert.strictEqual(sanitizeAttachmentFilename(null), 'attachment');
+  assert.strictEqual(sanitizeAttachmentFilename(undefined), 'attachment');
+  assert.strictEqual(sanitizeAttachmentFilename('   '), 'attachment');
+
+  // Dotfiles and leading dots
+  assert.strictEqual(sanitizeAttachmentFilename('...hidden.png'), 'hidden.png');
+  assert.strictEqual(sanitizeAttachmentFilename('..png'), 'attachment.png');
+
+  // Illegal filesystem and header-injection characters
+  assert.strictEqual(sanitizeAttachmentFilename('my\x00file\r\n"bad"<quote>*.pdf'), 'myfilebadquote.pdf');
+
+  // Long stems (>100 chars) truncated safely while preserving extension
+  const longStem = 'a'.repeat(120);
+  assert.strictEqual(sanitizeAttachmentFilename(`${longStem}.png`), `${'a'.repeat(100)}.png`);
+
+  // Fallback extension support when extension is missing
+  assert.strictEqual(sanitizeAttachmentFilename('report', '.pdf'), 'report.pdf');
+
+  // Integration test 1: Upload with POSIX traversal filename
+  const pngHeader = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+  const fdTraversal = new FormData();
+  fdTraversal.append('type', 'bug');
+  fdTraversal.append('message', 'Testing traversal normalization');
+  fdTraversal.append('attachment', new Blob([pngHeader], { type: 'image/png' }), '../../evil/safe_shot.png');
+  const resTraversal = await fetch(`${BASE_URL}/feedback`, { method: 'POST', body: fdTraversal });
+  assert.strictEqual(resTraversal.status, 201);
+  assert.strictEqual(savedFeedbacks[0].attachment.filename, 'safe_shot.png');
+  assert.strictEqual(sentEmails[0].attachments[0].filename, 'safe_shot.png');
+
+  // Integration test 2: Upload with Windows backslash path
+  const fdWin = new FormData();
+  fdWin.append('type', 'bug');
+  fdWin.append('message', 'Testing Windows path normalization');
+  fdWin.append('attachment', new Blob(['clean log content'], { type: 'text/plain' }), 'C:\\Users\\admin\\sys_dump.log');
+  const resWin = await fetch(`${BASE_URL}/feedback`, { method: 'POST', body: fdWin });
+  assert.strictEqual(resWin.status, 201);
+  assert.strictEqual(savedFeedbacks[1].attachment.filename, 'sys_dump.log');
+  assert.strictEqual(sentEmails[1].attachments[0].filename, 'sys_dump.log');
+
+  // Integration test 3: Upload with filename lacking extension rejected by fileFilter with 400
+  const fdNoExt = new FormData();
+  fdNoExt.append('type', 'bug');
+  fdNoExt.append('message', 'Testing filename lacking extension rejection');
+  fdNoExt.append('attachment', new Blob(['data'], { type: 'text/plain' }), 'malformed_no_ext');
+  const resNoExt = await fetch(`${BASE_URL}/feedback`, { method: 'POST', body: fdNoExt });
+  assert.strictEqual(resNoExt.status, 400);
+  const dataNoExt = await resNoExt.json();
+  assert.match(dataNoExt.error, /File extension not allowed/);
+
+  // Integration test 4: Upload with traversal-only filename '..' is dropped safely by parser
+  const fdDotDot = new FormData();
+  fdDotDot.append('type', 'bug');
+  fdDotDot.append('message', 'Testing dotdot filename safety');
+  fdDotDot.append('attachment', new Blob(['data'], { type: 'text/plain' }), '..');
+  const resDotDot = await fetch(`${BASE_URL}/feedback`, { method: 'POST', body: fdDotDot });
+  assert.strictEqual(resDotDot.status, 201);
+  assert.strictEqual(savedFeedbacks[2].attachment, undefined, 'Traversal-only attachment must not be saved');
+});
+
+test('Batch 2: Gallery image upload failure masks internal provider and database errors', async () => {
+  const loggedErrors = [];
+  const originalConsoleError = console.error;
+  console.error = (...args) => {
+    loggedErrors.push(args.join(' '));
+  };
+
+  try {
+    // 1. Provider failure: Cloudinary is configured but fails
+    process.env.CLOUDINARY_CLOUD_NAME = 'test-cloud';
+
+    const fdCloud = new FormData();
+    fdCloud.append('title', 'Test Cloudinary Error Masking');
+    fdCloud.append('category', 'UI');
+    fdCloud.append('image', new Blob(['fake image data'], { type: 'image/png' }), 'test.png');
+
+    const resCloud = await fetch(`${BASE_URL}/images`, {
+      method: 'POST',
+      headers: { ...authHeaders },
+      body: fdCloud,
+    });
+
+    assert.strictEqual(resCloud.status, 500, 'Provider upload failure must return HTTP 500');
+    const dataCloud = await resCloud.json();
+    assert.strictEqual(dataCloud.error, 'Failed to upload image', 'Provider failure must return generic error message');
+    const cloudJson = JSON.stringify(dataCloud);
+    assert.ok(!cloudJson.includes('Must supply api_key'), 'Response must not leak provider error details');
+
+    // 2. Database failure: Cloudinary is unconfigured and DB write fails
+    delete process.env.CLOUDINARY_CLOUD_NAME;
+    galleryImageCreateShouldFail = true;
+
+    const fdDb = new FormData();
+    fdDb.append('title', 'Test DB Error Masking');
+    fdDb.append('category', 'UI');
+    fdDb.append('image', new Blob(['fake image data'], { type: 'image/png' }), 'test.png');
+
+    const resDb = await fetch(`${BASE_URL}/images`, {
+      method: 'POST',
+      headers: { ...authHeaders },
+      body: fdDb,
+    });
+
+    assert.strictEqual(resDb.status, 500, 'Database upload failure must return HTTP 500');
+    const dataDb = await resDb.json();
+    assert.strictEqual(dataDb.error, 'Failed to upload image', 'Database failure must return generic error message');
+    const dbJson = JSON.stringify(dataDb);
+    assert.ok(!dbJson.includes('mongodb'), 'Response must not leak mongodb details');
+    assert.ok(!dbJson.includes('s3cr3t_pass'), 'Response must not leak database credentials');
+    assert.ok(!dbJson.includes('atlas-db'), 'Response must not leak hostnames');
+    assert.ok(!dbJson.includes('Database connection timed out'), 'Response must not leak internal exception message');
+
+    // 3. Diagnostic logging verification
+    const hasLoggedCloud = loggedErrors.some(l => l.includes('[images] POST upload failed:') && l.includes('Must supply api_key'));
+    assert.ok(hasLoggedCloud, 'Diagnostic provider error must be logged server-side');
+    const hasLoggedDb = loggedErrors.some(l => l.includes('[images] POST upload failed:') && l.includes('Database connection timed out'));
+    assert.ok(hasLoggedDb, 'Diagnostic database error must be logged server-side');
+  } finally {
+    console.error = originalConsoleError;
+    delete process.env.CLOUDINARY_CLOUD_NAME;
+  }
+});
+
+test('Batch 2: Gallery image update failure masks internal database errors', async () => {
+  const loggedErrors = [];
+  const originalConsoleError = console.error;
+  console.error = (...args) => {
+    loggedErrors.push(args.join(' '));
+  };
+
+  try {
+    galleryImageUpdateShouldFail = true;
+    const testId = new mongoose.Types.ObjectId().toString();
+
+    const res = await fetch(`${BASE_URL}/images/${testId}`, {
+      method: 'PATCH',
+      headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'New Updated Title' }),
+    });
+
+    assert.strictEqual(res.status, 500, 'Image update failure must return HTTP 500');
+
+    const data = await res.json();
+    assert.strictEqual(data.error, 'Failed to update image', 'Response must contain generic error message');
+
+    const jsonStr = JSON.stringify(data);
+    assert.ok(!jsonStr.includes('MongoNetworkTimeoutError'), 'Response must not leak MongoDB exception names');
+    assert.ok(!jsonStr.includes('shard-01.mongodb.net'), 'Response must not leak replica set shard hostnames');
+
+    const hasLogged = loggedErrors.some(l => l.includes('[images] PATCH update failed:') && l.includes('MongoNetworkTimeoutError'));
+    assert.ok(hasLogged, 'Diagnostic error must be logged server-side');
+  } finally {
+    console.error = originalConsoleError;
+  }
 });

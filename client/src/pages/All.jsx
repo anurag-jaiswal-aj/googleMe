@@ -18,6 +18,7 @@ import { ABOUT_QA, PEOPLE_ALSO_ASK } from "../data/allPageData";
 import { useImagesPageEnabled } from "../hooks/useImagesPageEnabled";
 import { useConfig } from "../hooks/useConfig";
 import { sanitizeMediumHtml } from "../utils/sanitizeHtml";
+import SEO from "../components/SEO";
 
 /* ── People also ask accordion ───────────────────────── */
 const PAA = PEOPLE_ALSO_ASK;
@@ -402,6 +403,11 @@ export default function All() {
 
   return (
     <div className="px-4 sm:pl-[120px] md:pl-[176px] sm:pr-6 md:pr-8 pt-3 pb-10">
+      <SEO
+        title="All Results"
+        description="Search results overview across Anurag Jaiswal's portfolio, including projects, experience, skills, articles, and developer tools."
+        path="/all"
+      />
       <AnimatePresence>
         {reading && (
           <ArticleReader post={reading} onClose={() => setReading(null)} />

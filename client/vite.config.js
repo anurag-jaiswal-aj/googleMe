@@ -26,6 +26,7 @@ export default defineConfig({
       workbox: {
         // Cache pages + assets; fall back to network for API calls
         globPatterns: ['**/*.{js,css,html,svg,png,jpg,woff2}'],
+        globIgnores: ['**/og-image.jpg'],
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api/, /\.pdf$/i, /^\/resume\/?$/i, /^\/resume_aj\/?$/i],
         runtimeCaching: [

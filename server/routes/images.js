@@ -52,7 +52,8 @@ router.get('/', async (req, res) => {
   try {
     const images = await GalleryImage.find().sort({ order: 1, createdAt: -1 }).select('-__v');
     res.json(images);
-  } catch {
+  } catch (err) {
+    console.error('[images] GET failed:', err.message);
     res.status(500).json({ error: 'Failed to fetch images' });
   }
 });
@@ -93,7 +94,8 @@ router.post('/', requireAuth, handleImageUpload, async (req, res) => {
 
     res.status(201).json(image);
   } catch (err) {
-    res.status(500).json({ error: err.message || 'Failed to upload image' });
+    console.error('[images] POST upload failed:', err.message);
+    res.status(500).json({ error: 'Failed to upload image' });
   }
 });
 
@@ -112,7 +114,8 @@ router.patch('/:id', requireAuth, async (req, res) => {
     if (!updated) return res.status(404).json({ error: 'Image not found' });
     res.json(updated);
   } catch (err) {
-    res.status(500).json({ error: err.message || 'Failed to update image' });
+    console.error('[images] PATCH update failed:', err.message);
+    res.status(500).json({ error: 'Failed to update image' });
   }
 });
 
@@ -131,7 +134,8 @@ router.delete('/:id', requireAuth, async (req, res) => {
     }
 
     res.json({ success: true });
-  } catch {
+  } catch (err) {
+    console.error('[images] DELETE failed:', err.message);
     res.status(500).json({ error: 'Failed to delete image' });
   }
 });

@@ -157,7 +157,7 @@ test('7. Cloudinary failure returns a safe error and does not update setting', a
   const res = await fetch(BASE_URL, { method: 'POST', headers, body: fd });
   assert.strictEqual(res.status, 500);
   const data = await res.json();
-  assert.match(data.error, /Cloudinary Error/);
+  assert.strictEqual(data.error, 'Failed to upload resume');
   assert.strictEqual(cloudinaryCallCount, 1);
   assert.strictEqual(dbCallCount, 0); // Should not have hit the database
 });
@@ -170,7 +170,7 @@ test('8. Database update failure is handled safely', async () => {
   const res = await fetch(BASE_URL, { method: 'POST', headers, body: fd });
   assert.strictEqual(res.status, 500);
   const data = await res.json();
-  assert.match(data.error, /DB Error/);
+  assert.strictEqual(data.error, 'Failed to upload resume');
   assert.strictEqual(cloudinaryCallCount, 1); // Cloudinary still uploaded
   assert.strictEqual(dbCallCount, 0); // The mock throws before incrementing
 });

@@ -126,7 +126,7 @@ router.post('/resume-upload', requireAuth, (req, res) => {
       res.json({ resumeUrl: newResumeUrl });
     } catch (uploadErr) {
       console.error('[config] POST /resume-upload failed:', uploadErr.message);
-      res.status(500).json({ error: uploadErr.message || 'Failed to upload resume' });
+      res.status(500).json({ error: 'Failed to upload resume' });
     }
   });
 });
