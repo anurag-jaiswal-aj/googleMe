@@ -2,6 +2,7 @@ const express    = require('express');
 const multer     = require('multer');
 const { v2: cloudinary } = require('cloudinary');
 const streamifier = require('streamifier');
+const mongoose     = require('mongoose');
 const GalleryImage = require('../models/GalleryImage');
 const requireAuth  = require('../middleware/auth');
 
@@ -99,6 +100,9 @@ router.post('/', requireAuth, handleImageUpload, async (req, res) => {
 // ── PATCH edit metadata — admin only ─────────────────────────────────────────
 router.patch('/:id', requireAuth, async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid image ID' });
+    }
     const { title, category, description, link, order } = req.body;
     const updated = await GalleryImage.findByIdAndUpdate(
       req.params.id,
@@ -115,6 +119,9 @@ router.patch('/:id', requireAuth, async (req, res) => {
 // ── DELETE — admin only ───────────────────────────────────────────────────────
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid image ID' });
+    }
     const doc = await GalleryImage.findByIdAndDelete(req.params.id);
     if (!doc) return res.status(404).json({ error: 'Image not found' });
 

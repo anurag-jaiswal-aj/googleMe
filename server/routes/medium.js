@@ -93,6 +93,9 @@ router.get('/', async (_req, res) => {
     res.json(posts);
   } catch (err) {
     console.error('Medium RSS fetch failed:', err.message);
+    if (cache && Array.isArray(cache) && cache.length > 0) {
+      return res.json(cache);
+    }
     res.status(502).json({ error: 'Failed to fetch Medium posts' });
   }
 });

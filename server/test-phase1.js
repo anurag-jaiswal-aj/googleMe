@@ -1178,3 +1178,23 @@ test('Inbox 13. Handles Cloudinary attachment cleanup safely on feedback deletio
     'Must document attachment cleanup limitation for legacy records'
   );
 });
+
+// ── Images 14: Gallery Image ID Validation ─────────────────────────────
+test('Images 14. Rejects invalid ObjectId on PATCH and DELETE with HTTP 400', async () => {
+  const resPatch = await fetch(`${BASE_URL}/images/invalid-object-id`, {
+    method: 'PATCH',
+    headers: { ...authHeaders, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: 'New Title' }),
+  });
+  assert.strictEqual(resPatch.status, 400, 'PATCH with malformed ObjectId must return 400 Bad Request');
+  const patchData = await resPatch.json();
+  assert.strictEqual(patchData.error, 'Invalid image ID');
+
+  const resDelete = await fetch(`${BASE_URL}/images/invalid-object-id`, {
+    method: 'DELETE',
+    headers: authHeaders,
+  });
+  assert.strictEqual(resDelete.status, 400, 'DELETE with malformed ObjectId must return 400 Bad Request');
+  const deleteData = await resDelete.json();
+  assert.strictEqual(deleteData.error, 'Invalid image ID');
+});
