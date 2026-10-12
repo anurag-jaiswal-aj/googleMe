@@ -82,7 +82,8 @@ export default function About() {
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const downloadResume = () => {
-    window.open(inlineResumeUrl(cfg.resumeUrl ?? LINKS.resume), '_blank', 'noopener,noreferrer');
+    const targetUrl = (typeof cfg.resumeUrl === 'string' && cfg.resumeUrl.trim()) || LINKS.resume;
+    window.open(inlineResumeUrl(targetUrl), '_blank', 'noopener,noreferrer');
   };
 
   const aboutMenuItems = [

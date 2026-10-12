@@ -117,18 +117,26 @@ export default function KnowledgePanel() {
         <div className="px-5 pt-5 pb-1 flex items-center gap-4">
           <div className="relative shrink-0">
             <div className="w-16 h-16 rounded-full overflow-hidden bg-[#4285F4] flex items-center justify-center shadow-md ring-[3px] ring-[#EA4335] ring-offset-2 ring-offset-white dark:ring-offset-[#202124]">
-              <img
-                src={cfg.avatarUrl || "/avatar.jpg"}
-                alt={profile.name}
-                className="w-full h-full object-cover"
-                onError={e => {
-                  e.currentTarget.style.display = "none";
-                  e.currentTarget.nextSibling.style.display = "flex";
-                }}
-              />
-              <span className="hidden w-full h-full items-center justify-center text-white text-2xl font-bold select-none">
-                {profile.name?.charAt(0) ?? "A"}
-              </span>
+              {cfg.avatarUrl ? (
+                <>
+                  <img
+                    src={cfg.avatarUrl}
+                    alt={profile.name}
+                    className="w-full h-full object-cover"
+                    onError={e => {
+                      e.currentTarget.style.display = "none";
+                      if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = "flex";
+                    }}
+                  />
+                  <span className="hidden w-full h-full items-center justify-center text-white text-2xl font-bold select-none">
+                    {profile.name?.charAt(0) ?? "A"}
+                  </span>
+                </>
+              ) : (
+                <span className="w-full h-full flex items-center justify-center text-white text-2xl font-bold select-none">
+                  {profile.name?.charAt(0) ?? "A"}
+                </span>
+              )}
             </div>
           </div>
           <div className="min-w-0">

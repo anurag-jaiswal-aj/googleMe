@@ -196,7 +196,7 @@ export default function Home() {
   const codechefUrl = sl.codechef ?? LINKS.codechef;
   const emailAddr   = sl.email    ?? LINKS.email;
   const mailtoUrl   = sl.mailto   ?? LINKS.mailto;
-  const resumeUrl   = cfg.resumeUrl  ?? sl.resume   ?? LINKS.resume;
+  const resumeUrl   = (typeof cfg.resumeUrl === 'string' && cfg.resumeUrl.trim()) || sl.resume?.trim() || LINKS.resume;
   const name        = cfg.profile?.name ?? 'Anurag';
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);

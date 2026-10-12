@@ -1,6 +1,18 @@
 {
   "rewrites": [
     {
+      "source": "/resume",
+      "destination": "/Resume_aj.pdf"
+    },
+    {
+      "source": "/resume.pdf",
+      "destination": "/Resume_aj.pdf"
+    },
+    {
+      "source": "/resume_aj.pdf",
+      "destination": "/Resume_aj.pdf"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

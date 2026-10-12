@@ -4,4 +4,4 @@ Allow: /
 # Block admin panel from indexing
 Disallow: /admin
 
-Sitemap: https://anuragjaiswal.me/sitemap.xml
+Sitemap: https://www.anuragjaiswal.me/sitemap.xml

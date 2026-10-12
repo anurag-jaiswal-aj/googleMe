@@ -114,7 +114,7 @@ export default function SearchLayout() {
   const altPortfolioUrl = sl.alternatePortfolio ?? LINKS.alternatePortfolio;
   const linkedinUrl     = sl.linkedin ?? LINKS.linkedin;
   const emailAddr       = sl.email    ?? LINKS.email;
-  const resumeUrl       = cfg.resumeUrl  ?? sl.resume   ?? LINKS.resume;
+  const resumeUrl       = (typeof cfg.resumeUrl === 'string' && cfg.resumeUrl.trim()) || sl.resume?.trim() || LINKS.resume;
   const githubUrl       = sl.github   ?? LINKS.github;
   const twitterUrl      = sl.twitter  ?? LINKS.twitter;
   const leetcodeUrl     = sl.leetcode ?? LINKS.leetcode;

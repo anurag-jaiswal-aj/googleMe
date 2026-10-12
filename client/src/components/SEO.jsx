@@ -1,6 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 
-const SITE_URL = 'https://anuragjaiswal.me';
+const SITE_URL = 'https://www.anuragjaiswal.me';
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.jpg`; // place a 1200×630 jpg in /public
 const AUTHOR = 'Anurag Jaiswal';
 const TWITTER_HANDLE = '@therightrag';
