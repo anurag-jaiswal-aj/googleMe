@@ -31,6 +31,16 @@ function ScrollToTop() {
   return null;
 }
 
+function ResumeRedirect() {
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then(reg => reg?.update?.()).catch(() => {});
+    }
+    window.location.replace('/Resume_aj.pdf');
+  }, []);
+  return null;
+}
+
 export default function App() {
   // Show splash once per browser session
   const [showSplash, setShowSplash] = useState(
@@ -64,6 +74,9 @@ export default function App() {
 
           {/* Admin — standalone page */}
           <Route path="/admin" element={<ErrorBoundary><Admin /></ErrorBoundary>} />
+
+          {/* Direct resume route — compatibility fallback for older service workers */}
+          <Route path="/resume" element={<ResumeRedirect />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

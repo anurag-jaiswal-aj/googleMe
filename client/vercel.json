@@ -5,7 +5,23 @@
       "destination": "/Resume_aj.pdf"
     },
     {
+      "source": "/resume/",
+      "destination": "/Resume_aj.pdf"
+    },
+    {
+      "source": "/Resume",
+      "destination": "/Resume_aj.pdf"
+    },
+    {
+      "source": "/Resume/",
+      "destination": "/Resume_aj.pdf"
+    },
+    {
       "source": "/resume.pdf",
+      "destination": "/Resume_aj.pdf"
+    },
+    {
+      "source": "/Resume.pdf",
       "destination": "/Resume_aj.pdf"
     },
     {

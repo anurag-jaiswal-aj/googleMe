@@ -27,7 +27,7 @@ export default defineConfig({
         // Cache pages + assets; fall back to network for API calls
         globPatterns: ['**/*.{js,css,html,svg,png,jpg,woff2}'],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api/, /\.pdf$/i],
+        navigateFallbackDenylist: [/^\/api/, /\.pdf$/i, /^\/resume\/?$/i, /^\/resume_aj\/?$/i],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com/,
