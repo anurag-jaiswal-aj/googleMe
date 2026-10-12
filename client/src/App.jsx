@@ -4,6 +4,10 @@ import { useEffect } from 'react';
 import SearchLayout from './components/SearchLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import WelcomeSplash from './components/WelcomeSplash';
+import { getCachedConfig } from './hooks/useConfig';
+import { fetchConfig } from './api';
+import { LINKS } from './config/links';
+import { inlineResumeUrl } from './utils/resumeUrl';
 
 // Page-level code splitting — each page loads only when first visited
 const Home     = lazy(() => import('./pages/Home'));
@@ -36,9 +40,61 @@ function ResumeRedirect() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistration().then(reg => reg?.update?.()).catch(() => {});
     }
-    window.location.replace('/Resume_aj.pdf');
+
+    let isMounted = true;
+    const fallbackTarget = inlineResumeUrl(LINKS.resume);
+
+    const navigateTo = (rawTarget) => {
+      if (!isMounted) return;
+      const cleanTarget = inlineResumeUrl(rawTarget);
+      // Guard against self-redirect loops
+      if (cleanTarget && cleanTarget !== '/resume' && cleanTarget !== '/resume/' && cleanTarget !== window.location.href) {
+        window.location.replace(cleanTarget);
+      } else if (fallbackTarget && fallbackTarget !== '/resume' && fallbackTarget !== '/resume/' && fallbackTarget !== window.location.href) {
+        window.location.replace(fallbackTarget);
+      }
+    };
+
+    // 1. If in-memory cache already has a configured resumeUrl, redirect immediately
+    const cached = getCachedConfig();
+    if (typeof cached?.resumeUrl === 'string' && cached.resumeUrl.trim()) {
+      navigateTo(cached.resumeUrl.trim());
+      return;
+    }
+
+    // 2. Otherwise query current config from backend API, racing against a 1.5s fallback timer
+    let didResolve = false;
+    const timer = setTimeout(() => {
+      if (!didResolve) {
+        didResolve = true;
+        navigateTo(LINKS.resume);
+      }
+    }, 1500);
+
+    fetchConfig()
+      .then((data) => {
+        if (!didResolve) {
+          didResolve = true;
+          clearTimeout(timer);
+          const activeUrl = (typeof data?.resumeUrl === 'string' && data.resumeUrl.trim()) || LINKS.resume;
+          navigateTo(activeUrl);
+        }
+      })
+      .catch(() => {
+        if (!didResolve) {
+          didResolve = true;
+          clearTimeout(timer);
+          navigateTo(LINKS.resume);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, []);
-  return null;
+
+  return <PageLoader />;
 }
 
 export default function App() {

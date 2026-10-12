@@ -37,6 +37,11 @@ export function clearConfigCache() {
   _revalidate();
 }
 
+/** Returns the currently cached config object or null */
+export function getCachedConfig() {
+  return _cache;
+}
+
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 /**
  * Returns the full site config object from the DB.

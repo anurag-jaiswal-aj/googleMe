@@ -1198,3 +1198,86 @@ test('Images 14. Rejects invalid ObjectId on PATCH and DELETE with HTTP 400', as
   const deleteData = await resDelete.json();
   assert.strictEqual(deleteData.error, 'Invalid image ID');
 });
+
+// ── Resume Routing & Resolution Tests ──────────────────────────────────
+test('Resume 1. inlineResumeUrl normalizes Google Drive URLs to preview and preserves Cloudinary and local URLs', async () => {
+  const { inlineResumeUrl } = await import('../client/src/utils/resumeUrl.js');
+  const cloudUrl = 'https://res.cloudinary.com/dgsstziwz/raw/upload/v1791779439/gfolio/resume_1791779438123.pdf';
+  assert.strictEqual(inlineResumeUrl(cloudUrl), cloudUrl);
+  assert.strictEqual(inlineResumeUrl('/Resume_aj.pdf'), '/Resume_aj.pdf');
+  assert.strictEqual(inlineResumeUrl(''), '');
+  assert.strictEqual(inlineResumeUrl(undefined), '');
+
+  // Google Drive formats
+  assert.strictEqual(
+    inlineResumeUrl('https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view?usp=sharing'),
+    'https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/preview'
+  );
+  assert.strictEqual(
+    inlineResumeUrl('https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'),
+    'https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/preview'
+  );
+  assert.strictEqual(
+    inlineResumeUrl('https://drive.google.com/open?id=1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'),
+    'https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/preview'
+  );
+  assert.strictEqual(
+    inlineResumeUrl('https://drive.google.com/uc?id=1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms&export=download'),
+    'https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/preview'
+  );
+});
+
+test('Resume 2. LINKS.resume default points to current configured Cloudinary resume', async () => {
+  const { LINKS } = await import('../client/src/config/links.js');
+  const expectedCloudinaryUrl = 'https://res.cloudinary.com/dgsstziwz/raw/upload/v1791779439/gfolio/resume_1791779438123.pdf';
+  assert.strictEqual(LINKS.resume, expectedCloudinaryUrl);
+});
+
+test('Resume 3. Vercel routing configuration redirects /resume to Cloudinary and rewrites legacy .pdf filenames', async () => {
+  const fs = require('fs');
+  const path = require('path');
+  const vercelConfig = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../client/vercel.json'), 'utf-8'));
+  const expectedCloudinaryUrl = 'https://res.cloudinary.com/dgsstziwz/raw/upload/v1791779439/gfolio/resume_1791779438123.pdf';
+
+  assert.ok(Array.isArray(vercelConfig.redirects), 'vercel.json must have redirects array');
+  const resumeRedirects = vercelConfig.redirects.filter(r => r.destination === expectedCloudinaryUrl);
+  const redirectSources = resumeRedirects.map(r => r.source);
+  assert.ok(redirectSources.includes('/resume'), 'Must redirect /resume');
+  assert.ok(redirectSources.includes('/resume/'), 'Must redirect /resume/');
+  assert.ok(redirectSources.includes('/Resume'), 'Must redirect /Resume');
+  assert.ok(redirectSources.includes('/Resume/'), 'Must redirect /Resume/');
+
+  // All redirects must be temporary (permanent: false) to allow future updates
+  resumeRedirects.forEach(r => {
+    assert.strictEqual(r.permanent, false, `Redirect for ${r.source} must be temporary (permanent: false)`);
+  });
+
+  // Legacy PDF rewrites must be preserved
+  assert.ok(Array.isArray(vercelConfig.rewrites), 'vercel.json must have rewrites array');
+  const pdfRewrites = vercelConfig.rewrites.filter(r => r.destination === '/Resume_aj.pdf');
+  const pdfSources = pdfRewrites.map(r => r.source);
+  assert.ok(pdfSources.includes('/resume.pdf'), 'Must preserve /resume.pdf rewrite');
+  assert.ok(pdfSources.includes('/Resume.pdf'), 'Must preserve /Resume.pdf rewrite');
+  assert.ok(pdfSources.includes('/resume_aj.pdf'), 'Must preserve /resume_aj.pdf rewrite');
+});
+
+test('Resume 4. Workbox service worker configuration denylists extensionless resume paths from SPA fallback', async () => {
+  const fs = require('fs');
+  const path = require('path');
+  const viteConfig = fs.readFileSync(path.resolve(__dirname, '../client/vite.config.js'), 'utf-8');
+
+  assert.ok(viteConfig.includes('/^\\/resume\\/?$/i'), 'vite.config.js must denylist extensionless /resume');
+  assert.ok(viteConfig.includes('/\\.pdf$/i'), 'vite.config.js must denylist .pdf extensions');
+});
+
+test('Resume 5. useConfig exports getCachedConfig and App.jsx handles dynamic resume resolution', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const useConfigContent = fs.readFileSync(path.resolve(__dirname, '../client/src/hooks/useConfig.js'), 'utf-8');
+  assert.ok(useConfigContent.includes('export function getCachedConfig()'), 'useConfig must export getCachedConfig');
+
+  const appContent = fs.readFileSync(path.resolve(__dirname, '../client/src/App.jsx'), 'utf-8');
+  assert.ok(appContent.includes('fetchConfig'), 'App.jsx ResumeRedirect must call fetchConfig');
+  assert.ok(appContent.includes('getCachedConfig'), 'App.jsx ResumeRedirect must check getCachedConfig');
+  assert.ok(appContent.includes('inlineResumeUrl'), 'App.jsx ResumeRedirect must normalize url');
+});

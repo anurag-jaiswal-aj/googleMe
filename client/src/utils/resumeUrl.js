@@ -5,10 +5,11 @@
  */
 export function inlineResumeUrl(url = '') {
   if (!url) return url;
-  // Convert Google Drive share/view link to preview
-  const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  // Convert Google Drive share/view/open link to preview
+  const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([^/?#]+)|(?:open|uc)[/?]?(?:.*?[?&])?id=([^&#]+))/);
   if (driveMatch) {
-    return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
+    const fileId = driveMatch[1] || driveMatch[2];
+    return `https://drive.google.com/file/d/${fileId}/preview`;
   }
   return url;
 }

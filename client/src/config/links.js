@@ -8,7 +8,7 @@ export const LINKS = {
     gmailWeb: 'https://mail.google.com',
     email: 'janurag582004@gmail.com',
     mailto: 'mailto:janurag582004@gmail.com',
-    resume: '/Resume_aj.pdf',
+    resume: 'https://res.cloudinary.com/dgsstziwz/raw/upload/v1791779439/gfolio/resume_1791779438123.pdf',
 
     alternatePortfolio: 'https://github.com/anurag-jaiswal-aj',
 };

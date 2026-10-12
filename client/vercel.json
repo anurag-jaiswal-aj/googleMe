@@ -1,21 +1,27 @@
 {
-  "rewrites": [
+  "redirects": [
     {
       "source": "/resume",
-      "destination": "/Resume_aj.pdf"
+      "destination": "https://res.cloudinary.com/dgsstziwz/raw/upload/v1791779439/gfolio/resume_1791779438123.pdf",
+      "permanent": false
     },
     {
       "source": "/resume/",
-      "destination": "/Resume_aj.pdf"
+      "destination": "https://res.cloudinary.com/dgsstziwz/raw/upload/v1791779439/gfolio/resume_1791779438123.pdf",
+      "permanent": false
     },
     {
       "source": "/Resume",
-      "destination": "/Resume_aj.pdf"
+      "destination": "https://res.cloudinary.com/dgsstziwz/raw/upload/v1791779439/gfolio/resume_1791779438123.pdf",
+      "permanent": false
     },
     {
       "source": "/Resume/",
-      "destination": "/Resume_aj.pdf"
-    },
+      "destination": "https://res.cloudinary.com/dgsstziwz/raw/upload/v1791779439/gfolio/resume_1791779438123.pdf",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
     {
       "source": "/resume.pdf",
       "destination": "/Resume_aj.pdf"
