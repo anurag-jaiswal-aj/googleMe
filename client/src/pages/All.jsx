@@ -17,6 +17,7 @@ import { getToolCards } from "../data/toolsData";
 import { ABOUT_QA, PEOPLE_ALSO_ASK } from "../data/allPageData";
 import { useImagesPageEnabled } from "../hooks/useImagesPageEnabled";
 import { useConfig } from "../hooks/useConfig";
+import { sanitizeMediumHtml } from "../utils/sanitizeHtml";
 
 /* ── People also ask accordion ───────────────────────── */
 const PAA = PEOPLE_ALSO_ASK;
@@ -209,26 +210,6 @@ function SectionLabel({ label }) {
 function ArticleReader({ post, onClose }) {
   const scrollRef = useRef(null);
 
-  const sanitise = (html = "") =>
-    html
-      .replace(/<script[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[\s\S]*?<\/style>/gi, "")
-      .replace(/href="(\/[^"]+)"/g, 'href="https://medium.com$1"')
-      .replace(/<img[^>]*src=["']["'][^>]*>/gi, "")
-      .replace(/<img(?![^>]*src=["']https?:)[^>]*>/gi, "")
-      .replace(/<img[^>]*medium\.com\/_\/stat[^>]*>/gi, "")
-      .replace(/<img[^>]*\s(?:width|height)=[\"']1[\"'][^>]*>/gi, "")
-      .replace(
-        /<figure[^>]*>[\s]*<img[^>]*src=["']["'][^>]*>[\s\S]*?<\/figure>/gi,
-        "",
-      )
-      .replace(
-        /<figure[^>]*class="[^"]*graf--layoutOutsetLeft[^"]*"[\s\S]*?<\/figure>/gi,
-        "",
-      )
-      .replace(/<div class="[^"]*section-content[^"]*">/gi, "")
-      .replace(/<div class="[^"]*section-inner[^"]*">/gi, "");
-
   useEffect(() => {
     document.body.style.overflow = "hidden";
     const onKey = (event) => {
@@ -343,7 +324,7 @@ function ArticleReader({ post, onClose }) {
 
         <div
           className="mt-8 medium-body"
-          dangerouslySetInnerHTML={{ __html: sanitise(post.content || "") }}
+          dangerouslySetInnerHTML={{ __html: sanitizeMediumHtml(post.content || "") }}
         />
 
         <div className="mt-8 pt-6 border-t border-[#e8eaed] dark:border-[#333] text-center">

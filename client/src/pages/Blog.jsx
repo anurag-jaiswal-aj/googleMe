@@ -9,6 +9,7 @@ import { LINKS } from '../config/links';
 import { useConfig } from '../hooks/useConfig';
 import { FALLBACK_BLOG_POSTS } from '../data/blogPosts';
 import { getFaviconProps } from '../utils/favicon';
+import { sanitizeMediumHtml } from '../utils/sanitizeHtml';
 
 const POSTS = FALLBACK_BLOG_POSTS;
 
@@ -40,25 +41,6 @@ const SORT_OPTS = [
 /* ── Article Reader Modal ───────────────────────── */
 function ArticleReader({ post, onClose, mediumUrl }) {
   const scrollRef = useRef(null);
-
-  // Sanitise: strip scripts/styles, broken images, fix relative hrefs
-  const sanitise = (html = '') =>
-    html
-      .replace(/<script[\s\S]*?<\/script>/gi, '')
-      .replace(/<style[\s\S]*?<\/style>/gi, '')
-      .replace(/href="(\/[^"]+)"/g, 'href="https://medium.com$1"')
-      // Remove any <img> that has an empty or data-less src (broken Medium CDN images in RSS)
-      .replace(/<img[^>]*src=["']["'][^>]*>/gi, '')
-      .replace(/<img(?![^>]*src=["']https?:)[^>]*>/gi, '')      // Remove Medium tracking pixel (1×1 stat image at end of every RSS post)
-      .replace(/<img[^>]*medium\.com\/_\/stat[^>]*>/gi, '')
-      // Remove 1×1 tracking images in general
-      .replace(/<img[^>]*\s(?:width|height)=[\"']1[\"'][^>]*>/gi, '')      // Remove entire <figure> blocks whose only <img> has no real src
-      .replace(/<figure[^>]*>[\s]*<img[^>]*src=["']["'][^>]*>[\s\S]*?<\/figure>/gi, '')
-      // Remove empty figcaption + paywall figure blocks Medium injects
-      .replace(/<figure[^>]*class="[^"]*graf--layoutOutsetLeft[^"]*"[\s\S]*?<\/figure>/gi, '')
-      // Unwrap unnecessary div wrappers Medium uses
-      .replace(/<div class="[^"]*section-content[^"]*">/gi, '')
-      .replace(/<div class="[^"]*section-inner[^"]*">/gi, '');
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -148,7 +130,7 @@ function ArticleReader({ post, onClose, mediumUrl }) {
         {/* Body */}
         <div
           className="mt-8 medium-body"
-          dangerouslySetInnerHTML={{ __html: sanitise(post.content || '') }}
+          dangerouslySetInnerHTML={{ __html: sanitizeMediumHtml(post.content || '') }}
         />
 
         {/* Footer */}
