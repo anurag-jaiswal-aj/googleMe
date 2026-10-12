@@ -81,8 +81,8 @@ async function fetchAllRepos() {
   return repos;
 }
 
-// GET /api/github/repos — all repos for admin picker
-router.get('/repos', async (req, res, next) => {
+// GET /api/github/repos: all repos for admin picker (admin only)
+router.get('/repos', requireAuth, async (req, res, next) => {
   try {
     const repos = await fetchAllRepos();
     const config = await PortfolioConfig.findOne({ key: 'github_selection' });
@@ -93,7 +93,7 @@ router.get('/repos', async (req, res, next) => {
   }
 });
 
-// POST /api/github/selection — save selected repo names + featured flags (admin only)
+// POST /api/github/selection: save selected repo names + featured flags (admin only)
 router.post('/selection', requireAuth, async (req, res, next) => {
   const { selectedRepos } = req.body;
   if (!Array.isArray(selectedRepos)) {

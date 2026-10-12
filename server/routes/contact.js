@@ -1,18 +1,30 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
 const { body, validationResult } = require('express-validator');
 const multer = require('multer');
 const Contact = require('../models/Contact');
 const { sendEmail } = require('../utils/emailService');
+const {
+  ALLOWED_EXTENSIONS,
+  ALLOWED_MIME_TYPES,
+  sanitizeAttachmentFilename,
+  validateAttachmentBuffer,
+} = require('../utils/attachmentValidation');
 
 // Accept up to 3 attachments, max 5 MB each, stored in memory
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 3 },
   fileFilter: (req, file, cb) => {
-    // Block executable and script files
-    if (/\.(exe|bat|cmd|sh|php|pl|cgi|vbs|js|jar|py|msi|dll|scr)$/i.test(file.originalname || '')) {
-      return cb(new Error('File type not allowed for security reasons.'));
+    const safeName = sanitizeAttachmentFilename(file.originalname || '');
+    const ext = path.extname(safeName).toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      return cb(new Error('File type not allowed. Supported formats: images (PNG, JPG, GIF, WebP), PDF, TXT, LOG.'));
+    }
+    const allowedMimes = ALLOWED_MIME_TYPES[ext] || [];
+    if (!allowedMimes.includes((file.mimetype || '').toLowerCase())) {
+      return cb(new Error('File MIME type does not match allowed types.'));
     }
     cb(null, true);
   },
@@ -22,6 +34,14 @@ const handleUpload = (req, res, next) => {
   upload.array('attachments', 3)(req, res, (err) => {
     if (err instanceof multer.MulterError) return res.status(400).json({ error: err.message });
     if (err) return res.status(400).json({ error: err.message });
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const contentCheck = validateAttachmentBuffer(file);
+        if (!contentCheck.valid) {
+          return res.status(400).json({ error: contentCheck.error });
+        }
+      }
+    }
     next();
   });
 };
@@ -73,7 +93,7 @@ router.post('/', handleUpload, validation, async (req, res, next) => {
 
   const { name, email, message, subject } = req.body;
   const attachments = (req.files || []).map((f) => ({
-    filename: f.originalname,
+    filename: sanitizeAttachmentFilename(f.originalname || ''),
     content: f.buffer,
     contentType: f.mimetype,
   }));
@@ -85,7 +105,7 @@ router.post('/', handleUpload, validation, async (req, res, next) => {
       ? `[${subject}] New Portfolio Message from ${name}`
       : `New Portfolio Message from ${name}`;
 
-    // Fire-and-forget — never block the response on email delivery
+    // Fire-and-forget: never block the response on email delivery
     sendEmail({
       subject: subjectLine,
       html: buildHtml({ name, email, message, subject, attachments }),
@@ -103,5 +123,8 @@ router.post('/', handleUpload, validation, async (req, res, next) => {
     next(err);
   }
 });
+
+router.sanitizeAttachmentFilename = sanitizeAttachmentFilename;
+router.validateAttachmentBuffer = validateAttachmentBuffer;
 
 module.exports = router;

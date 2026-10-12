@@ -20,6 +20,41 @@ SiteConfig.find = () => ({
   lean: async () => Object.entries(siteConfigs).map(([key, value]) => ({ key, value }))
 });
 
+const PortfolioConfig = require('./models/PortfolioConfig');
+let mockSelectedRepos = [{ name: 'portfolio-test', featured: true }];
+PortfolioConfig.findOne = async () => ({ selectedRepos: mockSelectedRepos });
+PortfolioConfig.findOneAndUpdate = async (filter, update) => {
+  mockSelectedRepos = update.selectedRepos || [];
+  return { selectedRepos: mockSelectedRepos };
+};
+
+const originalFetch = global.fetch;
+global.fetch = async (url, opts) => {
+  if (typeof url === 'string' && url.includes('api.github.com')) {
+    if (url.includes('/languages')) {
+      return { ok: true, json: async () => ({ JavaScript: 1000 }) };
+    }
+    return {
+      ok: true,
+      json: async () => [
+        {
+          name: 'portfolio-test',
+          full_name: 'test-user/portfolio-test',
+          description: 'Test Repo',
+          html_url: 'https://github.com/test-user/portfolio-test',
+          homepage: 'https://test.example.com',
+          stargazers_count: 5,
+          forks_count: 1,
+          updated_at: '2026-01-01T00:00:00Z',
+          topics: ['react'],
+          private: false,
+        },
+      ],
+    };
+  }
+  return originalFetch(url, opts);
+};
+
 const Contact = require('./models/Contact');
 let savedContacts = [];
 Contact.create = async (doc) => {
@@ -188,6 +223,7 @@ const configRoutes    = require('./routes/config');
 const contactRoutes   = require('./routes/contact');
 const feedbackRoutes  = require('./routes/feedback');
 const imagesRoutes    = require('./routes/images');
+const githubRoutes    = require('./routes/github');
 
 const cors = require('cors');
 
@@ -220,6 +256,7 @@ app.use('/api/config', configRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/images', imagesRoutes);
+app.use('/api/github', githubRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -298,21 +335,23 @@ test('H1. Admin login returns JWT on valid password', async () => {
   assert.strictEqual(decoded.role, 'admin');
 });
 
-// ── H3: HTML Escaping for Uploaded Attachment Filenames ──────────────────────
-test('H3. Contact email escapes HTML in attachment filenames', async () => {
+// ── H3: HTML Escaping and Filename Normalization for Uploaded Attachment Filenames ──
+test('H3. Contact email escapes HTML and normalizes attachment filenames', async () => {
   const fd = new FormData();
   fd.append('name', 'Alice');
   fd.append('email', 'alice@example.com');
   fd.append('message', 'Hello there');
   const maliciousName = '<img src=x onerror=alert(1)>.pdf';
-  fd.append('attachments', new Blob(['test content'], { type: 'application/pdf' }), maliciousName);
+  const pdfContent = Buffer.from('%PDF-1.4\n%sample pdf content');
+  fd.append('attachments', new Blob([pdfContent], { type: 'application/pdf' }), maliciousName);
 
   const res = await fetch(`${BASE_URL}/contact`, { method: 'POST', body: fd });
   assert.strictEqual(res.status, 201);
   assert.strictEqual(sentEmails.length, 1);
   const emailHtml = sentEmails[0].html;
-  assert.ok(emailHtml.includes('&lt;img src=x onerror=alert(1)&gt;.pdf'), 'Attachment filename must be HTML-escaped');
   assert.ok(!emailHtml.includes('<img src=x onerror=alert(1)>.pdf'), 'Raw unescaped HTML tag must not exist');
+  assert.ok(emailHtml.includes('img src=x onerror=alert(1).pdf'), 'Normalized filename must appear in email');
+  assert.strictEqual(sentEmails[0].attachments[0].filename, 'img src=x onerror=alert(1).pdf');
 });
 
 // ── M2: CORS Origin Validation & Rejection ──────────────────────────────────
@@ -1583,4 +1622,265 @@ test('Batch 2: Gallery image update failure masks internal database errors', asy
   } finally {
     console.error = originalConsoleError;
   }
+});
+
+// ── Batch 1 Remediation: Protect GitHub Repos Endpoint ───────────────────────
+test('Remediation Batch 1: GET /api/github/repos rejects unauthenticated request with 401', async () => {
+  const res = await fetch(`${BASE_URL}/github/repos`);
+  assert.strictEqual(res.status, 401, 'Unauthenticated request must return 401');
+  const data = await res.json();
+  assert.strictEqual(data.error, 'Authentication required');
+});
+
+test('Remediation Batch 1: GET /api/github/repos rejects invalid or expired token with 401', async () => {
+  const invalidToken = jwt.sign({ role: 'admin' }, 'wrong-secret-key');
+  const res = await fetch(`${BASE_URL}/github/repos`, {
+    headers: { Authorization: `Bearer ${invalidToken}` },
+  });
+  assert.strictEqual(res.status, 401, 'Invalid token must return 401');
+  const data = await res.json();
+  assert.strictEqual(data.error, 'Invalid or expired token');
+});
+
+test('Remediation Batch 1: GET /api/github/repos allows valid admin session and preserves structure', async () => {
+  const res = await fetch(`${BASE_URL}/github/repos`, {
+    headers: { ...authHeaders },
+  });
+  assert.strictEqual(res.status, 200, 'Valid admin token must return 200');
+  const data = await res.json();
+  assert.ok(Array.isArray(data.repos), 'repos must be an array');
+  assert.ok(Array.isArray(data.selected), 'selected must be an array');
+  assert.ok(data.repos.length > 0, 'repos array must not be empty');
+  const first = data.repos[0];
+  assert.strictEqual(first.name, 'portfolio-test');
+  assert.strictEqual(first.repoUrl, 'https://github.com/test-user/portfolio-test');
+  assert.strictEqual(typeof first.isPrivate, 'boolean');
+});
+
+// ── Batch 1 Remediation: Contact Attachment Hardening ────────────────────────
+test('Remediation Batch 1: Contact form accepts valid attachments across all allowed formats', async () => {
+  const pngHeader = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00]);
+  const jpgHeader = Buffer.from([0xFF, 0xD8, 0xFF, 0xE0, 0x00]);
+  const pdfHeader = Buffer.from('%PDF-1.5\n%sample pdf content');
+
+  const fd = new FormData();
+  fd.append('name', 'Multi File User');
+  fd.append('email', 'multifile@example.com');
+  fd.append('message', 'Submitting three valid attachments');
+  fd.append('attachments', new Blob([pngHeader], { type: 'image/png' }), 'diagram.png');
+  fd.append('attachments', new Blob([jpgHeader], { type: 'image/jpeg' }), 'photo.jpg');
+  fd.append('attachments', new Blob([pdfHeader], { type: 'application/pdf' }), 'resume.pdf');
+
+  savedContacts = [];
+  sentEmails = [];
+  const res = await fetch(`${BASE_URL}/contact`, { method: 'POST', body: fd });
+  assert.strictEqual(res.status, 201, 'Valid files must be accepted with 201');
+  assert.strictEqual(savedContacts.length, 1, 'Contact record must be saved');
+  assert.strictEqual(sentEmails.length, 1, 'Notification email must be sent');
+  assert.strictEqual(sentEmails[0].attachments.length, 3, 'Email must include all 3 attachments');
+  assert.strictEqual(sentEmails[0].attachments[0].filename, 'diagram.png');
+  assert.strictEqual(sentEmails[0].attachments[1].filename, 'photo.jpg');
+  assert.strictEqual(sentEmails[0].attachments[2].filename, 'resume.pdf');
+});
+
+test('Remediation Batch 1: Contact form accepts clean text and log files', async () => {
+  const fd = new FormData();
+  fd.append('name', 'Log User');
+  fd.append('email', 'loguser@example.com');
+  fd.append('message', 'Here is the bug log');
+  fd.append('attachments', new Blob(['2026-10-12 INFO Server started successfully'], { type: 'text/plain' }), 'debug.log');
+
+  savedContacts = [];
+  sentEmails = [];
+  const res = await fetch(`${BASE_URL}/contact`, { method: 'POST', body: fd });
+  assert.strictEqual(res.status, 201);
+  assert.strictEqual(savedContacts.length, 1);
+  assert.strictEqual(sentEmails.length, 1);
+  assert.strictEqual(sentEmails[0].attachments[0].filename, 'debug.log');
+});
+
+test('Remediation Batch 1: Contact form rejects dangerous file extensions with HTTP 400', async () => {
+  const dangerous = [
+    { name: 'script.sh', mime: 'application/x-sh', content: '#!/bin/bash\necho 1' },
+    { name: 'app.exe', mime: 'application/octet-stream', content: 'MZ executable' },
+    { name: 'vector.svg', mime: 'image/svg+xml', content: '<svg onload="alert(1)"></svg>' },
+    { name: 'phish.html', mime: 'text/html', content: '<h1>Login</h1>' },
+    { name: 'malware.php', mime: 'application/x-php', content: '<?php phpinfo(); ?>' },
+    { name: 'archive.zip', mime: 'application/zip', content: 'PK archive' },
+    { name: 'exploit.js', mime: 'application/javascript', content: 'console.log(1)' },
+  ];
+
+  for (const item of dangerous) {
+    savedContacts = [];
+    sentEmails = [];
+    const fd = new FormData();
+    fd.append('name', 'Attacker');
+    fd.append('email', 'attacker@example.com');
+    fd.append('message', 'Check this attachment');
+    fd.append('attachments', new Blob([item.content], { type: item.mime }), item.name);
+
+    const res = await fetch(`${BASE_URL}/contact`, { method: 'POST', body: fd });
+    assert.strictEqual(res.status, 400, `Extension ${item.name} must be rejected with 400`);
+    const data = await res.json();
+    assert.match(data.error, /File type not allowed/, 'Must return safe file type error message');
+    assert.strictEqual(savedContacts.length, 0, 'Must not save to DB on extension rejection');
+    assert.strictEqual(sentEmails.length, 0, 'Must not send email on extension rejection');
+  }
+});
+
+test('Remediation Batch 1: Contact form rejects mismatched or spoofed MIME types with HTTP 400', async () => {
+  savedContacts = [];
+  sentEmails = [];
+  const fd = new FormData();
+  fd.append('name', 'Spoofer');
+  fd.append('email', 'spoofer@example.com');
+  fd.append('message', 'Spoofed MIME');
+  fd.append('attachments', new Blob(['fake data'], { type: 'text/plain' }), 'photo.png');
+
+  const res = await fetch(`${BASE_URL}/contact`, { method: 'POST', body: fd });
+  assert.strictEqual(res.status, 400);
+  const data = await res.json();
+  assert.strictEqual(data.error, 'File MIME type does not match allowed types.');
+  assert.strictEqual(savedContacts.length, 0);
+  assert.strictEqual(sentEmails.length, 0);
+});
+
+test('Remediation Batch 1: Contact form validates magic bytes and rejects invalid binary signatures', async () => {
+  const invalidSignatures = [
+    { name: 'fake.png', mime: 'image/png', content: 'Not a png at all' },
+    { name: 'fake.jpg', mime: 'image/jpeg', content: 'Not a jpg at all' },
+    { name: 'fake.pdf', mime: 'application/pdf', content: 'Not a pdf at all' },
+    { name: 'fake.gif', mime: 'image/gif', content: 'Not a gif at all' },
+    { name: 'fake.webp', mime: 'image/webp', content: 'Not a webp at all' },
+    { name: 'fake.txt', mime: 'text/plain', content: 'Text with null byte \x00 in content' },
+  ];
+
+  for (const item of invalidSignatures) {
+    savedContacts = [];
+    sentEmails = [];
+    const fd = new FormData();
+    fd.append('name', 'Tampered User');
+    fd.append('email', 'tampered@example.com');
+    fd.append('message', 'Signature test');
+    fd.append('attachments', new Blob([item.content], { type: item.mime }), item.name);
+
+    const res = await fetch(`${BASE_URL}/contact`, { method: 'POST', body: fd });
+    assert.strictEqual(res.status, 400, `Signature failure for ${item.name} must return 400`);
+    const data = await res.json();
+    assert.ok(data.error && data.error.length > 0, 'Must provide error message');
+    assert.strictEqual(savedContacts.length, 0, 'No DB write on signature mismatch');
+    assert.strictEqual(sentEmails.length, 0, 'No email dispatch on signature mismatch');
+  }
+});
+
+test('Remediation Batch 1: Contact form normalizes path-like filenames, separators, and control characters', async () => {
+  const { sanitizeAttachmentFilename } = require('./utils/attachmentValidation');
+  // Unit verification for control characters and illegal symbols
+  assert.strictEqual(sanitizeAttachmentFilename('my\x00file\r\n"bad"<quote>*.pdf'), 'myfilebadquote.pdf');
+
+  const pdfHeader = Buffer.from('%PDF-1.4\n%valid pdf body');
+  const pathCases = [
+    { raw: '../../../../etc/passwd.pdf', expected: 'passwd.pdf' },
+    { raw: 'C:\\Users\\Administrator\\Desktop\\report.pdf', expected: 'report.pdf' },
+    { raw: 'folder/sub\\mixed/doc.pdf', expected: 'doc.pdf' },
+    { raw: 'my<bad>*quote:file.pdf', expected: 'mybadquotefile.pdf' },
+  ];
+
+  for (const c of pathCases) {
+    savedContacts = [];
+    sentEmails = [];
+    const fd = new FormData();
+    fd.append('name', 'Path User');
+    fd.append('email', 'path@example.com');
+    fd.append('message', 'Testing filename normalization');
+    fd.append('attachments', new Blob([pdfHeader], { type: 'application/pdf' }), c.raw);
+
+    const res = await fetch(`${BASE_URL}/contact`, { method: 'POST', body: fd });
+    assert.strictEqual(res.status, 201, `Path case ${c.raw} should return 201`);
+    assert.strictEqual(sentEmails.length, 1);
+    assert.strictEqual(sentEmails[0].attachments[0].filename, c.expected, `Expected normalized filename ${c.expected}`);
+    assert.ok(!sentEmails[0].html.includes('<quote>'), 'Dangerous unescaped characters must not be in email body');
+  }
+});
+
+test('Remediation Batch 1: Contact form rejects empty 0 B files with HTTP 400', async () => {
+  savedContacts = [];
+  sentEmails = [];
+  const fd = new FormData();
+  fd.append('name', 'Zero Byte User');
+  fd.append('email', 'zero@example.com');
+  fd.append('message', 'Testing 0 byte file');
+  fd.append('attachments', new Blob([], { type: 'application/pdf' }), 'empty.pdf');
+
+  const res = await fetch(`${BASE_URL}/contact`, { method: 'POST', body: fd });
+  assert.strictEqual(res.status, 400);
+  const data = await res.json();
+  assert.strictEqual(data.error, 'Attached file is empty');
+  assert.strictEqual(savedContacts.length, 0);
+  assert.strictEqual(sentEmails.length, 0);
+});
+
+test('Remediation Batch 1: Contact form rejects oversized files (> 5 MB) with HTTP 400', async () => {
+  savedContacts = [];
+  sentEmails = [];
+  const largeBuffer = Buffer.alloc(5 * 1024 * 1024 + 1024, 0x61);
+  const fd = new FormData();
+  fd.append('name', 'Large File User');
+  fd.append('email', 'large@example.com');
+  fd.append('message', 'Testing oversized file');
+  fd.append('attachments', new Blob([largeBuffer], { type: 'text/plain' }), 'huge.txt');
+
+  const res = await fetch(`${BASE_URL}/contact`, { method: 'POST', body: fd });
+  assert.strictEqual(res.status, 400);
+  const data = await res.json();
+  assert.match(data.error, /File too large|exceeds maximum size/);
+  assert.strictEqual(savedContacts.length, 0);
+  assert.strictEqual(sentEmails.length, 0);
+});
+
+// -- Phase 2A Remediation: Content Security Policy (Report-Only) ---------------
+test('Phase 2A: Content-Security-Policy-Report-Only configured in vercel.json with verified directives and script hash', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const crypto = require('crypto');
+
+  const vercelPath = path.resolve(__dirname, '../client/vercel.json');
+  const vercelConfig = JSON.parse(fs.readFileSync(vercelPath, 'utf-8'));
+  const catchAll = vercelConfig.headers.find((h) => h.source === '/(.*)');
+  assert.ok(catchAll, 'vercel.json must have catch-all headers entry');
+
+  const headerMap = Object.fromEntries(catchAll.headers.map((h) => [h.key, h.value]));
+  const csp = headerMap['Content-Security-Policy-Report-Only'];
+  assert.ok(csp, 'vercel.json must define Content-Security-Policy-Report-Only');
+
+  // Verify baseline directives
+  assert.ok(csp.includes("default-src 'self'"), 'CSP must set default-src to self');
+  assert.ok(csp.includes("frame-ancestors 'none'"), 'CSP must forbid frame ancestors');
+  assert.ok(csp.includes("object-src 'none'"), 'CSP must forbid object sources');
+  assert.ok(csp.includes("base-uri 'self'"), 'CSP must restrict base-uri to self');
+  assert.ok(csp.includes("form-action 'self'"), 'CSP must restrict form actions to self');
+
+  // Verify style and font origins
+  assert.ok(csp.includes("style-src 'self' 'unsafe-inline' https://fonts.googleapis.com"), 'CSP must allow self, inline styles, and Google Fonts');
+  assert.ok(csp.includes("font-src 'self' https://fonts.gstatic.com"), 'CSP must allow fonts from gstatic');
+
+  // Verify image origins
+  assert.ok(csp.includes("img-src 'self' data: blob: https://res.cloudinary.com https://cdn.simpleicons.org https://miro.medium.com https://*.medium.com"), 'CSP must allow Cloudinary, SimpleIcons, and Medium images');
+
+  // Verify API and analytics connections
+  assert.ok(csp.includes("connect-src 'self' https://googleme.onrender.com https://api.open-meteo.com https://nominatim.openstreetmap.org https://*.vercel-insights.com https://va.vercel-scripts.com https://vercel.live"), 'CSP must allow Render, weather, geocoding, and Vercel analytics');
+
+  // Verify workers and media
+  assert.ok(csp.includes("worker-src 'self' blob:"), 'CSP must permit PWA service worker');
+  assert.ok(csp.includes("media-src 'self' https://res.cloudinary.com"), 'CSP must permit Cloudinary media');
+
+  // Verify inline theme script SHA-256 match
+  const indexPath = path.resolve(__dirname, '../client/index.html');
+  const htmlContent = fs.readFileSync(indexPath, 'utf-8');
+  const scriptMatch = htmlContent.match(/<script>([\s\S]*?)<\/script>/);
+  assert.ok(scriptMatch, 'client/index.html must contain inline theme script');
+
+  const expectedHash = crypto.createHash('sha256').update(scriptMatch[1]).digest('base64');
+  const hashToken = `'sha256-${expectedHash}'`;
+  assert.ok(csp.includes(hashToken), `CSP must include exact sha256 token ${hashToken} for inline theme bootstrap`);
 });
