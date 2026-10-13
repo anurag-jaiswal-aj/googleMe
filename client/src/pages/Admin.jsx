@@ -12,6 +12,11 @@ import { clearConfigCache } from '../hooks/useConfig';
 import SEO from '../components/SEO';
 import { clearProjectCache } from '../utils/prefetch';
 import {
+  DEFAULT_TOOLS,
+  VALID_LEVELS,
+  isValidHexColor,
+} from '../data/toolsData';
+import {
   DndContext,
   closestCenter,
   KeyboardSensor,
@@ -626,6 +631,754 @@ function AboutTab({ cfg, onSaved }) {
       )}
 
       <SaveBar saving={saving} saved={saved} error={error} onSave={save} />
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   TAB: TOOLKIT (Configurable categories and skills)
+══════════════════════════════════════════════════════ */
+let _toolkitIdCounter = 0;
+const generateToolkitId = (prefix = 'id') =>
+  `${prefix}_${Date.now().toString(36)}_${(++_toolkitIdCounter).toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+
+function toEditableCategories(raw) {
+  const list = Array.isArray(raw) && raw.length > 0 ? raw : DEFAULT_TOOLS;
+  return list.map((cat, ci) => ({
+    id: cat.id || generateToolkitId(`cat_${ci}`),
+    category: cat.category || '',
+    title: cat.title || cat.category || '',
+    color: isValidHexColor(cat.color) ? cat.color.trim() : '#4285F4',
+    snippet: cat.snippet || '',
+    items: (cat.items || []).map((s, si) => ({
+      id: s.id || generateToolkitId(`skill_${ci}_${si}`),
+      name: s.name || '',
+      level: VALID_LEVELS.includes(s.level) ? s.level : 'Intermediate',
+      desc: s.desc || '',
+    })),
+  }));
+}
+
+const PRESET_TOOL_COLORS = [
+  '#4285F4',
+  '#34A853',
+  '#FBBC05',
+  '#EA4335',
+  '#00897B',
+  '#F4511E',
+  '#8E24AA',
+  '#546E7A',
+];
+
+function SortableSkillItem({
+  skill,
+  index,
+  total,
+  onUpdate,
+  onDelete,
+  onMoveUp,
+  onMoveDown,
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: skill.id });
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="p-3 border border-[#dadce0] dark:border-[#5f6368] rounded-lg bg-white dark:bg-[#202124] space-y-2"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-1 text-[#9aa0a6] hover:text-[#1a73e8] transition-colors"
+            title="Drag to reorder skill"
+            aria-label="Drag to reorder skill"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+            </svg>
+          </button>
+          <div className="flex items-center gap-0.5">
+            <button
+              type="button"
+              disabled={index === 0}
+              onClick={onMoveUp}
+              className="p-1 text-[#9aa0a6] hover:text-[#1a73e8] disabled:opacity-30 disabled:hover:text-[#9aa0a6]"
+              title="Move up"
+              aria-label="Move skill up"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              disabled={index === total - 1}
+              onClick={onMoveDown}
+              className="p-1 text-[#9aa0a6] hover:text-[#1a73e8] disabled:opacity-30 disabled:hover:text-[#9aa0a6]"
+              title="Move down"
+              aria-label="Move skill down"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          <span className="text-xs font-semibold text-[#5f6368] dark:text-[#9aa0a6]">
+            Skill {index + 1}
+          </span>
+        </div>
+
+        {confirmDelete ? (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[#d93025]">Delete skill?</span>
+            <button
+              type="button"
+              onClick={onDelete}
+              className="px-2 py-0.5 text-xs bg-[#d93025] text-white rounded hover:bg-[#b31412] transition-colors"
+            >
+              Yes
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(false)}
+              className="px-2 py-0.5 text-xs text-[#5f6368] dark:text-[#9aa0a6] hover:underline"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              if (skill.name.trim() || skill.desc.trim()) {
+                setConfirmDelete(true);
+              } else {
+                onDelete();
+              }
+            }}
+            className="text-xs text-[#d93025] hover:underline"
+          >
+            Remove
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="sm:col-span-2">
+          <label className="block text-[11px] font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">
+            Skill Name
+          </label>
+          <input
+            className={inputCls}
+            placeholder="e.g. JavaScript (ES2023)"
+            value={skill.name}
+            onChange={(e) => onUpdate({ ...skill, name: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">
+            Proficiency Level
+          </label>
+          <select
+            className={inputCls}
+            value={skill.level}
+            onChange={(e) => onUpdate({ ...skill, level: e.target.value })}
+          >
+            {VALID_LEVELS.map((lvl) => (
+              <option key={lvl} value={lvl}>
+                {lvl}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-[11px] font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">
+          Description
+        </label>
+        <textarea
+          rows={2}
+          className={textareaCls}
+          placeholder="Brief description of experience and usage..."
+          value={skill.desc}
+          onChange={(e) => onUpdate({ ...skill, desc: e.target.value })}
+        />
+      </div>
+    </div>
+  );
+}
+
+function SortableCategoryCard({
+  category,
+  index,
+  total,
+  isExpanded,
+  onToggleExpand,
+  onUpdateCategory,
+  onDeleteCategory,
+  onMoveCategoryUp,
+  onMoveCategoryDown,
+  sensors,
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id });
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  const handleDragEndSkill = (event) => {
+    const { active, over } = event;
+    if (active && over && active.id !== over.id) {
+      const oldIdx = category.items.findIndex((s) => s.id === active.id);
+      const newIdx = category.items.findIndex((s) => s.id === over.id);
+      const reordered = arrayMove(category.items, oldIdx, newIdx);
+      onUpdateCategory({ ...category, items: reordered });
+    }
+  };
+
+  const handleAddSkill = () => {
+    const newSkill = {
+      id: generateToolkitId('skill'),
+      name: '',
+      level: 'Intermediate',
+      desc: '',
+    };
+    onUpdateCategory({ ...category, items: [...category.items, newSkill] });
+  };
+
+  const handleUpdateSkill = (skillIndex, updatedSkill) => {
+    const nextSkills = category.items.map((s, si) => (si === skillIndex ? updatedSkill : s));
+    onUpdateCategory({ ...category, items: nextSkills });
+  };
+
+  const handleDeleteSkill = (skillIndex) => {
+    const nextSkills = category.items.filter((_, si) => si !== skillIndex);
+    onUpdateCategory({ ...category, items: nextSkills });
+  };
+
+  const handleMoveSkill = (fromIndex, toIndex) => {
+    if (toIndex < 0 || toIndex >= category.items.length) return;
+    const nextSkills = arrayMove(category.items, fromIndex, toIndex);
+    onUpdateCategory({ ...category, items: nextSkills });
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="border border-[#e8eaed] dark:border-[#3c4043] rounded-xl bg-[#f8f9fa] dark:bg-[#202124] overflow-hidden"
+    >
+      {/* Category Header */}
+      <div className="p-3 bg-white dark:bg-[#303134] flex items-center justify-between gap-3 border-b border-[#e8eaed] dark:border-[#3c4043]">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-1.5 text-[#5f6368] dark:text-[#9aa0a6] hover:text-[#1a73e8] transition-colors shrink-0"
+            title="Drag to reorder category"
+            aria-label="Drag to reorder category"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+            </svg>
+          </button>
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              type="button"
+              disabled={index === 0}
+              onClick={onMoveCategoryUp}
+              className="p-1 text-[#9aa0a6] hover:text-[#1a73e8] disabled:opacity-30 disabled:hover:text-[#9aa0a6]"
+              title="Move category up"
+              aria-label="Move category up"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              disabled={index === total - 1}
+              onClick={onMoveCategoryDown}
+              className="p-1 text-[#9aa0a6] hover:text-[#1a73e8] disabled:opacity-30 disabled:hover:text-[#9aa0a6]"
+              title="Move category down"
+              aria-label="Move category down"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          <div
+            className="w-3 h-3 rounded-full shrink-0"
+            style={{ background: category.color || '#4285F4' }}
+          />
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            className="flex items-center gap-2 text-left truncate flex-1 hover:text-[#1a73e8] transition-colors"
+          >
+            <span className="font-semibold text-sm text-[#202124] dark:text-[#e8eaed] truncate">
+              {category.category.trim() || 'Untitled Category'}
+            </span>
+            {category.title && category.title !== category.category && (
+              <span className="text-xs text-[#5f6368] dark:text-[#9aa0a6] hidden sm:inline truncate">
+                ({category.title})
+              </span>
+            )}
+            <span className="text-xs px-2 py-0.5 rounded-full bg-[#e8f0fe] dark:bg-[#1a2744] text-[#1a73e8] font-medium shrink-0">
+              {category.items.length} {category.items.length === 1 ? 'skill' : 'skills'}
+            </span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            className="p-1.5 text-[#5f6368] dark:text-[#9aa0a6] hover:text-[#1a73e8] transition-colors"
+            title={isExpanded ? 'Collapse category' : 'Expand category'}
+            aria-label={isExpanded ? 'Collapse category' : 'Expand category'}
+          >
+            <svg
+              className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Expanded Content */}
+      {isExpanded && (
+        <div className="p-4 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="Category Name">
+              <input
+                className={inputCls}
+                placeholder="e.g. Languages"
+                value={category.category}
+                onChange={(e) => onUpdateCategory({ ...category, category: e.target.value })}
+              />
+            </Field>
+            <Field label="Page Title / Heading">
+              <input
+                className={inputCls}
+                placeholder="e.g. Languages I Code In"
+                value={category.title}
+                onChange={(e) => onUpdateCategory({ ...category, title: e.target.value })}
+              />
+            </Field>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">
+              Category Color
+            </label>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 p-1 border border-[#dadce0] dark:border-[#5f6368] rounded-lg bg-white dark:bg-[#202124]">
+                <input
+                  type="color"
+                  value={isValidHexColor(category.color) ? category.color : '#4285F4'}
+                  onChange={(e) => onUpdateCategory({ ...category, color: e.target.value })}
+                  className="w-7 h-7 rounded border-0 cursor-pointer bg-transparent"
+                  aria-label="Color picker"
+                />
+                <input
+                  className="w-20 text-xs px-1.5 py-1 font-mono uppercase bg-transparent text-[#202124] dark:text-[#e8eaed] focus:outline-none"
+                  value={category.color}
+                  onChange={(e) => onUpdateCategory({ ...category, color: e.target.value })}
+                  placeholder="#4285F4"
+                  maxLength={7}
+                />
+              </div>
+
+              <div className="flex items-center gap-1 flex-wrap">
+                {PRESET_TOOL_COLORS.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => onUpdateCategory({ ...category, color: preset })}
+                    style={{ backgroundColor: preset }}
+                    className={`w-6 h-6 rounded-full border-2 transition-transform ${
+                      category.color.toLowerCase() === preset.toLowerCase()
+                        ? 'border-[#202124] dark:border-white scale-110'
+                        : 'border-transparent hover:scale-105'
+                    }`}
+                    title={preset}
+                    aria-label={`Select color ${preset}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <Field label="Summary Snippet (Search result text)">
+            <textarea
+              rows={3}
+              className={textareaCls}
+              placeholder="Descriptive overview of this category..."
+              value={category.snippet}
+              onChange={(e) => onUpdateCategory({ ...category, snippet: e.target.value })}
+            />
+          </Field>
+
+          {/* Skills Section */}
+          <div className="pt-2 border-t border-[#dadce0] dark:border-[#3c4043] space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#202124] dark:text-[#e8eaed] uppercase tracking-wide">
+                Skills in this category ({category.items.length})
+              </span>
+              <button
+                type="button"
+                onClick={handleAddSkill}
+                className="flex items-center gap-1 text-xs text-[#1a73e8] font-medium hover:underline"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Skill
+              </button>
+            </div>
+
+            {category.items.length === 0 ? (
+              <p className="text-xs text-[#9aa0a6] italic p-3 text-center border border-dashed border-[#dadce0] dark:border-[#5f6368] rounded-lg">
+                No skills added to this category yet. Click Add Skill above.
+              </p>
+            ) : (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndSkill}>
+                <SortableContext items={category.items.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-2">
+                    {category.items.map((skill, si) => (
+                      <SortableSkillItem
+                        key={skill.id}
+                        skill={skill}
+                        index={si}
+                        total={category.items.length}
+                        onUpdate={(updated) => handleUpdateSkill(si, updated)}
+                        onDelete={() => handleDeleteSkill(si)}
+                        onMoveUp={() => handleMoveSkill(si, si - 1)}
+                        onMoveDown={() => handleMoveSkill(si, si + 1)}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            )}
+          </div>
+
+          {/* Delete Category Confirmation */}
+          <div className="pt-3 border-t border-[#dadce0] dark:border-[#3c4043] flex items-center justify-between">
+            {confirmDelete ? (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-[#d93025] font-medium">
+                  Delete "{category.category || 'Untitled'}" and all its skills?
+                </span>
+                <button
+                  type="button"
+                  onClick={onDeleteCategory}
+                  className="px-2.5 py-1 text-xs bg-[#d93025] text-white rounded hover:bg-[#b31412] transition-colors"
+                >
+                  Confirm Delete
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(false)}
+                  className="px-2.5 py-1 text-xs text-[#5f6368] dark:text-[#9aa0a6] hover:underline"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                className="text-xs text-[#d93025] hover:underline flex items-center gap-1"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete Category
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={onToggleExpand}
+              className="text-xs text-[#5f6368] dark:text-[#9aa0a6] hover:underline"
+            >
+              Done Editing
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ToolkitTab({ cfg, onSaved }) {
+  const [categories, setCategories] = useState(() => toEditableCategories(cfg?.tools));
+  const [expandedCatId, setExpandedCatId] = useState(() => categories[0]?.id || null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+  const [confirmReset, setConfirmReset] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEndCategory = (event) => {
+    const { active, over } = event;
+    if (active && over && active.id !== over.id) {
+      setCategories((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        setSaved(false);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const handleAddCategory = () => {
+    const newId = generateToolkitId('cat');
+    const newCategory = {
+      id: newId,
+      category: 'New Category',
+      title: 'New Category Title',
+      color: '#4285F4',
+      snippet: 'Overview description of this skill category.',
+      items: [
+        {
+          id: generateToolkitId('skill'),
+          name: '',
+          level: 'Intermediate',
+          desc: '',
+        },
+      ],
+    };
+    setSaved(false);
+    setCategories((prev) => [...prev, newCategory]);
+    setExpandedCatId(newId);
+  };
+
+  const handleUpdateCategory = (catIndex, updatedCat) => {
+    setSaved(false);
+    setError('');
+    setCategories((prev) => prev.map((c, i) => (i === catIndex ? updatedCat : c)));
+  };
+
+  const handleDeleteCategory = (catIndex) => {
+    setSaved(false);
+    setError('');
+    setCategories((prev) => prev.filter((_, i) => i !== catIndex));
+  };
+
+  const handleMoveCategory = (fromIndex, toIndex) => {
+    if (toIndex < 0 || toIndex >= categories.length) return;
+    setSaved(false);
+    setCategories((prev) => arrayMove(prev, fromIndex, toIndex));
+  };
+
+  const handleResetToDefaults = () => {
+    const freshDefaults = toEditableCategories(DEFAULT_TOOLS);
+    setCategories(freshDefaults);
+    setExpandedCatId(freshDefaults[0]?.id || null);
+    setConfirmReset(false);
+    setSaved(false);
+    setError('');
+  };
+
+  const save = async () => {
+    if (saving) return;
+    setError('');
+
+    // Validation
+    if (categories.length === 0) {
+      setError('Toolkit must contain at least one category.');
+      return;
+    }
+
+    const seenCategories = new Set();
+    for (let ci = 0; ci < categories.length; ci++) {
+      const cat = categories[ci];
+      const catName = cat.category.trim();
+      if (!catName) {
+        setError(`Category at position ${ci + 1} requires a category name.`);
+        return;
+      }
+      const normalizedCat = catName.toLowerCase();
+      if (seenCategories.has(normalizedCat)) {
+        setError(`Duplicate category name "${catName}". Category names must be unique.`);
+        return;
+      }
+      seenCategories.add(normalizedCat);
+      if (!cat.title.trim()) {
+        setError(`Category "${catName}" requires a title.`);
+        return;
+      }
+      if (!isValidHexColor(cat.color)) {
+        setError(`Category "${catName}" requires a valid 6-digit hex color (e.g. #4285F4).`);
+        return;
+      }
+      if (!cat.snippet.trim()) {
+        setError(`Category "${catName}" requires a snippet.`);
+        return;
+      }
+      if (!Array.isArray(cat.items) || cat.items.length === 0) {
+        setError(`Category "${catName}" must contain at least one skill.`);
+        return;
+      }
+      for (let si = 0; si < cat.items.length; si++) {
+        const skill = cat.items[si];
+        if (!skill.name.trim()) {
+          setError(`Skill at position ${si + 1} in "${catName}" requires a name.`);
+          return;
+        }
+        if (!VALID_LEVELS.includes(skill.level)) {
+          setError(`Skill "${skill.name}" in "${catName}" has an invalid level.`);
+          return;
+        }
+        if (!skill.desc.trim()) {
+          setError(`Skill "${skill.name}" in "${catName}" requires a description.`);
+          return;
+        }
+      }
+    }
+
+    // Normalized payload
+    const payload = categories.map((cat) => ({
+      category: cat.category.trim(),
+      title: cat.title.trim(),
+      color: cat.color.trim(),
+      snippet: cat.snippet.trim(),
+      items: cat.items.map((s) => ({
+        name: s.name.trim(),
+        level: s.level,
+        desc: s.desc.trim(),
+      })),
+    }));
+
+    setSaving(true);
+    setSaved(false);
+
+    try {
+      await saveConfig('tools', payload);
+      clearConfigCache();
+      setSaved(true);
+      onSaved?.();
+    } catch (err) {
+      const serverMsg = err?.response?.data?.error;
+      setError(serverMsg || 'Failed to save Toolkit configuration.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const totalSkillsCount = categories.reduce((sum, c) => sum + (c.items?.length || 0), 0);
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <SectionHeader
+            title="Toolkit Page"
+            subtitle="Manage skill categories, proficiency levels, descriptions, and colors shown on /tools and /all."
+          />
+          <p className="text-xs text-[#5f6368] dark:text-[#9aa0a6] -mt-2">
+            Currently configured: {categories.length} categories, {totalSkillsCount} total skills.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {confirmReset ? (
+            <div className="flex items-center gap-1.5 p-1 border border-[#d93025] rounded-lg bg-[#fce8e6] dark:bg-[#3a1d1d]">
+              <span className="text-xs text-[#d93025] font-medium px-1">Reset to defaults?</span>
+              <button
+                type="button"
+                onClick={handleResetToDefaults}
+                className="px-2 py-0.5 text-xs bg-[#d93025] text-white rounded font-medium hover:bg-[#b31412]"
+              >
+                Yes, Reset
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmReset(false)}
+                className="px-2 py-0.5 text-xs text-[#5f6368] dark:text-[#9aa0a6] hover:underline"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmReset(true)}
+              className="px-3 py-1.5 text-xs border border-[#dadce0] dark:border-[#5f6368] rounded-lg text-[#5f6368] dark:text-[#9aa0a6] hover:bg-[#f1f3f4] dark:hover:bg-[#2d2e30] transition-colors"
+            >
+              Reset to Defaults
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={handleAddCategory}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[#1a73e8] text-white rounded-lg font-medium hover:bg-[#1967d2] transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Add Category
+          </button>
+        </div>
+      </div>
+
+      {/* Sortable Categories List */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndCategory}>
+        <SortableContext items={categories.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-3">
+            {categories.map((cat, ci) => (
+              <SortableCategoryCard
+                key={cat.id}
+                category={cat}
+                index={ci}
+                total={categories.length}
+                isExpanded={expandedCatId === cat.id}
+                onToggleExpand={() => setExpandedCatId(expandedCatId === cat.id ? null : cat.id)}
+                onUpdateCategory={(updated) => handleUpdateCategory(ci, updated)}
+                onDeleteCategory={() => handleDeleteCategory(ci)}
+                onMoveCategoryUp={() => handleMoveCategory(ci, ci - 1)}
+                onMoveCategoryDown={() => handleMoveCategory(ci, ci + 1)}
+                sensors={sensors}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+
+      <SaveBar
+        saving={saving}
+        saved={saved}
+        error={error}
+        onSave={save}
+        disabled={saving}
+      />
     </div>
   );
 }
@@ -1958,6 +2711,7 @@ const TABS = [
   { id: 'inbox',     label: 'Feedback Inbox' },
   { id: 'panel',     label: 'Knowledge Panel' },
   { id: 'about',     label: 'About' },
+  { id: 'toolkit',   label: 'Toolkit' },
   { id: 'projects',  label: 'Projects' },
   { id: 'blog',      label: 'Blog' },
   { id: 'site',      label: 'Site' },
@@ -2132,6 +2886,7 @@ export default function Admin() {
                 {activeTab === 'profile'  && <ProfileTab        cfg={cfg} onSaved={loadCfg} />}
                 {activeTab === 'panel'    && <KnowledgePanelTab cfg={cfg} onSaved={loadCfg} />}
                 {activeTab === 'about'    && <AboutTab          cfg={cfg} onSaved={loadCfg} />}
+                {activeTab === 'toolkit'  && <ToolkitTab        cfg={cfg} onSaved={loadCfg} />}
                 {activeTab === 'projects' && <ProjectsTab />}
                 {activeTab === 'blog'     && <BlogTab           cfg={cfg} onSaved={loadCfg} />}
                 {activeTab === 'site'     && <SiteTab           cfg={cfg} onSaved={loadCfg} />}

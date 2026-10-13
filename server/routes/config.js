@@ -49,6 +49,62 @@ router.get('/', async (req, res) => {
   }
 });
 
+const VALID_TOOL_LEVELS = new Set(['Expert', 'Proficient', 'Intermediate', 'Beginner']);
+const HEX6_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
+
+function validateToolsConfig(value) {
+  if (!Array.isArray(value)) {
+    return 'tools configuration must be an array of categories';
+  }
+  if (value.length === 0) {
+    return 'tools configuration must contain at least one category';
+  }
+  const seenCategories = new Set();
+  for (let ci = 0; ci < value.length; ci++) {
+    const cat = value[ci];
+    if (!cat || typeof cat !== 'object') {
+      return `Category at index ${ci} must be an object`;
+    }
+    if (typeof cat.category !== 'string' || !cat.category.trim()) {
+      return `Category at index ${ci} requires a non-empty category name`;
+    }
+    const catName = cat.category.trim();
+    const normalizedName = catName.toLowerCase();
+    if (seenCategories.has(normalizedName)) {
+      return `Duplicate category name "${catName}". Category names must be unique.`;
+    }
+    seenCategories.add(normalizedName);
+    if (typeof cat.title !== 'string' || !cat.title.trim()) {
+      return `Category "${cat.category}" requires a non-empty title`;
+    }
+    if (typeof cat.color !== 'string' || !HEX6_COLOR_REGEX.test(cat.color.trim())) {
+      return `Category "${cat.category}" requires a valid 6-digit hex color (e.g. #4285F4)`;
+    }
+    if (typeof cat.snippet !== 'string' || !cat.snippet.trim()) {
+      return `Category "${cat.category}" requires a non-empty snippet`;
+    }
+    if (!Array.isArray(cat.items) || cat.items.length === 0) {
+      return `Category "${cat.category}" must contain at least one skill`;
+    }
+    for (let si = 0; si < cat.items.length; si++) {
+      const skill = cat.items[si];
+      if (!skill || typeof skill !== 'object') {
+        return `Skill at index ${si} in "${cat.category}" must be an object`;
+      }
+      if (typeof skill.name !== 'string' || !skill.name.trim()) {
+        return `Skill at index ${si} in "${cat.category}" requires a non-empty name`;
+      }
+      if (!VALID_TOOL_LEVELS.has(skill.level)) {
+        return `Skill "${skill.name || si}" in "${cat.category}" has an invalid level "${skill.level}". Allowed: Expert, Proficient, Intermediate, Beginner`;
+      }
+      if (typeof skill.desc !== 'string' || !skill.desc.trim()) {
+        return `Skill "${skill.name}" in "${cat.category}" requires a non-empty description`;
+      }
+    }
+  }
+  return null;
+}
+
 // POST /api/config — admin only
 router.post('/', requireAuth, async (req, res) => {
   try {
@@ -61,6 +117,12 @@ router.post('/', requireAuth, async (req, res) => {
         if (!item || typeof item.key !== 'string' || !item.key.trim()) {
           return res.status(400).json({ error: 'Each update item must contain a non-empty string key' });
         }
+        if (item.key.trim() === 'tools') {
+          const toolsErr = validateToolsConfig(item.value);
+          if (toolsErr) {
+            return res.status(400).json({ error: toolsErr });
+          }
+        }
       }
       await Promise.all(
         updates.map(({ key: k, value: v }) =>
@@ -72,6 +134,12 @@ router.post('/', requireAuth, async (req, res) => {
     }
     if (!key || typeof key !== 'string' || !key.trim()) {
       return res.status(400).json({ error: 'key is required' });
+    }
+    if (key.trim() === 'tools') {
+      const toolsErr = validateToolsConfig(value);
+      if (toolsErr) {
+        return res.status(400).json({ error: toolsErr });
+      }
     }
     const doc = await SiteConfig.findOneAndUpdate(
       { key: key.trim() },

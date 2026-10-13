@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BIO_PARAGRAPHS,
   SKILLS,
@@ -199,7 +199,6 @@ const PROJECTS = sharedProjects.map((project) => ({
   faviconLetter: "G",
 }));
 
-const TOOLS = getToolCards();
 
 /* ── Section heading ─────────────────────────────────── */
 function SectionLabel({ label }) {
@@ -357,6 +356,7 @@ function ArticleReader({ post, onClose }) {
 export default function All() {
   const navigate = useNavigate();
   const cfg = useConfig();
+  const toolCards = useMemo(() => getToolCards(cfg?.tools), [cfg?.tools]);
   const SOCIALS = getSocialProfiles(cfg);
   const mediumUrl = cfg.mediumUsername
     ? `https://medium.com/@${cfg.mediumUsername.replace(/^@/, '')}`
@@ -403,7 +403,7 @@ export default function All() {
     QA.length +
     (liveProjects.length > 0 ? liveProjects.length : PROJECTS.length) +
     blogPosts.length +
-    TOOLS.length +
+    toolCards.length +
     SOCIALS.length;
 
   return (
@@ -637,7 +637,7 @@ export default function All() {
 
       {/* Tools */}
       <SectionLabel label="Tools & technologies" />
-      {TOOLS.slice(0, 4).map((r, i) => (
+      {toolCards.slice(0, 4).map((r, i) => (
         <motion.div
           key={r.title}
           initial={{ opacity: 0, y: 10 }}
@@ -682,7 +682,7 @@ export default function All() {
                   <div className="mt-3 space-y-2.5">
                     {(r.items || []).map(tool => (
                       <div key={tool.name} className="flex items-start gap-2.5">
-                        <div className="w-2 h-2 rounded-full mt-2 shrink-0" style={{ background: r.faviconBg }} />
+                        <div className="w-2 h-2 rounded-full mt-2 shrink-0" style={{ background: r.faviconBg || '#4285F4' }} />
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2 mb-0.5">
                             <span className="text-sm font-medium text-[#202124] dark:text-[#e8eaed]">{tool.name}</span>
@@ -714,7 +714,7 @@ export default function All() {
               (QA.length +
                 PROJECTS.length +
                 blogPosts.length +
-                TOOLS.length +
+                toolCards.length +
                 i) *
               0.05,
             duration: 0.28,

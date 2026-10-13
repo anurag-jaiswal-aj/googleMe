@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import SearchResult from '../components/SearchResult';
 import FilterSort from '../components/FilterSort';
 import SEO from '../components/SEO';
-import { TOOLS } from '../data/toolsData';
+import { DEFAULT_TOOLS, getEffectiveTools, VALID_LEVELS } from '../data/toolsData';
+import { useConfig } from '../hooks/useConfig';
 import { useImagesPageEnabled } from '../hooks/useImagesPageEnabled';
 
 const LEVEL_COLOR = {
@@ -13,8 +14,7 @@ const LEVEL_COLOR = {
   Beginner:     'bg-[#f1f3f4] dark:bg-[#2d2d2d] text-[#5f6368] dark:text-[#9aa0a6] border-[#dadce0] dark:border-[#5f6368]',
 };
 
-const CATEGORIES = TOOLS.map(t => t.category);
-const LEVELS = ['Expert', 'Proficient', 'Intermediate', 'Beginner'];
+const LEVELS = VALID_LEVELS;
 const SORT_OPTS = [
   { value: 'relevance', label: 'Relevance' },
   { value: 'az',        label: 'A → Z' },
@@ -23,13 +23,15 @@ const SORT_OPTS = [
 
 export default function Tools() {
   const imagesEnabled = useImagesPageEnabled();
+  const cfg = useConfig();
+  const toolsData = getEffectiveTools(cfg?.tools);
   const [filters,    setFilters]    = useState([]);
   const [sort,       setSort]       = useState('relevance');
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortOpen,   setSortOpen]   = useState(false);
   const [expandedCat, setExpandedCat] = useState(null);
 
-  let visible = TOOLS.map(group => ({
+  let visible = toolsData.map(group => ({
     ...group,
     items: filters.length === 0 ? group.items : group.items.filter(i => filters.includes(i.level)),
   })).filter(g => g.items.length > 0);
@@ -110,11 +112,11 @@ export default function Tools() {
                   <div className="mt-3 space-y-3">
                     {group.items.map(tool => (
                       <div key={tool.name} className="flex items-start gap-3">
-                        <div className="w-2 h-2 rounded-full mt-2 shrink-0" style={{ background: group.color }} />
+                        <div className="w-2 h-2 rounded-full mt-2 shrink-0" style={{ background: group.color || '#4285F4' }} />
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2 mb-0.5">
                             <span className="text-sm font-medium text-[#202124] dark:text-[#e8eaed]">{tool.name}</span>
-                            <span className={`text-xs px-2 py-0 rounded border leading-5 ${LEVEL_COLOR[tool.level]}`}>
+                            <span className={`text-xs px-2 py-0 rounded border leading-5 ${LEVEL_COLOR[tool.level] || LEVEL_COLOR.Beginner}`}>
                               {tool.level}
                             </span>
                           </div>

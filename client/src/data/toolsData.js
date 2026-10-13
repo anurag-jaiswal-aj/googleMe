@@ -1,4 +1,4 @@
-export const TOOLS = [
+export const DEFAULT_TOOLS = [
   {
     category: 'Languages',
     title: 'Languages I Code In',
@@ -103,13 +103,110 @@ export const TOOLS = [
   },
 ];
 
-export const getToolCards = () =>
-  TOOLS.map((group) => ({
-    url: `anuragjaiswal.me/toolkit/${group.category.toLowerCase().replace(/[\s/]+/g, '-')}`,
-    title: group.title,
-    snippet: group.snippet,
-    category: group.category,
-    items: group.items,
-    faviconBg: group.color,
-    faviconLetter: group.category[0],
+export const TOOLS = DEFAULT_TOOLS;
+
+export const VALID_LEVELS = ['Expert', 'Proficient', 'Intermediate', 'Beginner'];
+
+export const HEX6_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
+
+export const isValidHexColor = (color) =>
+  typeof color === 'string' && HEX6_COLOR_REGEX.test(color.trim());
+
+export function validateToolsConfig(tools) {
+  if (!Array.isArray(tools)) {
+    return { valid: false, error: 'Tools configuration must be an array' };
+  }
+  if (tools.length === 0) {
+    return { valid: false, error: 'Tools configuration must contain at least one category' };
+  }
+  const seenCategories = new Set();
+  for (let ci = 0; ci < tools.length; ci++) {
+    const cat = tools[ci];
+    if (!cat || typeof cat !== 'object') {
+      return { valid: false, error: `Category at index ${ci} must be an object` };
+    }
+    if (typeof cat.category !== 'string' || !cat.category.trim()) {
+      return { valid: false, error: `Category at index ${ci} requires a non-empty name` };
+    }
+    const catName = cat.category.trim();
+    const normalizedName = catName.toLowerCase();
+    if (seenCategories.has(normalizedName)) {
+      return { valid: false, error: `Duplicate category name "${catName}". Category names must be unique.` };
+    }
+    seenCategories.add(normalizedName);
+    if (typeof cat.title !== 'string' || !cat.title.trim()) {
+      return { valid: false, error: `Category "${cat.category}" requires a non-empty title` };
+    }
+    if (typeof cat.color !== 'string' || !isValidHexColor(cat.color)) {
+      return { valid: false, error: `Category "${cat.category}" requires a valid 6-digit hex color (e.g. #4285F4)` };
+    }
+    if (typeof cat.snippet !== 'string' || !cat.snippet.trim()) {
+      return { valid: false, error: `Category "${cat.category}" requires a non-empty snippet` };
+    }
+    if (!Array.isArray(cat.items) || cat.items.length === 0) {
+      return { valid: false, error: `Category "${cat.category}" must contain at least one skill` };
+    }
+    for (let si = 0; si < cat.items.length; si++) {
+      const skill = cat.items[si];
+      if (!skill || typeof skill !== 'object') {
+        return { valid: false, error: `Skill at index ${si} in "${cat.category}" must be an object` };
+      }
+      if (typeof skill.name !== 'string' || !skill.name.trim()) {
+        return { valid: false, error: `Skill at index ${si} in "${cat.category}" requires a non-empty name` };
+      }
+      if (!VALID_LEVELS.includes(skill.level)) {
+        return { valid: false, error: `Skill "${skill.name || si}" in "${cat.category}" has an invalid level "${skill.level}". Allowed: Expert, Proficient, Intermediate, Beginner` };
+      }
+      if (typeof skill.desc !== 'string' || !skill.desc.trim()) {
+        return { valid: false, error: `Skill "${skill.name}" in "${cat.category}" requires a non-empty description` };
+      }
+    }
+  }
+  return { valid: true };
+}
+
+export function getEffectiveTools(savedTools) {
+  if (savedTools === undefined || savedTools === null) {
+    return DEFAULT_TOOLS;
+  }
+  if (!Array.isArray(savedTools)) {
+    console.warn('[toolsData] Tools config is not an array; falling back to DEFAULT_TOOLS');
+    return DEFAULT_TOOLS;
+  }
+  const validation = validateToolsConfig(savedTools);
+  if (!validation.valid) {
+    console.warn('[toolsData] Malformed tools config; falling back to DEFAULT_TOOLS:', validation.error);
+    return DEFAULT_TOOLS;
+  }
+  return savedTools.map((cat) => ({
+    ...cat,
+    category: cat.category.trim(),
+    title: cat.title.trim(),
+    color: cat.color.trim(),
+    snippet: cat.snippet.trim(),
+    items: cat.items.map((skill) => ({
+      ...skill,
+      name: skill.name.trim(),
+      level: skill.level,
+      desc: skill.desc.trim(),
+    })),
   }));
+}
+
+export const getToolCards = (tools = DEFAULT_TOOLS) => {
+  const effective = getEffectiveTools(tools);
+  return effective.map((group) => {
+    const categoryName = (group.category || 'Tools').trim();
+    const slug = categoryName.toLowerCase().replace(/[\s/]+/g, '-');
+    const color = isValidHexColor(group.color) ? group.color.trim() : '#4285F4';
+    return {
+      url: `anuragjaiswal.me/toolkit/${slug}`,
+      title: (group.title || categoryName).trim(),
+      snippet: (group.snippet || '').trim(),
+      category: categoryName,
+      items: Array.isArray(group.items) ? group.items : [],
+      faviconBg: color,
+      faviconLetter: categoryName[0] || 'T',
+    };
+  });
+};
