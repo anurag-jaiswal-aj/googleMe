@@ -19,6 +19,11 @@ import {
   isValidHexColor,
 } from '../data/toolsData';
 import {
+  DEFAULT_CURRENT_EDUCATION,
+  getEffectiveCurrentEducation,
+  getEffectiveEducation,
+} from '../data/aboutData';
+import {
   DndContext,
   closestCenter,
   KeyboardSensor,
@@ -147,6 +152,7 @@ function ExtraTagsEditor({ tags, onChange }) {
    TAB: PROFILE
 ══════════════════════════════════════════════════════ */
 function ProfileTab({ cfg, onSaved }) {
+  const currentEdu = getEffectiveCurrentEducation(cfg.profile?.education);
   const [form, setForm] = useState({
     name:       cfg.profile?.name       ?? 'Anurag Jaiswal',
     title:      cfg.profile?.title      ?? 'Engineering Student',
@@ -154,9 +160,9 @@ function ProfileTab({ cfg, onSaved }) {
     statusOn:   cfg.profile?.statusOn   ?? true,
     footerDate: cfg.profile?.footerDate ?? 'March 2026',
     education: {
-      institution: cfg.profile?.education?.institution ?? 'Visvesvaraya Technological University',
-      degree:      cfg.profile?.education?.degree      ?? 'Bachelors of Engineering in CS',
-      years:       cfg.profile?.education?.years       ?? '2023 – 2027',
+      institution: currentEdu.institution,
+      degree:      currentEdu.degree,
+      years:       currentEdu.years,
     },
   });
   const [links, setLinks] = useState({
@@ -166,7 +172,7 @@ function ProfileTab({ cfg, onSaved }) {
     leetcode:           cfg.socialLinks?.leetcode           ?? LINKS.leetcode,
     codechef:           cfg.socialLinks?.codechef           ?? LINKS.codechef,
     email:              cfg.socialLinks?.email              ?? LINKS.email,
-    alternatePortfolio: cfg.socialLinks?.alternatePortfolio ?? LINKS.alternatePortfolio,
+    alternatePortfolio: cfg.socialLinks?.alternatePortfolio ?? '',
   });
   const [githubUsername, setGithubUsername] = useState(cfg.githubUsername ?? 'anurag-jaiswal-aj');
   const [saving, setSaving] = useState(false);
@@ -255,7 +261,7 @@ function ProfileTab({ cfg, onSaved }) {
       </Field>
 
       <div className="border-t border-[#e8eaed] dark:border-[#3c4043] pt-4">
-        <p className="text-xs font-semibold text-[#5f6368] dark:text-[#9aa0a6] uppercase tracking-wide mb-3">Education (Knowledge Panel)</p>
+        <p className="text-xs font-semibold text-[#5f6368] dark:text-[#9aa0a6] uppercase tracking-wide mb-3">Current Education (Canonical)</p>
         <div className="space-y-3">
           <Field label="Institution">
             <input className={inputCls} value={form.education.institution} onChange={e => setEdu('institution', e.target.value)} />
@@ -265,7 +271,7 @@ function ProfileTab({ cfg, onSaved }) {
               <input className={inputCls} value={form.education.degree} onChange={e => setEdu('degree', e.target.value)} />
             </Field>
             <Field label="Years">
-              <input className={inputCls} value={form.education.years} onChange={e => setEdu('years', e.target.value)} placeholder="2023 – 2027" />
+              <input className={inputCls} value={form.education.years} onChange={e => setEdu('years', e.target.value)} placeholder="2023 - 2027" />
             </Field>
           </div>
         </div>
@@ -429,8 +435,9 @@ function KnowledgePanelTab({ cfg, onSaved }) {
 import { BIO_PARAGRAPHS as DEFAULT_BIO, SKILLS as DEFAULT_SKILLS_DATA, EDUCATION as DEFAULT_EDU, EXPERIENCE as DEFAULT_EXP, CERTIFICATIONS as DEFAULT_CERTS } from '../data/aboutData';
 
 function AboutTab({ cfg, onSaved }) {
+  const currentEdu = getEffectiveCurrentEducation(cfg?.profile?.education);
   const [bio, setBio]     = useState(cfg.bioParagraphs ?? DEFAULT_BIO);
-  const [edu, setEdu]     = useState(cfg.education     ?? DEFAULT_EDU);
+  const [edu, setEdu]     = useState(() => getEffectiveEducation(cfg.education, cfg?.profile?.education));
   const [exp, setExp]     = useState(cfg.experience    ?? DEFAULT_EXP);
   const [certs, setCerts] = useState(cfg.certifications ?? DEFAULT_CERTS);
   const [skills, setSkills] = useState(cfg.skills      ?? DEFAULT_SKILLS_DATA);
@@ -442,9 +449,21 @@ function AboutTab({ cfg, onSaved }) {
   const save = async () => {
     setSaving(true); setSaved(false); setError('');
     try {
+      const normalizedEdu = edu.map((e, idx) => {
+        if (idx === 0) {
+          return {
+            ...e,
+            year: currentEdu.years,
+            degree: currentEdu.degree,
+            school: currentEdu.institution,
+            detail: e.detail || currentEdu.detail,
+          };
+        }
+        return e;
+      });
       await saveConfigBulk([
         { key: 'bioParagraphs',  value: bio },
-        { key: 'education',      value: edu },
+        { key: 'education',      value: normalizedEdu },
         { key: 'experience',     value: exp },
         { key: 'certifications', value: certs },
         { key: 'skills',         value: skills },
@@ -510,13 +529,22 @@ function AboutTab({ cfg, onSaved }) {
           {edu.map((e, i) => (
             <div key={i} className="p-3 border border-[#e8eaed] dark:border-[#3c4043] rounded-xl space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-xs font-semibold text-[#5f6368] dark:text-[#9aa0a6]">Entry {i + 1}</span>
-                <button onClick={() => { setSaved(false); setEdu(prev => prev.filter((_, idx) => idx !== i)); }}
-                  className="text-xs text-[#d93025] hover:underline">Remove</button>
+                <span className="text-xs font-semibold text-[#5f6368] dark:text-[#9aa0a6]">
+                  {i === 0 ? 'Entry 1 (Current College - Synchronized with Profile tab)' : `Entry ${i + 1}`}
+                </span>
+                {i > 0 && (
+                  <button onClick={() => { setSaved(false); setEdu(prev => prev.filter((_, idx) => idx !== i)); }}
+                    className="text-xs text-[#d93025] hover:underline">Remove</button>
+                )}
               </div>
               {[['year','Year / Period'],['degree','Degree'],['school','School / Institution'],['detail','Detail']].map(([field, label]) => (
-                <Field key={field} label={label}>
-                  <input className={inputCls} value={e[field] ?? ''} onChange={ev => { setSaved(false); setEdu(prev => prev.map((x, idx) => idx === i ? { ...x, [field]: ev.target.value } : x)); }} />
+                <Field key={field} label={`${label}${i === 0 && field !== 'detail' ? ' (Managed in Profile tab)' : ''}`}>
+                  <input
+                    className={`${inputCls} ${i === 0 && field !== 'detail' ? 'opacity-70 bg-[#f1f3f4] dark:bg-[#2d2e30]' : ''}`}
+                    disabled={i === 0 && field !== 'detail'}
+                    value={e[field] ?? ''}
+                    onChange={ev => { setSaved(false); setEdu(prev => prev.map((x, idx) => idx === i ? { ...x, [field]: ev.target.value } : x)); }}
+                  />
                 </Field>
               ))}
             </div>

@@ -4,7 +4,7 @@
     "title": "gfolio - Google-style Portfolio",
     "description": "A MERN stack portfolio inspired by Google Search. Features a fully responsive SERP UI, dark mode, AI search mode, animated suggestions, and a knowledge panel.",
     "techStack": ["React", "Node.js", "MongoDB", "Express", "TailwindCSS"],
-    "repoUrl": "https://github.com/anurag-jaiswal-aj",
+    "repoUrl": "https://github.com/anurag-jaiswal-aj/googleMe",
     "demoUrl": "",
     "imageUrl": "",
     "featured": true,

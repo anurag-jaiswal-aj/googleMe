@@ -7,6 +7,7 @@ import SEO from '../components/SEO';
 import fallbackProjects from '../../../shared/projects.json';
 import { useConfig } from '../hooks/useConfig';
 import { getPageVisibility } from '../data/pageVisibility';
+import { getProjectUrlInfo } from '../utils/projectUrls';
 
 /* Slug a title to a GitHub-style URL path */
 const toSlug = str => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -137,62 +138,64 @@ export default function Projects() {
         </div>
       )}
 
-      {!loading && paginated.map((project, i) => (
-        <motion.div
-          key={project._id}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.06, duration: 0.3 }}
-        >
-          <SearchResult
-            url={project.repoUrl ? project.repoUrl.replace('https://', '') : `github.com/${toSlug(project.title)}`}
-            title={`${project.title} | GitHub`}
-            snippet=""
-            onTitleClick={() => setExpandedId(project._id)}
-            menuItems={[
-              {
-                label: 'Copy repo link',
-                icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
-                action: () => navigator.clipboard.writeText(project.repoUrl || `https://github.com/${toSlug(project.title)}`),
-              },
-              {
-                label: 'Share project',
-                icon: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z',
-                action: () => {
-                  if (navigator.share) {
-                    navigator.share({ title: project.title, url: project.repoUrl });
-                  } else {
-                    navigator.clipboard.writeText(project.repoUrl || '');
-                  }
-                },
-              },
-            ]}
+      {!loading && paginated.map((project, i) => {
+        const { url: targetUrl, breadcrumb, isProfileFallback } = getProjectUrlInfo(project, cfg);
+        return (
+          <motion.div
+            key={project._id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.06, duration: 0.3 }}
           >
-            {/* Description — 2-line clamp, expands on title/text click */}
-            <p
-              className={`text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-[1.58] ${expandedId === project._id ? '' : 'line-clamp-2'}`}
+            <SearchResult
+              url={breadcrumb}
+              title={`${project.title} | GitHub`}
+              snippet=""
+              onTitleClick={() => setExpandedId(project._id)}
+              menuItems={[
+                {
+                  label: isProfileFallback ? 'Copy profile link' : 'Copy repo link',
+                  icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
+                  action: () => navigator.clipboard.writeText(targetUrl),
+                },
+                {
+                  label: 'Share project',
+                  icon: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z',
+                  action: () => {
+                    if (navigator.share) {
+                      navigator.share({ title: project.title, url: targetUrl });
+                    } else {
+                      navigator.clipboard.writeText(targetUrl || '');
+                    }
+                  },
+                },
+              ]}
             >
-              {project.description}
-            </p>
+              {/* Description — 2-line clamp, expands on title/text click */}
+              <p
+                className={`text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-[1.58] ${expandedId === project._id ? '' : 'line-clamp-2'}`}
+              >
+                {project.description}
+              </p>
 
-            {/* Language badges — only when expanded */}
-            {expandedId === project._id && project.techStack?.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {project.techStack.map(tech => <TechBadge key={tech} tech={tech} />)}
-              </div>
-            )}
-
-            {/* Stars + links — always visible */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2.5">
-              {project.repoUrl && (
-                <a href={project.repoUrl} target="_blank" rel="noopener noreferrer"
-                   className="text-sm text-[#1a73e8] dark:text-[#8ab4f8] hover:underline flex items-center gap-1">
-                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                  </svg>
-                  View on GitHub
-                </a>
+              {/* Language badges — only when expanded */}
+              {expandedId === project._id && project.techStack?.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {project.techStack.map(tech => <TechBadge key={tech} tech={tech} />)}
+                </div>
               )}
+
+              {/* Stars + links — always visible */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2.5">
+                {targetUrl && (
+                  <a href={targetUrl} target="_blank" rel="noopener noreferrer"
+                     className="text-sm text-[#1a73e8] dark:text-[#8ab4f8] hover:underline flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                    </svg>
+                    View on GitHub
+                  </a>
+                )}
               {project.demoUrl && (
                 <a href={project.demoUrl} target="_blank" rel="noopener noreferrer"
                    className="text-sm text-[#1a73e8] dark:text-[#8ab4f8] hover:underline flex items-center gap-1">
@@ -230,7 +233,8 @@ export default function Projects() {
             </div>
           </SearchResult>
         </motion.div>
-      ))}
+        );
+      })}
 
       {/* Pagination */}
       {!loading && totalPages > 1 && (

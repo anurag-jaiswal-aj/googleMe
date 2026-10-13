@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node test-sanitizer.js && node test-bio.js && node test-tools.js && node test-batch1.js && node test-visibility.js"
+    "test": "node test-sanitizer.js && node test-bio.js && node test-tools.js && node test-batch1.js && node test-visibility.js && node test-batch3.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

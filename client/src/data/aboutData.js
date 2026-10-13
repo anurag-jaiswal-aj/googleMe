@@ -3,7 +3,7 @@
 
 // Short snippet used as the search-result snippet on About + All pages
 export const BIO_SNIPPET =
-  'I am a B.Tech Information Science and Engineering student and full-stack developer specialising in the MERN stack. I care deeply about clean UI, developer tooling, and building practical products.';
+  'I am a B.E. CS student and full-stack developer specialising in the MERN stack. I care deeply about clean UI, developer tooling, and building practical products.';
 
 // Full bio shown when the "About Me" card is expanded
 export const BIO_PARAGRAPHS = [
@@ -90,23 +90,32 @@ export const SKILLS = [
   },
 ];
 
+export const DEFAULT_CURRENT_EDUCATION = {
+  institution: 'Visvesvaraya Technological University',
+  degree: 'Bachelor of Engineering in Computer Science',
+  degreeShort: 'B.E. CS',
+  years: '2023 - 2027',
+  cgpa: '9.2',
+  detail: '3rd Year · CGPA 9.2',
+};
+
 export const EDUCATION = [
   {
-    year: '2023 – Present',
-    degree: 'Bachelor of Engineering in Information Science & Engineering',
-    school: 'JSS Academy of Technical Education, Bengaluru',
-    detail: '3rd Year · CGPA 9.1 ',
+    year: '2023 - 2027',
+    degree: 'Bachelor of Engineering in Computer Science',
+    school: 'Visvesvaraya Technological University',
+    detail: '3rd Year · CGPA 9.2',
     color: '#4285F4',
   },
   {
-    year: '2022 – 2023',
+    year: '2022 - 2023',
     degree: 'Pre-University',
     school: 'J.B.P.I.C, Ambedkar Nagar',
     detail: 'PCM · 91%',
     color: '#4285F4',
   },
   {
-    year: '2020 – 2021',
+    year: '2020 - 2021',
     degree: 'High School',
     school: 'J.B.P.I.C, Ambedkar Nagar',
     detail: 'CS · 90%',
@@ -200,10 +209,74 @@ export function getEffectiveSkills(saved) {
 }
 
 /**
- * Returns normalized education timeline if saved is valid and non-empty,
- * falling back to default EDUCATION.
+ * Normalizes current education object from cfg.profile.education,
+ * handling legacy values and falling back to canonical defaults.
  */
-export function getEffectiveEducation(saved) {
+export function getEffectiveCurrentEducation(profileEdu) {
+  if (!profileEdu || typeof profileEdu !== 'object') {
+    return { ...DEFAULT_CURRENT_EDUCATION };
+  }
+
+  const rawInstitution = typeof profileEdu.institution === 'string' ? profileEdu.institution.trim() : '';
+  const rawDegree = typeof profileEdu.degree === 'string' ? profileEdu.degree.trim() : '';
+  const rawYears = typeof profileEdu.years === 'string' ? profileEdu.years.trim() : '';
+  const rawCgpa = typeof profileEdu.cgpa === 'string' ? profileEdu.cgpa.trim() : '';
+  const rawDetail = typeof profileEdu.detail === 'string' ? profileEdu.detail.trim() : '';
+
+  // Deterministically normalize legacy values to canonical defaults:
+  const isLegacyInstitution =
+    rawInstitution === 'JSS Academy of Technical Education, Bengaluru' ||
+    rawInstitution === '';
+  const institution = isLegacyInstitution
+    ? DEFAULT_CURRENT_EDUCATION.institution
+    : rawInstitution;
+
+  const isLegacyDegree =
+    rawDegree === 'Bachelors of Engineering in CS' ||
+    rawDegree === 'Bachelor of Engineering in Information Science & Engineering' ||
+    rawDegree.includes('Information Science') ||
+    rawDegree === '';
+  const degree = isLegacyDegree
+    ? DEFAULT_CURRENT_EDUCATION.degree
+    : rawDegree;
+
+  const isLegacyYears =
+    rawYears === '2023 – 2027' ||
+    rawYears === '2023 – Present' ||
+    rawYears === '2023 - Present' ||
+    rawYears === '';
+  const years = isLegacyYears
+    ? DEFAULT_CURRENT_EDUCATION.years
+    : rawYears;
+
+  const isLegacyDetail =
+    rawDetail === '3rd Year · CGPA 9.1 ' ||
+    rawDetail === '3rd Year · CGPA 9.1' ||
+    rawDetail === '';
+  const detail = isLegacyDetail
+    ? DEFAULT_CURRENT_EDUCATION.detail
+    : rawDetail;
+
+  const cgpa = (rawCgpa && rawCgpa !== '9.1') ? rawCgpa : DEFAULT_CURRENT_EDUCATION.cgpa;
+
+  return {
+    institution,
+    degree,
+    degreeShort: DEFAULT_CURRENT_EDUCATION.degreeShort,
+    years,
+    cgpa,
+    detail,
+  };
+}
+
+/**
+ * Returns normalized education timeline if saved is valid and non-empty,
+ * falling back to default EDUCATION. Synchronizes current college entry
+ * with authoritative profile education when present.
+ */
+export function getEffectiveEducation(saved, profileEdu = null) {
+  const currentEdu = getEffectiveCurrentEducation(profileEdu);
+
   if (Array.isArray(saved) && saved.length > 0) {
     const valid = saved
       .filter(
@@ -213,19 +286,77 @@ export function getEffectiveEducation(saved) {
           ((typeof e.degree === 'string' && e.degree.trim().length > 0) ||
             (typeof e.school === 'string' && e.school.trim().length > 0))
       )
-      .map((e) => ({
-        year: typeof e.year === 'string' ? e.year.trim() : '',
-        degree: typeof e.degree === 'string' ? e.degree.trim() : '',
-        school: typeof e.school === 'string' ? e.school.trim() : '',
-        detail: typeof e.detail === 'string' ? e.detail.trim() : '',
-        color:
+      .map((e, idx) => {
+        const rawSchool = typeof e.school === 'string' ? e.school.trim() : '';
+        const rawDegree = typeof e.degree === 'string' ? e.degree.trim() : '';
+        const rawYear = typeof e.year === 'string' ? e.year.trim() : '';
+        const rawDetail = typeof e.detail === 'string' ? e.detail.trim() : '';
+        const color =
           typeof e.color === 'string' && e.color.trim().length > 0
             ? e.color.trim()
-            : '#4285F4',
-      }));
+            : '#4285F4';
+
+        // Entry 0 represents current college education
+        if (idx === 0) {
+          const isLegacyOrCollege =
+            rawSchool === 'JSS Academy of Technical Education, Bengaluru' ||
+            rawSchool === 'Visvesvaraya Technological University' ||
+            rawDegree.includes('Information Science') ||
+            rawDegree.includes('Computer Science') ||
+            rawDegree === 'Bachelors of Engineering in CS' ||
+            rawDegree === 'Bachelor of Engineering in Computer Science' ||
+            !rawSchool;
+
+          if (isLegacyOrCollege) {
+            const isLegacyDetail =
+              rawDetail === '3rd Year · CGPA 9.1 ' ||
+              rawDetail === '3rd Year · CGPA 9.1' ||
+              !rawDetail;
+            return {
+              year: currentEdu.years,
+              degree: currentEdu.degree,
+              school: currentEdu.institution,
+              detail: isLegacyDetail ? currentEdu.detail : rawDetail,
+              color,
+            };
+          }
+        }
+
+        return {
+          year: rawYear,
+          degree: rawDegree,
+          school: rawSchool,
+          detail: rawDetail,
+          color,
+        };
+      });
     if (valid.length > 0) return valid;
   }
+
+  // If saved is not a valid timeline array, but profileEdu was explicitly provided
+  if (profileEdu && typeof profileEdu === 'object') {
+    return [
+      {
+        year: currentEdu.years,
+        degree: currentEdu.degree,
+        school: currentEdu.institution,
+        detail: currentEdu.detail,
+        color: '#4285F4',
+      },
+      ...EDUCATION.slice(1),
+    ];
+  }
+
   return EDUCATION;
+}
+
+/**
+ * Returns dynamic search-result snippet for Education on About page,
+ * synchronized with authoritative current education record.
+ */
+export function getEducationSnippet(cfg) {
+  const currentEdu = getEffectiveCurrentEducation(cfg?.profile?.education);
+  return `${currentEdu.degree} at ${currentEdu.institution} with a CGPA of ${currentEdu.cgpa || '9.2'}. Pursued Pre-University in PCM and High School from J.B.P.I.C with 91% and 90% respectively.`;
 }
 
 /**

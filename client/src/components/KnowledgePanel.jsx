@@ -1,6 +1,10 @@
 import { motion } from "framer-motion";
 import { LINKS } from "../config/links";
 import { useConfig } from "../hooks/useConfig";
+import {
+  DEFAULT_CURRENT_EDUCATION,
+  getEffectiveCurrentEducation,
+} from "../data/aboutData";
 
 // ── Defaults (used when DB config is empty) ──────────
 const DEFAULT_PROFILE = {
@@ -8,11 +12,7 @@ const DEFAULT_PROFILE = {
   title:      "Engineering Student",
   statusText: "Open to Work",
   statusOn:   true,
-  education:  {
-    institution: "Visvesvaraya Technological University",
-    degree:      "Bachelors of Engineering in CS",
-    years:       "2023 – 2027",
-  },
+  education:  { ...DEFAULT_CURRENT_EDUCATION },
   footerDate: "March 2026",
 };
 
@@ -44,7 +44,7 @@ export default function KnowledgePanel() {
   const skills  = cfg.knowledgeSkills ?? DEFAULT_SKILLS;
   const links   = { ...DEFAULT_LINKS,     ...(cfg.socialLinks ?? {}) };
 
-  const edu = { ...DEFAULT_PROFILE.education, ...(profile.education ?? {}) };
+  const edu = getEffectiveCurrentEducation(profile.education);
 
   // ── Circle profiles (row 1) ──────────────────────
   const CIRCLE_PROFILES = [

@@ -7,7 +7,7 @@ export const ABOUT_QA = [
     url: "anuragjaiswal.me/about",
     question: "Who am I?",
     answer:
-      "I am a B.Tech Information Science and Engineering student and full-stack developer specialising in the MERN stack. I care deeply about clean UI, developer tooling, and building practical products.",
+      "I am a B.E. Computer Science student and full-stack developer specialising in the MERN stack. I care deeply about clean UI, developer tooling, and building practical products.",
     type: "bio",
     to: "/about",
     pageName: "About",

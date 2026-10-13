@@ -17,6 +17,7 @@ import {
   getEffectiveEducation,
   getEffectiveExperience,
   getEffectiveCertifications,
+  getEducationSnippet,
 } from "../data/aboutData";
 import { LINKS } from "../config/links";
 import { useConfig } from "../hooks/useConfig";
@@ -62,7 +63,7 @@ export default function About() {
 
   // Fall back to hardcoded data if nothing saved in DB yet
   const SKILLS       = getEffectiveSkills(cfg.skills);
-  const EDUCATION    = getEffectiveEducation(cfg.education);
+  const EDUCATION    = getEffectiveEducation(cfg.education, cfg.profile?.education);
   const EXPERIENCE   = getEffectiveExperience(cfg.experience);
   const CERTIFICATIONS = getEffectiveCertifications(cfg.certifications);
   const [filters, setFilters] = useState([]);
@@ -207,7 +208,7 @@ export default function About() {
           <SearchResult
             url="anuragjaiswal.me/about/education"
             title="Education | Academic Timeline"
-            snippet="Bachelor of Engineering in Information Science & Engineering at JSS Academy of Technical Education, Bengaluru with a CGPA of 9.1. Pursued Pre-University in PCM and High School from J.B.P.I.C with 91% and 90% respectively."
+            snippet={getEducationSnippet(cfg)}
             onTitleClick={() => openSection("edu")}
             menuItems={aboutMenuItems}
           >
@@ -436,7 +437,7 @@ export default function About() {
     <div className="px-4 sm:pl-[120px] md:pl-[176px] sm:pr-6 md:pr-8 pt-3 pb-10">
       <SEO
         title="About"
-        description="Learn about Anurag Jaiswal — Full-Stack Developer, B.Tech ISE student, MERN stack specialist. Bio, skills, education, experience, and certifications."
+        description="Learn about Anurag Jaiswal - Full-Stack Developer, B.E. CS student, MERN stack specialist. Bio, skills, education, experience, and certifications."
         path="/about"
       />
       {/* Stats + controls */}

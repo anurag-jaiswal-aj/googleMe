@@ -23,6 +23,7 @@ import { getToolCards } from "../data/toolsData";
 import { ABOUT_QA, PEOPLE_ALSO_ASK } from "../data/allPageData";
 import { useImagesPageEnabled } from "../hooks/useImagesPageEnabled";
 import { useConfig } from "../hooks/useConfig";
+import { getProjectUrlInfo } from "../utils/projectUrls";
 import { getPageVisibility } from "../data/pageVisibility";
 import { sanitizeMediumHtml } from "../utils/sanitizeHtml";
 import SEO from "../components/SEO";
@@ -126,7 +127,7 @@ export function QAExpanded({ type, cfg, bioParagraphs, snippet }) {
 
   /* Education — compact timeline rows from aboutData */
   if (type === "education") {
-    const education = getEffectiveEducation(cfg?.education);
+    const education = getEffectiveEducation(cfg?.education, cfg?.profile?.education);
     return (
       <div className="mt-3 space-y-2.5">
         {education.map(({ year, degree, school, detail, color }, i) => (
@@ -192,20 +193,17 @@ export function QAExpanded({ type, cfg, bioParagraphs, snippet }) {
 /* ── Data ───────────────────────────────────────────── */
 const QA = ABOUT_QA;
 
-const toSlug = (str) =>
-  str
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-
-const PROJECTS = sharedProjects.map((project) => ({
-  url: `github.com/anurag-2911/${toSlug(project.title)}`,
-  title: `${project.title} | GitHub`,
-  snippet: project.description,
-  href: project.repoUrl || project.demoUrl || "#",
-  faviconBg: "#24292e",
-  faviconLetter: "G",
-}));
+const PROJECTS = sharedProjects.map((project) => {
+  const { url, breadcrumb } = getProjectUrlInfo(project);
+  return {
+    url: breadcrumb,
+    title: `${project.title} | GitHub`,
+    snippet: project.description,
+    href: url,
+    faviconBg: "#24292e",
+    faviconLetter: "G",
+  };
+});
 
 
 /* ── Section heading ─────────────────────────────────── */
@@ -520,9 +518,9 @@ export default function All() {
         const isLive = liveProjects.length > 0;
         const key = isLive ? r._id : r.title;
         const title = isLive ? `${r.title} | GitHub` : r.title;
-        const url = isLive
-          ? (r.repoUrl ? r.repoUrl.replace('https://', '') : `github.com/${toSlug(r.title)}`)
-          : r.url;
+        const projectInfo = getProjectUrlInfo(r, cfg);
+        const url = isLive ? projectInfo.breadcrumb : r.url;
+        const targetRepoUrl = isLive ? projectInfo.url : r.href;
         const isExpanded = expandedProject === key;
         return (
           <motion.div
@@ -538,15 +536,15 @@ export default function All() {
               onTitleClick={() => setExpandedProject(key)}
               menuItems={[
                 {
-                  label: 'Copy repo link',
+                  label: projectInfo.isProfileFallback ? 'Copy profile link' : 'Copy repo link',
                   icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
-                  action: () => navigator.clipboard.writeText(isLive ? (r.repoUrl || '') : (r.href || '')),
+                  action: () => navigator.clipboard.writeText(targetRepoUrl || ''),
                 },
                 {
                   label: 'Share project',
                   icon: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z',
                   action: () => {
-                    const link = isLive ? r.repoUrl : r.href;
+                    const link = targetRepoUrl;
                     if (navigator.share) navigator.share({ title: r.title, url: link });
                     else navigator.clipboard.writeText(link || '');
                   },
@@ -565,8 +563,8 @@ export default function All() {
               )}
               {isLive && (
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2.5">
-                  {r.repoUrl && (
-                    <a href={r.repoUrl} target="_blank" rel="noopener noreferrer"
+                  {targetRepoUrl && (
+                    <a href={targetRepoUrl} target="_blank" rel="noopener noreferrer"
                        className="text-sm text-[#1a73e8] dark:text-[#8ab4f8] hover:underline flex items-center gap-1">
                       <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
