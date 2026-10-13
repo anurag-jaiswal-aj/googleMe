@@ -8,6 +8,7 @@ import FilterSort from '../components/FilterSort';
 import SEO from '../components/SEO';
 import { LINKS } from '../config/links';
 import { getSocialProfiles } from '../data/socialProfiles';
+import { getContactDetails } from '../data/contactData';
 import { useConfig } from '../hooks/useConfig';
 import { useImagesPageEnabled } from '../hooks/useImagesPageEnabled';
 
@@ -31,7 +32,7 @@ const fileIconColor = (type) => {
 /* ── Contact Form ─────────────────────────────────── */
 function ContactForm() {
   const cfg = useConfig();
-  const emailAddr = cfg.socialLinks?.email ?? LINKS.email;
+  const { email: emailAddr, phone, location } = getContactDetails(cfg);
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '', _hp: '' });
   const [files, setFiles] = useState([]);
   const [errors, setErrors] = useState({});
@@ -157,6 +158,23 @@ function ContactForm() {
                 </svg>
                 Copy email
               </button>
+              {phone && (
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(phone);
+                    toast.success('Phone copied');
+                    setMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2.5 pl-4 pr-3 py-2.5 text-left whitespace-nowrap
+                             text-[13px] text-[#202124] dark:text-[#e8eaed]
+                             hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
+                >
+                  <svg className="w-4 h-4 text-[#5f6368] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                  </svg>
+                  Copy phone
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -204,11 +222,48 @@ function ContactForm() {
               />
             </div>
             {/* Header strip */}
-            <div className="px-3 sm:px-6 pt-2 sm:pt-3 pb-1 sm:pb-2 border-b border-[#f1f3f4] dark:border-[#3c4043]">
+            <div className="px-3 sm:px-6 pt-2 sm:pt-3 pb-2 sm:pb-3 border-b border-[#f1f3f4] dark:border-[#3c4043] space-y-2">
               <p className="text-sm text-[#5f6368] dark:text-[#9aa0a6]">
                 I typically respond within 24 hours.
                 All fields marked <span className="text-[#c5221f]">*</span> are required.
               </p>
+              {(emailAddr || phone || location) && (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[#5f6368] dark:text-[#9aa0a6] pt-1 border-t border-[#f1f3f4] dark:border-[#3c4043]">
+                  {emailAddr && (
+                    <a
+                      href={`mailto:${emailAddr}`}
+                      className="inline-flex items-center gap-1.5 hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors"
+                      aria-label={`Email ${emailAddr}`}
+                    >
+                      <svg className="w-3.5 h-3.5 shrink-0 text-[#EA4335]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                      </svg>
+                      <span className="truncate">{emailAddr}</span>
+                    </a>
+                  )}
+                  {phone && (
+                    <a
+                      href={`tel:${phone.replace(/\s+/g, '')}`}
+                      className="inline-flex items-center gap-1.5 hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] transition-colors"
+                      aria-label={`Phone ${phone}`}
+                    >
+                      <svg className="w-3.5 h-3.5 shrink-0 text-[#34A853]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                      </svg>
+                      <span>{phone}</span>
+                    </a>
+                  )}
+                  {location && (
+                    <span className="inline-flex items-center gap-1.5" aria-label={`Location ${location}`}>
+                      <svg className="w-3.5 h-3.5 shrink-0 text-[#4285F4]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      </svg>
+                      <span>{location}</span>
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="px-3 sm:px-6 py-2 sm:py-3 space-y-4">
@@ -371,7 +426,6 @@ const PEOPLE_ALSO_SEARCH = [
 export default function Contact() {
   const navigate = useNavigate();
   const cfg = useConfig();
-  const emailAddr = cfg.socialLinks?.email ?? LINKS.email;
   const imagesEnabled = useImagesPageEnabled();
   const SOCIAL = getSocialProfiles(cfg).filter((p) =>
     ['LinkedIn', 'Twitter / X', 'GitHub', 'Medium'].includes(p.name)

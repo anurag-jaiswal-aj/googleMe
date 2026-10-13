@@ -1888,7 +1888,7 @@ function ImagesTab() {
 ══════════════════════════════════════════════════════ */
 function ContactTab({ cfg, onSaved }) {
   const [form, setForm] = useState({
-    email:    cfg.contactInfo?.email    ?? LINKS.email,
+    email:    cfg.contactInfo?.email    ?? cfg.socialLinks?.email ?? LINKS.email,
     phone:    cfg.contactInfo?.phone    ?? '',
     location: cfg.contactInfo?.location ?? 'Bengaluru, India',
   });

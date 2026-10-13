@@ -7,6 +7,9 @@ import {
   getBioParagraphs,
   getBioSnippet,
   getExpandedBioParagraphs,
+  getEffectiveSkills,
+  getEffectiveEducation,
+  getEffectiveExperience,
 } from "../data/aboutData";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -79,10 +82,11 @@ function PeopleAlsoAsk() {
 }
 
 /* ── Inline expanded content for Q&A cards ──────────── */
-function QAExpanded({ type, bioParagraphs, snippet }) {
+export function QAExpanded({ type, cfg, bioParagraphs, snippet }) {
   /* Bio — paragraphs from aboutData */
   if (type === "bio") {
-    const paragraphs = getExpandedBioParagraphs(bioParagraphs, snippet);
+    const rawBio = cfg?.bioParagraphs ?? bioParagraphs;
+    const paragraphs = getExpandedBioParagraphs(rawBio, snippet);
     if (paragraphs.length === 0) return null;
     return (
       <div className="mt-3 space-y-2">
@@ -100,14 +104,15 @@ function QAExpanded({ type, bioParagraphs, snippet }) {
 
   /* Skills — bordered column grid matching About page */
   if (type === "skills") {
+    const skills = getEffectiveSkills(cfg?.skills);
     return (
       <div className="mt-3 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-4">
-        {SKILLS.map(({ cat, list }) => (
+        {skills.map(({ cat, list }) => (
           <div key={cat} className="border-l-2 border-[#dadce0] dark:border-[#3c4043] pl-3">
             <p className="text-xs font-semibold text-[#133780] dark:text-[#bdc1c6] mb-1.5 uppercase tracking-wide">
               {cat}
             </p>
-            {list.map((s) => (
+            {(Array.isArray(list) ? list : []).map((s) => (
               <p key={s} className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-[1.7]">
                 {s}
               </p>
@@ -120,13 +125,14 @@ function QAExpanded({ type, bioParagraphs, snippet }) {
 
   /* Education — compact timeline rows from aboutData */
   if (type === "education") {
+    const education = getEffectiveEducation(cfg?.education);
     return (
       <div className="mt-3 space-y-2.5">
-        {EDUCATION.map(({ year, degree, school, detail, color }, i) => (
+        {education.map(({ year, degree, school, detail, color }, i) => (
           <div key={i} className="flex items-start gap-2.5">
             <span
               className="mt-1.5 w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: color }}
+              style={{ backgroundColor: color || "#4285F4" }}
             />
             <div className="min-w-0">
               <span className="text-[11px] text-[#70757a] dark:text-[#9aa0a6] tabular-nums">
@@ -150,13 +156,14 @@ function QAExpanded({ type, bioParagraphs, snippet }) {
 
   /* Experience — compact timeline rows from aboutData */
   if (type === "experience") {
+    const experience = getEffectiveExperience(cfg?.experience);
     return (
       <div className="mt-3 space-y-3">
-        {EXPERIENCE.map(({ period, role, company, detail, color }, i) => (
+        {experience.map(({ period, role, company, detail, color }, i) => (
           <div key={i} className="flex items-start gap-2.5">
             <span
               className="mt-1.5 w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: color }}
+              style={{ backgroundColor: color || "#4285F4" }}
             />
             <div className="min-w-0">
               <p className="text-sm font-medium text-[#202124] dark:text-[#e8eaed] leading-snug">
@@ -478,7 +485,12 @@ export default function All() {
                     transition={{ duration: 0.22, ease: "easeInOut" }}
                     className="overflow-hidden"
                   >
-                    <QAExpanded type={item.type} bioParagraphs={cfg.bioParagraphs} snippet={snippet} />
+                    <QAExpanded
+                      type={item.type}
+                      cfg={cfg}
+                      bioParagraphs={cfg?.bioParagraphs}
+                      snippet={snippet}
+                    />
                   </motion.div>
                 )}
               </AnimatePresence>

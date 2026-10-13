@@ -171,3 +171,118 @@ export const EXPERIENCE = [
     color: '#4285F4',
   },
 ];
+
+/**
+ * Returns normalized skills categories if saved is valid and non-empty,
+ * falling back to default SKILLS.
+ */
+export function getEffectiveSkills(saved) {
+  if (Array.isArray(saved) && saved.length > 0) {
+    const valid = saved
+      .filter(
+        (c) =>
+          c &&
+          typeof c === 'object' &&
+          typeof c.cat === 'string' &&
+          c.cat.trim().length > 0 &&
+          Array.isArray(c.list)
+      )
+      .map((c) => ({
+        cat: c.cat.trim(),
+        list: c.list
+          .map((s) => (typeof s === 'string' ? s.trim() : String(s)))
+          .filter(Boolean),
+      }))
+      .filter((c) => c.list.length > 0);
+    if (valid.length > 0) return valid;
+  }
+  return SKILLS;
+}
+
+/**
+ * Returns normalized education timeline if saved is valid and non-empty,
+ * falling back to default EDUCATION.
+ */
+export function getEffectiveEducation(saved) {
+  if (Array.isArray(saved) && saved.length > 0) {
+    const valid = saved
+      .filter(
+        (e) =>
+          e &&
+          typeof e === 'object' &&
+          ((typeof e.degree === 'string' && e.degree.trim().length > 0) ||
+            (typeof e.school === 'string' && e.school.trim().length > 0))
+      )
+      .map((e) => ({
+        year: typeof e.year === 'string' ? e.year.trim() : '',
+        degree: typeof e.degree === 'string' ? e.degree.trim() : '',
+        school: typeof e.school === 'string' ? e.school.trim() : '',
+        detail: typeof e.detail === 'string' ? e.detail.trim() : '',
+        color:
+          typeof e.color === 'string' && e.color.trim().length > 0
+            ? e.color.trim()
+            : '#4285F4',
+      }));
+    if (valid.length > 0) return valid;
+  }
+  return EDUCATION;
+}
+
+/**
+ * Returns normalized experience timeline if saved is valid and non-empty,
+ * falling back to default EXPERIENCE.
+ */
+export function getEffectiveExperience(saved) {
+  if (Array.isArray(saved) && saved.length > 0) {
+    const valid = saved
+      .filter(
+        (e) =>
+          e &&
+          typeof e === 'object' &&
+          ((typeof e.role === 'string' && e.role.trim().length > 0) ||
+            (typeof e.company === 'string' && e.company.trim().length > 0))
+      )
+      .map((e) => ({
+        period: typeof e.period === 'string' ? e.period.trim() : '',
+        role: typeof e.role === 'string' ? e.role.trim() : '',
+        company: typeof e.company === 'string' ? e.company.trim() : '',
+        detail: typeof e.detail === 'string' ? e.detail.trim() : '',
+        color:
+          typeof e.color === 'string' && e.color.trim().length > 0
+            ? e.color.trim()
+            : '#4285F4',
+      }));
+    if (valid.length > 0) return valid;
+  }
+  return EXPERIENCE;
+}
+
+/**
+ * Returns normalized certifications if saved is valid and non-empty,
+ * falling back to default CERTIFICATIONS.
+ */
+export function getEffectiveCertifications(saved) {
+  if (Array.isArray(saved) && saved.length > 0) {
+    const valid = saved
+      .filter(
+        (c) =>
+          c &&
+          typeof c === 'object' &&
+          typeof c.title === 'string' &&
+          c.title.trim().length > 0
+      )
+      .map((c) => ({
+        title: c.title.trim(),
+        issuer: typeof c.issuer === 'string' ? c.issuer.trim() : '',
+        year: typeof c.year === 'string' ? c.year.trim() : '',
+        credential:
+          typeof c.credential === 'string' ? c.credential.trim() : '',
+        color:
+          typeof c.color === 'string' && c.color.trim().length > 0
+            ? c.color.trim()
+            : '#4285F4',
+      }));
+    if (valid.length > 0) return valid;
+  }
+  return CERTIFICATIONS;
+}

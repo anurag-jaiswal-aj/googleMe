@@ -13,6 +13,10 @@ import {
   getBioParagraphs,
   getBioSnippet,
   getExpandedBioParagraphs,
+  getEffectiveSkills,
+  getEffectiveEducation,
+  getEffectiveExperience,
+  getEffectiveCertifications,
 } from "../data/aboutData";
 import { LINKS } from "../config/links";
 import { useConfig } from "../hooks/useConfig";
@@ -55,10 +59,10 @@ export default function About() {
   const linkedinUrl = cfg.socialLinks?.linkedin ?? LINKS.linkedin;
 
   // Fall back to hardcoded data if nothing saved in DB yet
-  const SKILLS       = cfg.skills        ?? DEFAULT_SKILLS;
-  const EDUCATION    = cfg.education     ?? DEFAULT_EDUCATION;
-  const EXPERIENCE   = cfg.experience    ?? DEFAULT_EXPERIENCE;
-  const CERTIFICATIONS = cfg.certifications ?? DEFAULT_CERTIFICATIONS;
+  const SKILLS       = getEffectiveSkills(cfg.skills);
+  const EDUCATION    = getEffectiveEducation(cfg.education);
+  const EXPERIENCE   = getEffectiveExperience(cfg.experience);
+  const CERTIFICATIONS = getEffectiveCertifications(cfg.certifications);
   const [filters, setFilters] = useState([]);
   const [sort, setSort] = useState("relevance");
   const [filterOpen, setFilterOpen] = useState(false);
