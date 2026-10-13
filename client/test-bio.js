@@ -5,6 +5,7 @@ import {
   BIO_PARAGRAPHS,
   getBioParagraphs,
   getBioSnippet,
+  getExpandedBioParagraphs,
 } from './src/data/aboutData.js';
 import { ABOUT_QA } from './src/data/allPageData.js';
 
@@ -64,6 +65,46 @@ test('Bio helper: getBioParagraphs falls back to default BIO_PARAGRAPHS when emp
   assert.deepStrictEqual(getBioParagraphs(['', '   ']), BIO_PARAGRAPHS);
 });
 
+test('Bio helper: getExpandedBioParagraphs omits first paragraph when snippet matches it', () => {
+  const saved = [
+    'First paragraph displayed as snippet.',
+    'Second paragraph for expanded body.',
+    'Third paragraph for expanded body.',
+  ];
+  const snippet = 'First paragraph displayed as snippet.';
+  const expanded = getExpandedBioParagraphs(saved, snippet);
+  assert.deepStrictEqual(expanded, [
+    'Second paragraph for expanded body.',
+    'Third paragraph for expanded body.',
+  ]);
+});
+
+test('Bio helper: getExpandedBioParagraphs preserves all paragraphs when snippet does not match first paragraph', () => {
+  const saved = [
+    'First paragraph.',
+    'Second paragraph.',
+  ];
+  const fallbackSnippet = 'Different introductory text that does not match first paragraph.';
+  const expanded = getExpandedBioParagraphs(saved, fallbackSnippet);
+  assert.deepStrictEqual(expanded, [
+    'First paragraph.',
+    'Second paragraph.',
+  ]);
+});
+
+test('Bio helper: getExpandedBioParagraphs returns empty array when single paragraph matches snippet', () => {
+  const saved = ['Single paragraph bio.'];
+  const snippet = 'Single paragraph bio.';
+  const expanded = getExpandedBioParagraphs(saved, snippet);
+  assert.deepStrictEqual(expanded, []);
+});
+
+test('Bio helper: getExpandedBioParagraphs returns all default paragraphs when fallback snippet differs', () => {
+  const fallbackSnippet = ABOUT_QA[0].answer;
+  const expanded = getExpandedBioParagraphs(null, fallbackSnippet);
+  assert.deepStrictEqual(expanded, BIO_PARAGRAPHS);
+});
+
 test('All page simulation: saved bio updates bio snippet while non-bio cards remain unchanged', () => {
   const savedBio = [
     'Updated bio introduction for search results.',
@@ -107,34 +148,36 @@ test('All page simulation: missing saved bio falls back to static defaults for a
   assert.strictEqual(renderedCards[2].snippet, ABOUT_QA[2].answer);
 });
 
-test('All page simulation: expanded bio renders saved paragraphs or fallback', () => {
-  const savedBio = ['First custom paragraph', 'Second custom paragraph'];
-  const expandedSaved = getBioParagraphs(savedBio);
-  assert.deepStrictEqual(expandedSaved, savedBio);
+test('All page simulation: expanded bio avoids consecutive duplication of snippet', () => {
+  const savedBio = ['First custom paragraph', 'Second custom paragraph', 'Third custom paragraph'];
+  const snippet = getBioSnippet(savedBio);
+  const expandedSaved = getExpandedBioParagraphs(savedBio, snippet);
+  assert.deepStrictEqual(expandedSaved, ['Second custom paragraph', 'Third custom paragraph']);
 
-  const expandedFallback = getBioParagraphs(null);
+  const fallbackSnippet = ABOUT_QA[0].answer;
+  const expandedFallback = getExpandedBioParagraphs(null, fallbackSnippet);
   assert.deepStrictEqual(expandedFallback, BIO_PARAGRAPHS);
 });
 
-test('About page simulation: saved bio updates snippet and expanded paragraphs', () => {
-  const savedBio = ['Engineering student and builder.', 'Full stack focus.'];
+test('About page simulation: saved bio updates snippet and omits duplicate first paragraph in expanded content', () => {
+  const savedBio = ['Engineering student and builder.', 'Full stack focus.', 'Third paragraph.'];
   const cfg = { bioParagraphs: savedBio };
   const staticFallbackSnippet = ABOUT_QA[0].answer;
 
   const snippet = getBioSnippet(cfg.bioParagraphs, staticFallbackSnippet);
-  const paragraphs = getBioParagraphs(cfg.bioParagraphs);
+  const expanded = getExpandedBioParagraphs(cfg.bioParagraphs, snippet);
 
   assert.strictEqual(snippet, 'Engineering student and builder.');
-  assert.deepStrictEqual(paragraphs, savedBio);
+  assert.deepStrictEqual(expanded, ['Full stack focus.', 'Third paragraph.']);
 });
 
-test('About page simulation: missing saved bio falls back to static snippet and paragraphs', () => {
+test('About page simulation: missing saved bio falls back to static snippet and all default paragraphs', () => {
   const cfg = {};
   const staticFallbackSnippet = ABOUT_QA[0].answer;
 
   const snippet = getBioSnippet(cfg.bioParagraphs, staticFallbackSnippet);
-  const paragraphs = getBioParagraphs(cfg.bioParagraphs);
+  const expanded = getExpandedBioParagraphs(cfg.bioParagraphs, snippet);
 
   assert.strictEqual(snippet, staticFallbackSnippet);
-  assert.deepStrictEqual(paragraphs, BIO_PARAGRAPHS);
+  assert.deepStrictEqual(expanded, BIO_PARAGRAPHS);
 });

@@ -12,6 +12,7 @@ import {
   CERTIFICATIONS as DEFAULT_CERTIFICATIONS,
   getBioParagraphs,
   getBioSnippet,
+  getExpandedBioParagraphs,
 } from "../data/aboutData";
 import { LINKS } from "../config/links";
 import { useConfig } from "../hooks/useConfig";
@@ -58,7 +59,6 @@ export default function About() {
   const EDUCATION    = cfg.education     ?? DEFAULT_EDUCATION;
   const EXPERIENCE   = cfg.experience    ?? DEFAULT_EXPERIENCE;
   const CERTIFICATIONS = cfg.certifications ?? DEFAULT_CERTIFICATIONS;
-  const bioParagraphs = getBioParagraphs(cfg.bioParagraphs);
   const [filters, setFilters] = useState([]);
   const [sort, setSort] = useState("relevance");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -121,6 +121,7 @@ export default function About() {
   };
 
   const bioSnippet = getBioSnippet(cfg.bioParagraphs, aboutSummaryById.Bio.answer);
+  const expandedBioParagraphs = getExpandedBioParagraphs(cfg.bioParagraphs, bioSnippet);
 
   const ALL = [
     { id: "Bio", delay: 0.05 },
@@ -153,7 +154,7 @@ export default function About() {
             menuItems={aboutMenuItems}
           >
             <AnimatePresence initial={false}>
-              {expanded.bio && (
+              {expanded.bio && expandedBioParagraphs.length > 0 && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
@@ -161,7 +162,7 @@ export default function About() {
                   transition={{ duration: 0.2, ease: "easeInOut" }}
                   className="overflow-hidden"
                 >
-                  {bioParagraphs.map((para, i) => (
+                  {expandedBioParagraphs.map((para, i) => (
                     <p key={i} className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-relaxed mt-2">{para}</p>
                   ))}
                 </motion.div>

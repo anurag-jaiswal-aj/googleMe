@@ -42,6 +42,26 @@ export function getBioSnippet(saved, fallback = BIO_SNIPPET) {
   return fallback;
 }
 
+/**
+ * Returns paragraphs to display in the expanded bio view.
+ * If the search-result snippet already displays the first paragraph,
+ * returns the subsequent paragraphs to avoid consecutive duplication
+ * while keeping the complete bio readable across snippet and body.
+ * If the snippet does not match the first paragraph (e.g. static fallback),
+ * returns all paragraphs.
+ */
+export function getExpandedBioParagraphs(saved, snippet) {
+  const paragraphs = getBioParagraphs(saved);
+  if (
+    paragraphs.length > 0 &&
+    typeof snippet === 'string' &&
+    paragraphs[0].trim() === snippet.trim()
+  ) {
+    return paragraphs.slice(1);
+  }
+  return paragraphs;
+}
+
 
 export const SKILLS = [
   {

@@ -6,6 +6,7 @@ import {
   EXPERIENCE,
   getBioParagraphs,
   getBioSnippet,
+  getExpandedBioParagraphs,
 } from "../data/aboutData";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -78,10 +79,11 @@ function PeopleAlsoAsk() {
 }
 
 /* ── Inline expanded content for Q&A cards ──────────── */
-function QAExpanded({ type, bioParagraphs }) {
+function QAExpanded({ type, bioParagraphs, snippet }) {
   /* Bio — paragraphs from aboutData */
   if (type === "bio") {
-    const paragraphs = getBioParagraphs(bioParagraphs);
+    const paragraphs = getExpandedBioParagraphs(bioParagraphs, snippet);
+    if (paragraphs.length === 0) return null;
     return (
       <div className="mt-3 space-y-2">
         {paragraphs.map((para, i) => (
@@ -476,7 +478,7 @@ export default function All() {
                     transition={{ duration: 0.22, ease: "easeInOut" }}
                     className="overflow-hidden"
                   >
-                    <QAExpanded type={item.type} bioParagraphs={cfg.bioParagraphs} />
+                    <QAExpanded type={item.type} bioParagraphs={cfg.bioParagraphs} snippet={snippet} />
                   </motion.div>
                 )}
               </AnimatePresence>
