@@ -1838,8 +1838,8 @@ test('Remediation Batch 1: Contact form rejects oversized files (> 5 MB) with HT
   assert.strictEqual(sentEmails.length, 0);
 });
 
-// -- Phase 2A Remediation: Content Security Policy (Report-Only) ---------------
-test('Phase 2A: Content-Security-Policy-Report-Only configured in vercel.json with verified directives and script hash', () => {
+// -- Phase 2B Remediation: Content Security Policy Enforcement ---------------
+test('Phase 2B: Content-Security-Policy enforced in vercel.json with verified directives, script hash, and no duplicate Report-Only header', () => {
   const fs = require('fs');
   const path = require('path');
   const crypto = require('crypto');
@@ -1850,8 +1850,9 @@ test('Phase 2A: Content-Security-Policy-Report-Only configured in vercel.json wi
   assert.ok(catchAll, 'vercel.json must have catch-all headers entry');
 
   const headerMap = Object.fromEntries(catchAll.headers.map((h) => [h.key, h.value]));
-  const csp = headerMap['Content-Security-Policy-Report-Only'];
-  assert.ok(csp, 'vercel.json must define Content-Security-Policy-Report-Only');
+  const csp = headerMap['Content-Security-Policy'];
+  assert.ok(csp, 'vercel.json must define Content-Security-Policy');
+  assert.strictEqual(headerMap['Content-Security-Policy-Report-Only'], undefined, 'vercel.json must not retain Content-Security-Policy-Report-Only duplicate');
 
   // Verify baseline directives
   assert.ok(csp.includes("default-src 'self'"), 'CSP must set default-src to self');
