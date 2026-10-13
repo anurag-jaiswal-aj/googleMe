@@ -122,6 +122,8 @@ function validatePageVisibilityConfig(value) {
   return null;
 }
 
+const { validateConfigEntry } = require('../utils/configValidation');
+
 // POST /api/config — admin only
 router.post('/', requireAuth, async (req, res) => {
   try {
@@ -134,16 +136,21 @@ router.post('/', requireAuth, async (req, res) => {
         if (!item || typeof item.key !== 'string' || !item.key.trim()) {
           return res.status(400).json({ error: 'Each update item must contain a non-empty string key' });
         }
-        if (item.key.trim() === 'tools') {
+        const cleanKey = item.key.trim();
+        if (cleanKey === 'tools') {
           const toolsErr = validateToolsConfig(item.value);
           if (toolsErr) {
             return res.status(400).json({ error: toolsErr });
           }
-        }
-        if (item.key.trim() === 'pageVisibility') {
+        } else if (cleanKey === 'pageVisibility') {
           const pvErr = validatePageVisibilityConfig(item.value);
           if (pvErr) {
             return res.status(400).json({ error: pvErr });
+          }
+        } else {
+          const entryErr = validateConfigEntry(cleanKey, item.value);
+          if (entryErr) {
+            return res.status(400).json({ error: entryErr });
           }
         }
       }
@@ -158,21 +165,26 @@ router.post('/', requireAuth, async (req, res) => {
     if (!key || typeof key !== 'string' || !key.trim()) {
       return res.status(400).json({ error: 'key is required' });
     }
-    if (key.trim() === 'tools') {
+    const cleanKey = key.trim();
+    if (cleanKey === 'tools') {
       const toolsErr = validateToolsConfig(value);
       if (toolsErr) {
         return res.status(400).json({ error: toolsErr });
       }
-    }
-    if (key.trim() === 'pageVisibility') {
+    } else if (cleanKey === 'pageVisibility') {
       const pvErr = validatePageVisibilityConfig(value);
       if (pvErr) {
         return res.status(400).json({ error: pvErr });
       }
+    } else {
+      const entryErr = validateConfigEntry(cleanKey, value);
+      if (entryErr) {
+        return res.status(400).json({ error: entryErr });
+      }
     }
     const doc = await SiteConfig.findOneAndUpdate(
-      { key: key.trim() },
-      { key: key.trim(), value },
+      { key: cleanKey },
+      { key: cleanKey, value },
       { upsert: true, new: true }
     );
     invalidateCache();

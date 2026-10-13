@@ -93,17 +93,20 @@ router.get('/repos', requireAuth, async (req, res, next) => {
   }
 });
 
+const { validateGithubSelection } = require('../utils/configValidation');
+
 // POST /api/github/selection: save selected repo names + featured flags (admin only)
 router.post('/selection', requireAuth, async (req, res, next) => {
-  const { selectedRepos } = req.body;
-  if (!Array.isArray(selectedRepos)) {
-    return res.status(400).json({ error: 'selectedRepos must be an array' });
+  const { selectedRepos } = req.body || {};
+  const validationErr = validateGithubSelection(selectedRepos);
+  if (validationErr) {
+    return res.status(400).json({ error: validationErr });
   }
   try {
     await PortfolioConfig.findOneAndUpdate(
       { key: 'github_selection' },
       { selectedRepos },
-      { upsert: true, new: true }
+      { upsert: true, new: true, runValidators: true }
     );
     res.json({ success: true, selectedRepos });
   } catch (err) {
