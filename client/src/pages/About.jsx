@@ -5,7 +5,14 @@ import SearchResult from "../components/SearchResult";
 import FilterSort from "../components/FilterSort";
 import SEO from "../components/SEO";
 import { ABOUT_QA } from "../data/allPageData";
-import { SKILLS as DEFAULT_SKILLS, EDUCATION as DEFAULT_EDUCATION, EXPERIENCE as DEFAULT_EXPERIENCE, CERTIFICATIONS as DEFAULT_CERTIFICATIONS } from "../data/aboutData";
+import {
+  SKILLS as DEFAULT_SKILLS,
+  EDUCATION as DEFAULT_EDUCATION,
+  EXPERIENCE as DEFAULT_EXPERIENCE,
+  CERTIFICATIONS as DEFAULT_CERTIFICATIONS,
+  getBioParagraphs,
+  getBioSnippet,
+} from "../data/aboutData";
 import { LINKS } from "../config/links";
 import { useConfig } from "../hooks/useConfig";
 import { useImagesPageEnabled } from "../hooks/useImagesPageEnabled";
@@ -51,7 +58,7 @@ export default function About() {
   const EDUCATION    = cfg.education     ?? DEFAULT_EDUCATION;
   const EXPERIENCE   = cfg.experience    ?? DEFAULT_EXPERIENCE;
   const CERTIFICATIONS = cfg.certifications ?? DEFAULT_CERTIFICATIONS;
-  const bioParagraphs = cfg.bioParagraphs ?? null; // null = use inline JSX below
+  const bioParagraphs = getBioParagraphs(cfg.bioParagraphs);
   const [filters, setFilters] = useState([]);
   const [sort, setSort] = useState("relevance");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -113,6 +120,8 @@ export default function About() {
     Experience: ABOUT_QA[2],
   };
 
+  const bioSnippet = getBioSnippet(cfg.bioParagraphs, aboutSummaryById.Bio.answer);
+
   const ALL = [
     { id: "Bio", delay: 0.05 },
     { id: "Education", delay: 0.1 },
@@ -139,7 +148,7 @@ export default function About() {
           <SearchResult
             url="anuragjaiswal.me/about/bio"
             title="About Me | Anurag Jaiswal"
-            snippet={aboutSummaryById.Bio.answer}
+            snippet={bioSnippet}
             onTitleClick={() => openSection("bio")}
             menuItems={aboutMenuItems}
           >
@@ -152,11 +161,7 @@ export default function About() {
                   transition={{ duration: 0.2, ease: "easeInOut" }}
                   className="overflow-hidden"
                 >
-                  {(bioParagraphs ?? [
-                    "I enjoy building scalable full-stack web applications and exploring how machine learning can power intelligent, data-driven systems. My work involves developing applications using JavaScript, the MERN stack, Python, MongoDB, and MySQL, while also experimenting with machine learning models and data analysis.",
-                    "Alongside development and ML, I actively strengthen my problem-solving skills through Data Structures and Algorithms, focusing on writing efficient and optimized solutions.",
-                    "I enjoy learning new technologies, building projects, and continuously improving my ability to create scalable, intelligent software systems.",
-                  ]).map((para, i) => (
+                  {bioParagraphs.map((para, i) => (
                     <p key={i} className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-relaxed mt-2">{para}</p>
                   ))}
                 </motion.div>

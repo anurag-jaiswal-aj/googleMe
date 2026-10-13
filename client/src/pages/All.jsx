@@ -4,6 +4,8 @@ import {
   SKILLS,
   EDUCATION,
   EXPERIENCE,
+  getBioParagraphs,
+  getBioSnippet,
 } from "../data/aboutData";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -76,12 +78,13 @@ function PeopleAlsoAsk() {
 }
 
 /* ── Inline expanded content for Q&A cards ──────────── */
-function QAExpanded({ type }) {
+function QAExpanded({ type, bioParagraphs }) {
   /* Bio — paragraphs from aboutData */
   if (type === "bio") {
+    const paragraphs = getBioParagraphs(bioParagraphs);
     return (
       <div className="mt-3 space-y-2">
-        {BIO_PARAGRAPHS.map((para, i) => (
+        {paragraphs.map((para, i) => (
           <p
             key={i}
             className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-relaxed"
@@ -425,6 +428,9 @@ export default function All() {
       {/* Q&A cards */}
       {QA.map((item, i) => {
         const isOpen = expandedQA === item.question;
+        const snippet = item.type === "bio"
+          ? getBioSnippet(cfg.bioParagraphs, item.answer)
+          : item.answer;
         return (
           <motion.div
             key={item.question}
@@ -435,7 +441,7 @@ export default function All() {
             <SearchResult
               url={item.url}
               title={item.question}
-              snippet={item.answer}
+              snippet={snippet}
               onTitleClick={() => setExpandedQA(item.question)}
               menuItems={[
                 {
@@ -470,7 +476,7 @@ export default function All() {
                     transition={{ duration: 0.22, ease: "easeInOut" }}
                     className="overflow-hidden"
                   >
-                    <QAExpanded type={item.type} />
+                    <QAExpanded type={item.type} bioParagraphs={cfg.bioParagraphs} />
                   </motion.div>
                 )}
               </AnimatePresence>

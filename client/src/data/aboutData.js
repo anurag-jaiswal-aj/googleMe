@@ -12,6 +12,37 @@ export const BIO_PARAGRAPHS = [
   'I enjoy learning new technologies, building projects, and continuously improving my ability to create scalable, intelligent software systems.',
 ];
 
+/**
+ * Returns saved bio paragraphs if available and non-empty,
+ * falling back to the default BIO_PARAGRAPHS.
+ */
+export function getBioParagraphs(saved) {
+  if (Array.isArray(saved)) {
+    const valid = saved
+      .filter((p) => typeof p === 'string' && p.trim().length > 0)
+      .map((p) => p.trim());
+    if (valid.length > 0) return valid;
+  } else if (typeof saved === 'string' && saved.trim().length > 0) {
+    return [saved.trim()];
+  }
+  return BIO_PARAGRAPHS;
+}
+
+/**
+ * Derives the short search-result snippet from the first non-empty
+ * saved bio paragraph, falling back to the existing static default.
+ */
+export function getBioSnippet(saved, fallback = BIO_SNIPPET) {
+  if (Array.isArray(saved)) {
+    const first = saved.find((p) => typeof p === 'string' && p.trim().length > 0);
+    if (first) return first.trim();
+  } else if (typeof saved === 'string' && saved.trim().length > 0) {
+    return saved.trim();
+  }
+  return fallback;
+}
+
+
 export const SKILLS = [
   {
     cat: 'Languages',
