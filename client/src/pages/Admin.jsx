@@ -9,6 +9,8 @@ import api, {
 } from '../api';
 import { LINKS } from '../config/links';
 import { clearConfigCache } from '../hooks/useConfig';
+import { getPageVisibility } from '../data/pageVisibility';
+import { setVerifiedAdminToken, clearVerifiedAdminSession } from '../utils/adminAuth';
 import SEO from '../components/SEO';
 import { clearProjectCache } from '../utils/prefetch';
 import {
@@ -1636,30 +1638,37 @@ function BlogTab({ cfg, onSaved }) {
    TAB: SITE (toggles)
 ══════════════════════════════════════════════════════ */
 function SiteTab({ cfg, onSaved }) {
-  const [imagesEnabled, setImagesEnabled] = useState(() => localStorage.getItem('imagesPageEnabled') !== 'false');
-  const [blogEnabled,   setBlogEnabled]   = useState(() => localStorage.getItem('blogPageEnabled')   !== 'false');
-  const [toolsEnabled,  setToolsEnabled]  = useState(() => localStorage.getItem('toolsPageEnabled')  !== 'false');
+  const initialVisibility = getPageVisibility(cfg);
+  const [imagesEnabled, setImagesEnabled] = useState(initialVisibility.images);
+  const [blogEnabled,   setBlogEnabled]   = useState(initialVisibility.blog);
+  const [toolsEnabled,  setToolsEnabled]  = useState(initialVisibility.tools);
   const [defaultTheme,  setDefaultTheme]  = useState(cfg.defaultTheme ?? 'system');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved]   = useState(false);
   const [error, setError]   = useState('');
 
-  const toggle = (key, val, setter, event) => {
-    setter(val);
-    localStorage.setItem(key, val ? 'true' : 'false');
-    window.dispatchEvent(new Event(event));
-    setSaved(false);
-  };
-
   const save = async () => {
     setSaving(true); setSaved(false); setError('');
     try {
-      await saveConfig('defaultTheme', defaultTheme);
+      await saveConfigBulk([
+        {
+          key: 'pageVisibility',
+          value: {
+            blog: blogEnabled,
+            tools: toolsEnabled,
+            images: imagesEnabled,
+          },
+        },
+        { key: 'defaultTheme', value: defaultTheme },
+      ]);
       clearConfigCache();
       setSaved(true);
       onSaved?.();
-    } catch { setError('Save failed.'); }
-    finally { setSaving(false); }
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Save failed.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -1674,21 +1683,21 @@ function SiteTab({ cfg, onSaved }) {
               <p className="text-sm text-[#202124] dark:text-[#e8eaed]">Images tab</p>
               <p className="text-xs text-[#9aa0a6]">Show or hide the Images page in navigation</p>
             </div>
-            <Toggle value={imagesEnabled} onChange={v => toggle('imagesPageEnabled', v, setImagesEnabled, 'imagesPageToggled')} />
+            <Toggle value={imagesEnabled} onChange={v => { setImagesEnabled(v); setSaved(false); }} />
           </div>
           <div className="flex items-center justify-between py-2 border-b border-[#f1f3f4] dark:border-[#3c4043]">
             <div>
               <p className="text-sm text-[#202124] dark:text-[#e8eaed]">Blog tab</p>
               <p className="text-xs text-[#9aa0a6]">Show or hide the Blog page in navigation</p>
             </div>
-            <Toggle value={blogEnabled} onChange={v => toggle('blogPageEnabled', v, setBlogEnabled, 'blogPageToggled')} />
+            <Toggle value={blogEnabled} onChange={v => { setBlogEnabled(v); setSaved(false); }} />
           </div>
           <div className="flex items-center justify-between py-2">
             <div>
               <p className="text-sm text-[#202124] dark:text-[#e8eaed]">Toolkit tab</p>
               <p className="text-xs text-[#9aa0a6]">Show or hide the Toolkit page in navigation</p>
             </div>
-            <Toggle value={toolsEnabled} onChange={v => toggle('toolsPageEnabled', v, setToolsEnabled, 'toolsPageToggled')} />
+            <Toggle value={toolsEnabled} onChange={v => { setToolsEnabled(v); setSaved(false); }} />
           </div>
         </div>
       </div>
@@ -2735,11 +2744,15 @@ export default function Admin() {
     // Verify token is still valid with the server
     adminVerify()
       .then(() => {
+        setVerifiedAdminToken(token);
         setIsAuthenticated(true);
         loadCfg();
         fetchAdminFeedback({ limit: 1 }).then(d => { if (d.counts) setInboxCounts(d.counts); }).catch(() => {});
       })
-      .catch(() => { localStorage.removeItem('adminToken'); });
+      .catch(() => {
+        localStorage.removeItem('adminToken');
+        clearVerifiedAdminSession();
+      });
   }, []);
 
   const loadCfg = async () => {
@@ -2754,6 +2767,7 @@ export default function Admin() {
     try {
       const { token } = await adminLogin(password);
       localStorage.setItem('adminToken', token);
+      setVerifiedAdminToken(token);
       setIsAuthenticated(true);
       loadCfg();
       fetchAdminFeedback({ limit: 1 }).then(d => { if (d.counts) setInboxCounts(d.counts); }).catch(() => {});
@@ -2766,6 +2780,7 @@ export default function Admin() {
 
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
+    clearVerifiedAdminSession();
     setIsAuthenticated(false);
     setPassword('');
   };

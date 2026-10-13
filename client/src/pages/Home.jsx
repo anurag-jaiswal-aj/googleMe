@@ -9,7 +9,8 @@ import SEO from "../components/SEO";
 import KnowledgePanel from "../components/KnowledgePanel";
 import { inlineResumeUrl } from '../utils/resumeUrl';
 import { getAiReply } from '../utils/aiChat';
-import { resolveSearchRoute, filterSuggestions, SEARCH_SUGGESTIONS } from '../utils/searchRoute';
+import { resolveSearchRoute, filterSuggestions, SEARCH_SUGGESTIONS, isRouteVisible } from '../utils/searchRoute';
+import { getPageVisibility } from '../data/pageVisibility';
 import BugReportModal from '../components/BugReportModal';
 
 const LANGUAGES = [
@@ -187,6 +188,7 @@ export default function Home() {
   const navigate = useNavigate();
   const { isDark, toggle } = useTheme();
   const cfg = useConfig();
+  const visibility = getPageVisibility(cfg);
   const sl = cfg.socialLinks ?? {};
   const altPortfolioUrl = sl.alternatePortfolio ?? LINKS.alternatePortfolio;
   const githubUrl   = sl.github   ?? LINKS.github;
@@ -216,7 +218,7 @@ export default function Home() {
     { icon: "search", text: "Anurag contact",             to: "/contact"  },
     { icon: "search", text: "Anurag toolkit",             to: "/tools"    },
     { icon: "search", text: "Anurag images",              to: "/images"   },
-  ];
+  ].filter((s) => s.external || isRouteVisible(s.to, visibility));
 
   const filtered = query.trim()
     ? SUGGESTIONS.filter((s) => s.text.toLowerCase().includes(query.toLowerCase()))
@@ -276,7 +278,7 @@ export default function Home() {
         setActiveIdx(-1);
         return;
       }
-      const destination = suggestion?.to ?? resolveSearchRoute(query) ?? "/all";
+      const destination = suggestion?.to ?? resolveSearchRoute(query, visibility) ?? "/all";
       setQuery(suggestion?.text ?? query);
       setFocused(false);
       setActiveIdx(-1);
@@ -442,9 +444,9 @@ export default function Home() {
           if (e2.key === "h") navigate("/");
           else if (e2.key === "a") navigate("/about");
           else if (e2.key === "p") navigate("/projects");
-          else if (e2.key === "b") navigate("/blog");
+          else if (e2.key === "b" && visibility.blog !== false) navigate("/blog");
           else if (e2.key === "c") navigate("/contact");
-          else if (e2.key === "t") navigate("/tools");
+          else if (e2.key === "t" && visibility.tools !== false) navigate("/tools");
         };
         document.addEventListener("keydown", next, { once: true });
         return;
@@ -464,7 +466,7 @@ export default function Home() {
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [navigate, toggle]);
+  }, [navigate, toggle, visibility]);
 
   return (
     <div className="relative min-h-screen flex flex-col bg-white dark:bg-gray-950 transition-colors duration-300">
@@ -607,7 +609,7 @@ export default function Home() {
                           </div>
                         ),
                       },
-                      {
+                      ...(visibility.blog !== false ? [{
                         label: "Blogs",
                         action: () => { navigate("/blog"); setAppsOpen(false); },
                         icon: (
@@ -620,7 +622,7 @@ export default function Home() {
                             </svg>
                           </div>
                         ),
-                      },
+                      }] : []),
                       {
                         label: "Twitter",
                         action: () => { window.open(twitterUrl, "_blank"); setAppsOpen(false); },
@@ -1295,7 +1297,7 @@ export default function Home() {
           className="flex flex-wrap justify-center gap-3 mt-7"
         >
           <button
-            onClick={() => navigate(resolveSearchRoute(query) ?? "/all")}
+            onClick={() => navigate(resolveSearchRoute(query, visibility) ?? "/all")}
             className="px-5 py-2.5 rounded text-sm font-medium
                        bg-[#f8f9fa] dark:bg-[#303134]
                        text-[#3c4043] dark:text-[#e8eaed]
@@ -1307,8 +1309,8 @@ export default function Home() {
           </button>
           <button
             onClick={() => {
-              const pages = ["/about", "/projects", "/contact", "/blog", "/tools"];
-              navigate(pages[Math.floor(Math.random() * pages.length)]);
+              const pages = ["/about", "/projects", "/contact", "/blog", "/tools"].filter((p) => isRouteVisible(p, visibility));
+              navigate(pages[Math.floor(Math.random() * pages.length)] || "/all");
             }}
             className="px-5 py-2.5 rounded text-sm font-medium
                        bg-[#f8f9fa] dark:bg-[#303134]
@@ -1975,9 +1977,9 @@ export default function Home() {
                   { keys: ["g", "h"], desc: "Go to Home" },
                   { keys: ["g", "a"], desc: "Go to About" },
                   { keys: ["g", "p"], desc: "Go to Projects" },
-                  { keys: ["g", "b"], desc: "Go to Blog" },
+                  ...(visibility.blog !== false ? [{ keys: ["g", "b"], desc: "Go to Blog" }] : []),
                   { keys: ["g", "c"], desc: "Go to Contact" },
-                  { keys: ["g", "t"], desc: "Go to Tools" },
+                  ...(visibility.tools !== false ? [{ keys: ["g", "t"], desc: "Go to Tools" }] : []),
                   { group: "Search" },
                   { keys: ["↑", "↓"], desc: "Navigate suggestions" },
                   { keys: ["Enter"], desc: "Select suggestion / search" },

@@ -21,6 +21,7 @@ import {
 import { LINKS } from "../config/links";
 import { useConfig } from "../hooks/useConfig";
 import { useImagesPageEnabled } from "../hooks/useImagesPageEnabled";
+import { getPageVisibility } from "../data/pageVisibility";
 import { inlineResumeUrl } from "../utils/resumeUrl";
 
 const SECTIONS = ["Bio", "Skills", "Education", "Experience", "Certifications"];
@@ -56,6 +57,7 @@ function Sitelinks({ links, onLinkClick }) {
 export default function About() {
   const imagesEnabled = useImagesPageEnabled();
   const cfg = useConfig();
+  const visibility = getPageVisibility(cfg);
   const linkedinUrl = cfg.socialLinks?.linkedin ?? LINKS.linkedin;
 
   // Fall back to hardcoded data if nothing saved in DB yet
@@ -180,8 +182,8 @@ export default function About() {
                 { label: "Certifications", to: "#certifications", key: "certs" },
                 { label: "Projects", to: "/projects" },
                 { label: "Contact", to: "/contact" },
-                { label: "Blog", to: "/blog" },
-                { label: "Toolkit", to: "/tools" },
+                ...(visibility.blog !== false ? [{ label: "Blog", to: "/blog" }] : []),
+                ...(visibility.tools !== false ? [{ label: "Toolkit", to: "/tools" }] : []),
               ]}
               onLinkClick={(event, link) =>
                 handleSectionLink(event, link.to.slice(1))
@@ -567,11 +569,10 @@ export default function About() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
             { label: 'Open source projects and GitHub', to: '/projects' },
-            { label: 'Skills and tech stack', to: '/tools' },
-            { label: 'Blog posts and articles', to: '/blog' },
-            imagesEnabled
-              ? { label: 'Images and gallery', to: '/images' }
-              : { label: 'Get in touch', to: '/contact' },
+            ...(visibility.tools !== false ? [{ label: 'Skills and tech stack', to: '/tools' }] : []),
+            ...(visibility.blog !== false ? [{ label: 'Blog posts and articles', to: '/blog' }] : []),
+            ...(visibility.images !== false ? [{ label: 'Images and gallery', to: '/images' }] : []),
+            { label: 'Get in touch', to: '/contact' },
           ].map(({ label, to }) => (
             <a key={label} href={to}
                className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#dadce0] dark:border-[#5f6368]

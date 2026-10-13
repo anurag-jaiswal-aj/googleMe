@@ -11,6 +11,7 @@ import { getSocialProfiles } from '../data/socialProfiles';
 import { getContactDetails } from '../data/contactData';
 import { useConfig } from '../hooks/useConfig';
 import { useImagesPageEnabled } from '../hooks/useImagesPageEnabled';
+import { getPageVisibility } from '../data/pageVisibility';
 
 const SUBJECTS = ['Job Opportunity', 'Collaboration', 'Project Inquiry', 'General Question', 'Feedback', 'Other'];
 
@@ -426,6 +427,7 @@ const PEOPLE_ALSO_SEARCH = [
 export default function Contact() {
   const navigate = useNavigate();
   const cfg = useConfig();
+  const visibility = getPageVisibility(cfg);
   const imagesEnabled = useImagesPageEnabled();
   const SOCIAL = getSocialProfiles(cfg).filter((p) =>
     ['LinkedIn', 'Twitter / X', 'GitHub', 'Medium'].includes(p.name)
@@ -532,8 +534,11 @@ export default function Contact() {
         <p className="text-base font-medium text-[#202124] dark:text-[#e8eaed] mb-4">People also search for</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
-            ...PEOPLE_ALSO_SEARCH.slice(0, imagesEnabled ? 3 : 4),
-            ...(imagesEnabled ? [{ label: 'Images and gallery', to: '/images' }] : []),
+            { label: 'Projects and open source work', to: '/projects' },
+            ...(visibility.tools !== false ? [{ label: 'Skills and tech stack', to: '/tools' }] : []),
+            { label: 'Background and bio', to: '/about' },
+            ...(visibility.blog !== false ? [{ label: 'Blog posts and articles', to: '/blog' }] : []),
+            ...(visibility.images !== false ? [{ label: 'Images and gallery', to: '/images' }] : []),
           ].map(({ label, to, href }) => (
             <button key={label}
               onClick={() => to ? navigate(to) : window.open(href, '_blank', 'noopener,noreferrer')}

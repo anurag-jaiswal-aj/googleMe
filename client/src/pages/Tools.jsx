@@ -6,6 +6,7 @@ import SEO from '../components/SEO';
 import { DEFAULT_TOOLS, getEffectiveTools, VALID_LEVELS } from '../data/toolsData';
 import { useConfig } from '../hooks/useConfig';
 import { useImagesPageEnabled } from '../hooks/useImagesPageEnabled';
+import { getPageVisibility } from '../data/pageVisibility';
 
 const LEVEL_COLOR = {
   Expert:       'bg-[#e6f4ea] dark:bg-[#1a3320] text-[#137333] dark:text-[#81c995] border-[#b6dfc3] dark:border-[#2a5535]',
@@ -24,6 +25,7 @@ const SORT_OPTS = [
 export default function Tools() {
   const imagesEnabled = useImagesPageEnabled();
   const cfg = useConfig();
+  const visibility = getPageVisibility(cfg);
   const toolsData = getEffectiveTools(cfg?.tools);
   const [filters,    setFilters]    = useState([]);
   const [sort,       setSort]       = useState('relevance');
@@ -142,10 +144,9 @@ export default function Tools() {
           {[
             { label: 'Projects and open source work', to: '/projects' },
             { label: 'Background and bio', to: '/about' },
-            { label: 'Blog posts and articles', to: '/blog' },
-            imagesEnabled
-              ? { label: 'Images and gallery', to: '/images' }
-              : { label: 'Get in touch', to: '/contact' },
+            ...(visibility.blog !== false ? [{ label: 'Blog posts and articles', to: '/blog' }] : []),
+            ...(visibility.images !== false ? [{ label: 'Images and gallery', to: '/images' }] : []),
+            { label: 'Get in touch', to: '/contact' },
           ].map(({ label, to }) => (
             <a key={label} href={to}
                className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#dadce0] dark:border-[#5f6368]

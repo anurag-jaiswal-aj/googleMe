@@ -23,6 +23,7 @@ import { getToolCards } from "../data/toolsData";
 import { ABOUT_QA, PEOPLE_ALSO_ASK } from "../data/allPageData";
 import { useImagesPageEnabled } from "../hooks/useImagesPageEnabled";
 import { useConfig } from "../hooks/useConfig";
+import { getPageVisibility } from "../data/pageVisibility";
 import { sanitizeMediumHtml } from "../utils/sanitizeHtml";
 import SEO from "../components/SEO";
 
@@ -363,6 +364,7 @@ function ArticleReader({ post, onClose }) {
 export default function All() {
   const navigate = useNavigate();
   const cfg = useConfig();
+  const visibility = getPageVisibility(cfg);
   const toolCards = useMemo(() => getToolCards(cfg?.tools), [cfg?.tools]);
   const SOCIALS = getSocialProfiles(cfg);
   const mediumUrl = cfg.mediumUsername
@@ -409,8 +411,8 @@ export default function All() {
   const total =
     QA.length +
     (liveProjects.length > 0 ? liveProjects.length : PROJECTS.length) +
-    blogPosts.length +
-    toolCards.length +
+    (visibility.blog !== false ? blogPosts.length : 0) +
+    (visibility.tools !== false ? toolCards.length : 0) +
     SOCIALS.length;
 
   return (
@@ -453,11 +455,15 @@ export default function All() {
               snippet={snippet}
               onTitleClick={() => setExpandedQA(item.question)}
               menuItems={[
-                {
-                  label: `Open ${item.pageName}`,
-                  icon: 'M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14',
-                  action: () => navigate(item.to),
-                },
+                ...(item.to === "/tools" && visibility.tools === false
+                  ? []
+                  : [
+                      {
+                        label: `Open ${item.pageName}`,
+                        icon: 'M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14',
+                        action: () => navigate(item.to),
+                      },
+                    ]),
                 {
                   label: "Copy link",
                   icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
@@ -601,118 +607,131 @@ export default function All() {
       })}
 
       {/* Blog */}
-      <SectionLabel label="From the blog" />
-      {blogPosts.map((post, i) => (
-        <motion.div
-          key={post.id || post.title}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            delay: (QA.length + PROJECTS.length + i) * 0.05,
-            duration: 0.28,
-          }}
-        >
-          <SearchResult
-            url={post.url}
-            title={post.title}
-            snippet={post.snippet}
-            to={post.content ? undefined : "/blog"}
-            onTitleClick={post.content ? () => setReading(post) : undefined}
-            menuItems={[
-              {
-                label: 'Read here',
-                icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
-                action: () => setReading(post),
-              },
-              {
-                label: 'Copy link',
-                icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
-                action: () => navigator.clipboard.writeText(post.href || mediumUrl),
-              },
-              {
-                label: 'Open on Medium',
-                icon: 'M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14',
-                action: () => window.open(post.href || mediumUrl, '_blank', 'noopener,noreferrer'),
-              },
-              {
-                label: 'Share',
-                icon: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z',
-                action: () => {
-                  if (navigator.share) navigator.share({ title: post.title, url: post.href || mediumUrl });
-                  else navigator.clipboard.writeText(post.href || mediumUrl);
-                },
-              },
-            ]}
-          />
-        </motion.div>
-      ))}
+      {visibility.blog !== false && (
+        <>
+          <SectionLabel label="From the blog" />
+          {blogPosts.map((post, i) => (
+            <motion.div
+              key={post.id || post.title}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                delay: (QA.length + PROJECTS.length + i) * 0.05,
+                duration: 0.28,
+              }}
+            >
+              <SearchResult
+                url={post.url}
+                title={post.title}
+                snippet={post.snippet}
+                to={post.content ? undefined : "/blog"}
+                onTitleClick={post.content ? () => setReading(post) : undefined}
+                menuItems={[
+                  {
+                    label: 'Read here',
+                    icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
+                    action: () => setReading(post),
+                  },
+                  {
+                    label: 'Copy link',
+                    icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
+                    action: () => navigator.clipboard.writeText(post.href || mediumUrl),
+                  },
+                  {
+                    label: 'Open on Medium',
+                    icon: 'M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14',
+                    action: () => window.open(post.href || mediumUrl, '_blank', 'noopener,noreferrer'),
+                  },
+                  {
+                    label: 'Share',
+                    icon: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z',
+                    action: () => {
+                      if (navigator.share) navigator.share({ title: post.title, url: post.href || mediumUrl });
+                      else navigator.clipboard.writeText(post.href || mediumUrl);
+                    },
+                  },
+                ]}
+              />
+            </motion.div>
+          ))}
+        </>
+      )}
 
       {/* Tools */}
-      <SectionLabel label="Tools & technologies" />
-      {toolCards.slice(0, 4).map((r, i) => (
-        <motion.div
-          key={r.title}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            delay: (QA.length + PROJECTS.length + blogPosts.length + i) * 0.05,
-            duration: 0.28,
-          }}
-        >
-          <SearchResult
-            url={r.url}
-            title={r.title}
-            snippet={r.snippet}
-            onTitleClick={() => setExpandedTool(r.url)}
-            menuItems={[
-              {
-                label: 'Copy link',
-                icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
-                action: () => navigator.clipboard.writeText(`${window.location.origin}/tools`),
-              },
-              {
-                label: 'Share',
-                icon: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z',
-                action: () => {
-                  const url = `${window.location.origin}/tools`;
-                  if (navigator.share) navigator.share({ title: r.title, url });
-                  else navigator.clipboard.writeText(url);
-                },
-              },
-            ]}
-          >
-            <AnimatePresence initial={false}>
-              {expandedTool === r.url && (
-                <motion.div
-                  key="tool-expanded"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeInOut' }}
-                  className="overflow-hidden"
-                >
-                  <div className="mt-3 space-y-2.5">
-                    {(r.items || []).map(tool => (
-                      <div key={tool.name} className="flex items-start gap-2.5">
-                        <div className="w-2 h-2 rounded-full mt-2 shrink-0" style={{ background: r.faviconBg || '#4285F4' }} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                            <span className="text-sm font-medium text-[#202124] dark:text-[#e8eaed]">{tool.name}</span>
-                            <span className="text-xs px-2 py-0 rounded border leading-5 bg-[#f1f3f4] dark:bg-[#2d2d2d] text-[#5f6368] dark:text-[#9aa0a6] border-[#dadce0] dark:border-[#5f6368]">
-                              {tool.level}
-                            </span>
+      {visibility.tools !== false && (
+        <>
+          <SectionLabel label="Tools & technologies" />
+          {toolCards.slice(0, 4).map((r, i) => (
+            <motion.div
+              key={r.title}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                delay:
+                  (QA.length +
+                    PROJECTS.length +
+                    (visibility.blog !== false ? blogPosts.length : 0) +
+                    i) *
+                  0.05,
+                duration: 0.28,
+              }}
+            >
+              <SearchResult
+                url={r.url}
+                title={r.title}
+                snippet={r.snippet}
+                onTitleClick={() => setExpandedTool(r.url)}
+                menuItems={[
+                  {
+                    label: 'Copy link',
+                    icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
+                    action: () => navigator.clipboard.writeText(`${window.location.origin}/tools`),
+                  },
+                  {
+                    label: 'Share',
+                    icon: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z',
+                    action: () => {
+                      const url = `${window.location.origin}/tools`;
+                      if (navigator.share) navigator.share({ title: r.title, url });
+                      else navigator.clipboard.writeText(url);
+                    },
+                  },
+                ]}
+              >
+                <AnimatePresence initial={false}>
+                  {expandedTool === r.url && (
+                    <motion.div
+                      key="tool-expanded"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-3 space-y-2.5">
+                        {(r.items || []).map(tool => (
+                          <div key={tool.name} className="flex items-start gap-2.5">
+                            <div className="w-2 h-2 rounded-full mt-2 shrink-0" style={{ background: r.faviconBg || '#4285F4' }} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                                <span className="text-sm font-medium text-[#202124] dark:text-[#e8eaed]">{tool.name}</span>
+                                <span className="text-xs px-2 py-0 rounded border leading-5 bg-[#f1f3f4] dark:bg-[#2d2d2d] text-[#5f6368] dark:text-[#9aa0a6] border-[#dadce0] dark:border-[#5f6368]">
+                                  {tool.level}
+                                </span>
+                              </div>
+                              <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-5">{tool.desc}</p>
+                            </div>
                           </div>
-                          <p className="text-sm text-[#4d5156] dark:text-[#bdc1c6] leading-5">{tool.desc}</p>
-                        </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </SearchResult>
-        </motion.div>
-      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </SearchResult>
+            </motion.div>
+          ))}
+        </>
+      )}
 
       {/* Socials */}
       <SectionLabel label="Profiles" />
@@ -725,8 +744,8 @@ export default function All() {
             delay:
               (QA.length +
                 PROJECTS.length +
-                blogPosts.length +
-                toolCards.length +
+                (visibility.blog !== false ? blogPosts.length : 0) +
+                (visibility.tools !== false ? 4 : 0) +
                 i) *
               0.05,
             duration: 0.28,
@@ -768,11 +787,10 @@ export default function All() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
             { label: 'Projects and open source work', to: '/projects' },
-            { label: 'Skills and tech stack', to: '/tools' },
-            { label: 'Blog posts and articles', to: '/blog' },
-            imagesEnabled
-              ? { label: 'Images and gallery', to: '/images' }
-              : { label: 'Get in touch', to: '/contact' },
+            ...(visibility.tools !== false ? [{ label: 'Skills and tech stack', to: '/tools' }] : []),
+            ...(visibility.blog !== false ? [{ label: 'Blog posts and articles', to: '/blog' }] : []),
+            ...(visibility.images !== false ? [{ label: 'Images and gallery', to: '/images' }] : []),
+            { label: 'Get in touch', to: '/contact' },
           ].map(({ label, to }) => (
             <a key={label} href={to}
                className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#dadce0] dark:border-[#5f6368]

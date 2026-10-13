@@ -105,6 +105,23 @@ function validateToolsConfig(value) {
   return null;
 }
 
+const RECOGNIZED_PAGE_VISIBILITY_KEYS = new Set(['blog', 'tools', 'images']);
+
+function validatePageVisibilityConfig(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return 'pageVisibility must be an object';
+  }
+  for (const k of Object.keys(value)) {
+    if (!RECOGNIZED_PAGE_VISIBILITY_KEYS.has(k)) {
+      return `Unknown pageVisibility key "${k}". Allowed keys: blog, tools, images`;
+    }
+    if (typeof value[k] !== 'boolean') {
+      return `pageVisibility.${k} must be a boolean`;
+    }
+  }
+  return null;
+}
+
 // POST /api/config — admin only
 router.post('/', requireAuth, async (req, res) => {
   try {
@@ -123,6 +140,12 @@ router.post('/', requireAuth, async (req, res) => {
             return res.status(400).json({ error: toolsErr });
           }
         }
+        if (item.key.trim() === 'pageVisibility') {
+          const pvErr = validatePageVisibilityConfig(item.value);
+          if (pvErr) {
+            return res.status(400).json({ error: pvErr });
+          }
+        }
       }
       await Promise.all(
         updates.map(({ key: k, value: v }) =>
@@ -139,6 +162,12 @@ router.post('/', requireAuth, async (req, res) => {
       const toolsErr = validateToolsConfig(value);
       if (toolsErr) {
         return res.status(400).json({ error: toolsErr });
+      }
+    }
+    if (key.trim() === 'pageVisibility') {
+      const pvErr = validatePageVisibilityConfig(value);
+      if (pvErr) {
+        return res.status(400).json({ error: pvErr });
       }
     }
     const doc = await SiteConfig.findOneAndUpdate(

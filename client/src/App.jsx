@@ -9,6 +9,8 @@ import { fetchConfig } from './api';
 import { LINKS } from './config/links';
 import { inlineResumeUrl } from './utils/resumeUrl';
 
+import VisibilityGuard from './components/VisibilityGuard';
+
 // Page-level code splitting — each page loads only when first visited
 const Home     = lazy(() => import('./pages/Home'));
 const All      = lazy(() => import('./pages/All'));
@@ -123,9 +125,9 @@ export default function App() {
             <Route path="/about"    element={<ErrorBoundary><About /></ErrorBoundary>} />
             <Route path="/projects" element={<ErrorBoundary><Projects /></ErrorBoundary>} />
             <Route path="/contact"  element={<ErrorBoundary><Contact /></ErrorBoundary>} />
-            <Route path="/blog"     element={<ErrorBoundary><Blog /></ErrorBoundary>} />
-            <Route path="/tools"    element={<ErrorBoundary><Tools /></ErrorBoundary>} />
-            <Route path="/images"   element={<ErrorBoundary><Images /></ErrorBoundary>} />
+            <Route path="/blog"     element={<ErrorBoundary><VisibilityGuard pageKey="blog"><Blog /></VisibilityGuard></ErrorBoundary>} />
+            <Route path="/tools"    element={<ErrorBoundary><VisibilityGuard pageKey="tools"><Tools /></VisibilityGuard></ErrorBoundary>} />
+            <Route path="/images"   element={<ErrorBoundary><VisibilityGuard pageKey="images"><Images /></VisibilityGuard></ErrorBoundary>} />
           </Route>
 
           {/* Admin — standalone page */}

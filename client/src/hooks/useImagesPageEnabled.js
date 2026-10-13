@@ -1,13 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useConfig } from './useConfig';
+import { getPageVisibility } from '../data/pageVisibility';
 
 export function useImagesPageEnabled() {
-  const [enabled, setEnabled] = useState(
-    () => localStorage.getItem('imagesPageEnabled') !== 'false'
-  );
-  useEffect(() => {
-    const handler = () => setEnabled(localStorage.getItem('imagesPageEnabled') !== 'false');
-    window.addEventListener('imagesPageToggled', handler);
-    return () => window.removeEventListener('imagesPageToggled', handler);
-  }, []);
-  return enabled;
+  const cfg = useConfig();
+  return getPageVisibility(cfg).images;
 }

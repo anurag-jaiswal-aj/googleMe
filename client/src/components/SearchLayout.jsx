@@ -10,6 +10,7 @@ import { getAiReply } from "../utils/aiChat";
 import { useVoiceSearch } from "../hooks/useVoiceSearch";
 import BugReportModal from "./BugReportModal";
 import { resolveSearchRoute, filterSuggestions } from "../utils/searchRoute";
+import { getPageVisibility } from "../data/pageVisibility";
 
 const TABS = [
   { label: "All",     to: "/all",      query: "anurag developer portfolio" },
@@ -31,71 +32,6 @@ const FOOTER_CYCLE = [
   { label: "Images", to: "/images" },
   { label: "All", to: "/all" },
 ];
-
-const SUGGESTIONS = [
-  { label: "developer portfolio", to: "/all" },
-  { label: "about me", to: "/about" },
-  { label: "projects on github", to: "/projects" },
-  { label: "contact", to: "/contact" },
-  { label: "blog posts", to: "/blog" },
-];
-
-// Keyword → route map for fuzzy search
-const KEYWORD_ROUTES = [
-  { keys: ["all", "everything", "overview", "portfolio", "home"], to: "/all" },
-  {
-    keys: [
-      "about",
-      "me",
-      "who",
-      "bio",
-      "background",
-      "info",
-      "skills",
-      "resume",
-      "cv",
-    ],
-    to: "/about",
-  },
-  {
-    keys: [
-      "projects",
-      "project",
-      "github",
-      "work",
-      "code",
-      "open source",
-      "repos",
-      "apps",
-    ],
-    to: "/projects",
-  },
-  {
-    keys: ["contact", "email", "hire", "message", "reach", "connect", "talk"],
-    to: "/contact",
-  },
-  {
-    keys: [
-      "blog",
-      "blogs",
-      "post",
-      "posts",
-      "article",
-      "articles",
-      "writing",
-      "read",
-    ],
-    to: "/blog",
-  },
-];
-
-function fuzzyRoute(q) {
-  const lower = q.toLowerCase().trim();
-  for (const { keys, to } of KEYWORD_ROUTES) {
-    if (keys.some((k) => lower.includes(k))) return to;
-  }
-  return null;
-}
 
 const LOGO = [
   { char: "A", color: "#4285F4" },
@@ -122,50 +58,35 @@ export default function SearchLayout() {
   const name            = cfg.profile?.name ?? 'Anurag';
   const { isDark, toggle } = useTheme();
 
-  const [imagesPageEnabled, setImagesPageEnabled] = useState(
-    () => localStorage.getItem('imagesPageEnabled') !== 'false'
-  );
-  const [blogPageEnabled, setBlogPageEnabled] = useState(
-    () => localStorage.getItem('blogPageEnabled') !== 'false'
-  );
-  const [toolsPageEnabled, setToolsPageEnabled] = useState(
-    () => localStorage.getItem('toolsPageEnabled') !== 'false'
-  );
-
+  const visibility = getPageVisibility(cfg);
+  const visibilityRef = useRef(visibility);
   useEffect(() => {
-    const handler = () => setImagesPageEnabled(localStorage.getItem('imagesPageEnabled') !== 'false');
-    window.addEventListener('imagesPageToggled', handler);
-    return () => window.removeEventListener('imagesPageToggled', handler);
-  }, []);
-
-  useEffect(() => {
-    const handler = () => setBlogPageEnabled(localStorage.getItem('blogPageEnabled') !== 'false');
-    window.addEventListener('blogPageToggled', handler);
-    return () => window.removeEventListener('blogPageToggled', handler);
-  }, []);
-
-  useEffect(() => {
-    const handler = () => setToolsPageEnabled(localStorage.getItem('toolsPageEnabled') !== 'false');
-    window.addEventListener('toolsPageToggled', handler);
-    return () => window.removeEventListener('toolsPageToggled', handler);
-  }, []);
+    visibilityRef.current = visibility;
+  }, [visibility]);
 
   const visibleTabs = TABS.filter(t => {
-    if (t.to === '/images') return imagesPageEnabled;
-    if (t.to === '/blog')   return blogPageEnabled;
-    if (t.to === '/tools')  return toolsPageEnabled;
+    if (t.to === '/images') return visibility.images;
+    if (t.to === '/blog')   return visibility.blog;
+    if (t.to === '/tools')  return visibility.tools;
+    return true;
+  });
+
+  const visibleFooterCycle = FOOTER_CYCLE.filter(item => {
+    if (item.to === '/images') return visibility.images;
+    if (item.to === '/blog')   return visibility.blog;
+    if (item.to === '/tools')  return visibility.tools;
     return true;
   });
 
   const currentTab = TABS.find((t) => t.to === location.pathname);
-  const footerIndex = FOOTER_CYCLE.findIndex(
+  const footerIndex = visibleFooterCycle.findIndex(
     (item) => item.to === location.pathname,
   );
   const safeFooterIndex = footerIndex === -1 ? 0 : footerIndex;
   const nextFooterLinks = [
-    FOOTER_CYCLE[(safeFooterIndex + 1) % FOOTER_CYCLE.length],
-    FOOTER_CYCLE[(safeFooterIndex + 2) % FOOTER_CYCLE.length],
-  ];
+    visibleFooterCycle[(safeFooterIndex + 1) % visibleFooterCycle.length],
+    visibleFooterCycle[(safeFooterIndex + 2) % visibleFooterCycle.length],
+  ].filter(Boolean);
   const [query, setQuery] = useState(currentTab?.query ?? "");
   const [focused, setFocused] = useState(false);
   const [highlighted, setHighlighted] = useState(-1);
@@ -204,7 +125,7 @@ export default function SearchLayout() {
     setQuery(tab?.label ?? "");
   }, [location.pathname]);
 
-  const filtered = filterSuggestions(query);
+  const filtered = filterSuggestions(query, visibility);
   const showDropdown = focused && filtered.length > 0;
 
   const handleSelect = useCallback(
@@ -227,7 +148,7 @@ export default function SearchLayout() {
       if (highlighted >= 0 && filtered[highlighted]) {
         handleSelect(filtered[highlighted].to);
       } else {
-        const route = resolveSearchRoute(query) ?? filtered[0]?.to;
+        const route = resolveSearchRoute(query, visibility) ?? filtered[0]?.to;
         if (route) handleSelect(route);
       }
     } else if (e.key === "Escape") {
@@ -237,7 +158,7 @@ export default function SearchLayout() {
   };
 
   const handleSearch = () => {
-    const route = resolveSearchRoute(query) ?? filtered[0]?.to;
+    const route = resolveSearchRoute(query, visibility) ?? filtered[0]?.to;
     if (route) handleSelect(route);
   };
 
@@ -321,9 +242,9 @@ export default function SearchLayout() {
           if (e2.key === "h") navigate("/");
           else if (e2.key === "a") navigate("/about");
           else if (e2.key === "p") navigate("/projects");
-          else if (e2.key === "b") navigate("/blog");
+          else if (e2.key === "b" && visibilityRef.current.blog) navigate("/blog");
           else if (e2.key === "c") navigate("/contact");
-          else if (e2.key === "t") navigate("/tools");
+          else if (e2.key === "t" && visibilityRef.current.tools) navigate("/tools");
         };
         document.addEventListener("keydown", next, { once: true });
         return;
@@ -696,23 +617,27 @@ export default function SearchLayout() {
                             </div>
                           ),
                         },
-                        {
-                          label: "Blogs",
-                          action: () => {
-                            navigate("/blog");
-                            setAppsOpen(false);
-                          },
-                          icon: (
-                            <div className="w-12 h-12 rounded-xl bg-white shadow-sm border border-gray-100 flex items-center justify-center">
-                              <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
-                                <rect x="3" y="4" width="18" height="16" rx="2" fill="#34A853"/>
-                                <rect x="6" y="8" width="8" height="1.8" rx="0.9" fill="#fff"/>
-                                <rect x="6" y="11.5" width="12" height="1.5" rx="0.75" fill="#fff" opacity="0.8"/>
-                                <rect x="6" y="14.5" width="10" height="1.5" rx="0.75" fill="#fff" opacity="0.6"/>
-                              </svg>
-                            </div>
-                          ),
-                        },
+                        ...(visibility.blog
+                          ? [
+                              {
+                                label: "Blogs",
+                                action: () => {
+                                  navigate("/blog");
+                                  setAppsOpen(false);
+                                },
+                                icon: (
+                                  <div className="w-12 h-12 rounded-xl bg-white shadow-sm border border-gray-100 flex items-center justify-center">
+                                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+                                      <rect x="3" y="4" width="18" height="16" rx="2" fill="#34A853"/>
+                                      <rect x="6" y="8" width="8" height="1.8" rx="0.9" fill="#fff"/>
+                                      <rect x="6" y="11.5" width="12" height="1.5" rx="0.75" fill="#fff" opacity="0.8"/>
+                                      <rect x="6" y="14.5" width="10" height="1.5" rx="0.75" fill="#fff" opacity="0.6"/>
+                                    </svg>
+                                  </div>
+                                ),
+                              },
+                            ]
+                          : []),
                         {
                           label: "Twitter",
                           action: () => {
@@ -1280,9 +1205,9 @@ export default function SearchLayout() {
                   { keys: ["g", "h"], desc: "Go to Home" },
                   { keys: ["g", "a"], desc: "Go to About" },
                   { keys: ["g", "p"], desc: "Go to Projects" },
-                  { keys: ["g", "b"], desc: "Go to Blog" },
+                  ...(visibility.blog ? [{ keys: ["g", "b"], desc: "Go to Blog" }] : []),
                   { keys: ["g", "c"], desc: "Go to Contact" },
-                  { keys: ["g", "t"], desc: "Go to Tools" },
+                  ...(visibility.tools ? [{ keys: ["g", "t"], desc: "Go to Tools" }] : []),
                   { group: "Search" },
                   { keys: ["↑", "↓"], desc: "Navigate suggestions" },
                   { keys: ["Enter"], desc: "Select suggestion / search" },

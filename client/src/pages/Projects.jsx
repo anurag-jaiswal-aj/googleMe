@@ -5,7 +5,8 @@ import SearchResult from '../components/SearchResult';
 import FilterSort from '../components/FilterSort';
 import SEO from '../components/SEO';
 import fallbackProjects from '../../../shared/projects.json';
-import { useImagesPageEnabled } from '../hooks/useImagesPageEnabled';
+import { useConfig } from '../hooks/useConfig';
+import { getPageVisibility } from '../data/pageVisibility';
 
 /* Slug a title to a GitHub-style URL path */
 const toSlug = str => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -38,7 +39,8 @@ function SkeletonResult() {
 }
 
 export default function Projects() {
-  const imagesEnabled = useImagesPageEnabled();
+  const cfg = useConfig();
+  const visibility = getPageVisibility(cfg);
   const [projects, setProjects]   = useState([]);
   const [loading,  setLoading]    = useState(true);
   const [filters,  setFilters]    = useState([]);
@@ -278,23 +280,19 @@ export default function Projects() {
           <p className="text-base font-medium text-[#202124] dark:text-[#e8eaed] mb-4">People also search for</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
-              'Background and bio',
-              'Skills and tech stack',
-              'Blog posts and articles',
-              imagesEnabled ? 'Images and gallery' : 'Get in touch',
-            ].map(term => (
-              <a key={term} href={
-                term.includes('Background') ? '/about' :
-                term.includes('Skills') ? '/tools' :
-                term.includes('Blog') ? '/blog' :
-                term.includes('Images') ? '/images' : '/contact'
-              }
+              { label: 'Background and bio', to: '/about' },
+              ...(visibility.tools !== false ? [{ label: 'Skills and tech stack', to: '/tools' }] : []),
+              ...(visibility.blog !== false ? [{ label: 'Blog posts and articles', to: '/blog' }] : []),
+              ...(visibility.images !== false ? [{ label: 'Images and gallery', to: '/images' }] : []),
+              { label: 'Get in touch', to: '/contact' },
+            ].map(({ label, to }) => (
+              <a key={label} href={to}
                    className="flex items-center gap-2 px-3 py-2.5 rounded-full border border-[#dadce0] dark:border-[#5f6368]
                               text-sm text-[#202124] dark:text-[#e8eaed] hover:bg-[#f8f9fa] dark:hover:bg-[#3c4043] transition-colors">
                 <svg className="w-4 h-4 text-[#70757a] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
                 </svg>
-                {term}
+                {label}
               </a>
             ))}
           </div>

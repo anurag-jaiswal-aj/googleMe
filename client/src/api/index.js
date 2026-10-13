@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 export const getApiBaseUrl = () => {
-  const configured = import.meta.env.VITE_API_URL;
+  const configured = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_API_URL : undefined;
 
   if (typeof window !== 'undefined') {
     const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';

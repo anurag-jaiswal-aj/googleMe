@@ -47,10 +47,22 @@ const ROUTES = [
 ];
 
 /**
+ * Checks if a route is enabled according to the visibility map.
+ */
+export function isRouteVisible(route, visibility) {
+  if (!visibility || typeof visibility !== 'object') return true;
+  if (route === '/blog') return visibility.blog !== false;
+  if (route === '/tools') return visibility.tools !== false;
+  if (route === '/images') return visibility.images !== false;
+  return true;
+}
+
+/**
  * Returns the best matching route for a query string, or null if no match.
  * Scores by: exact word match > partial match, weighted by route priority.
+ * If the best matching route is disabled by visibility configuration, resolves to /all.
  */
-export function resolveSearchRoute(query) {
+export function resolveSearchRoute(query, visibility) {
   const q = query.toLowerCase().trim();
   if (!q) return null;
 
@@ -73,12 +85,16 @@ export function resolveSearchRoute(query) {
     }
   }
 
+  if (best && !isRouteVisible(best, visibility)) {
+    return '/all';
+  }
+
   return best;
 }
 
 /**
  * Suggestion labels shown in the search dropdown.
- * Filtered by the current query.
+ * Filtered by the current query and active page visibility.
  */
 export const SEARCH_SUGGESTIONS = [
   { label: 'About me',              to: '/about'    },
@@ -90,8 +106,9 @@ export const SEARCH_SUGGESTIONS = [
   { label: 'Everything',            to: '/all'      },
 ];
 
-export function filterSuggestions(query) {
+export function filterSuggestions(query, visibility) {
+  const visibleSuggestions = SEARCH_SUGGESTIONS.filter((s) => isRouteVisible(s.to, visibility));
   const q = query.toLowerCase().trim();
-  if (!q) return SEARCH_SUGGESTIONS;
-  return SEARCH_SUGGESTIONS.filter((s) => s.label.toLowerCase().includes(q));
+  if (!q) return visibleSuggestions;
+  return visibleSuggestions.filter((s) => s.label.toLowerCase().includes(q));
 }
