@@ -29,23 +29,6 @@ export default defineConfig({
         globIgnores: ['**/og-image.jpg'],
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api/, /\.pdf$/i, /^\/resume\/?$/i, /^\/resume_aj\/?$/i],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com/,
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'google-fonts-stylesheets' },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com/,
-            handler: 'CacheFirst',
-            options: { cacheName: 'google-fonts-webfonts', expiration: { maxAgeSeconds: 60 * 60 * 24 * 365 } },
-          },
-          {
-            urlPattern: /^https:\/\/res\.cloudinary\.com/,
-            handler: 'CacheFirst',
-            options: { cacheName: 'cloudinary-images', expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 } },
-          },
-        ],
       },
     }),
   ],

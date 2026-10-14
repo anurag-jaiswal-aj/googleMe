@@ -15,6 +15,18 @@ import { prefetchAll } from './utils/prefetch';
 api.get('/health').catch(() => {});
 prefetchAll();
 
+// Clean up obsolete runtime caches from earlier service worker versions
+if (typeof window !== 'undefined') {
+  if ('caches' in window) {
+    ['cloudinary-images', 'google-fonts-stylesheets', 'google-fonts-webfonts'].forEach((name) => {
+      caches.delete(name).catch(() => {});
+    });
+  }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then((reg) => reg?.update?.()).catch(() => {});
+  }
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <HelmetProvider>
