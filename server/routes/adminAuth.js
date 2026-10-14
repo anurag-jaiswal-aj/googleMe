@@ -43,7 +43,7 @@ router.post('/verify', (req, res) => {
   if (!token) return res.status(401).json({ valid: false });
 
   try {
-    jwt.verify(token, process.env.JWT_SECRET);
+    jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
     res.json({ valid: true });
   } catch {
     res.status(401).json({ valid: false });

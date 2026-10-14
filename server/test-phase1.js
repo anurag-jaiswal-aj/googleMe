@@ -314,7 +314,7 @@ test('H1. Admin login returns JWT on valid password', async () => {
   assert.strictEqual(res.status, 200);
   const data = await res.json();
   assert.ok(data.token);
-  const decoded = jwt.verify(data.token, process.env.JWT_SECRET);
+  const decoded = jwt.verify(data.token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
   assert.strictEqual(decoded.role, 'admin');
 });
 
@@ -1550,10 +1550,11 @@ test('Batch 2: Gallery image upload failure masks internal provider and database
     // 1. Provider failure: Cloudinary is configured but fails
     process.env.CLOUDINARY_CLOUD_NAME = 'test-cloud';
 
+    const validPng = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89]);
     const fdCloud = new FormData();
     fdCloud.append('title', 'Test Cloudinary Error Masking');
     fdCloud.append('category', 'UI');
-    fdCloud.append('image', new Blob(['fake image data'], { type: 'image/png' }), 'test.png');
+    fdCloud.append('image', new Blob([validPng], { type: 'image/png' }), 'test.png');
 
     const resCloud = await fetch(`${BASE_URL}/images`, {
       method: 'POST',
@@ -1574,7 +1575,7 @@ test('Batch 2: Gallery image upload failure masks internal provider and database
     const fdDb = new FormData();
     fdDb.append('title', 'Test DB Error Masking');
     fdDb.append('category', 'UI');
-    fdDb.append('image', new Blob(['fake image data'], { type: 'image/png' }), 'test.png');
+    fdDb.append('image', new Blob([validPng], { type: 'image/png' }), 'test.png');
 
     const resDb = await fetch(`${BASE_URL}/images`, {
       method: 'POST',

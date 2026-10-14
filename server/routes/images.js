@@ -6,6 +6,7 @@ const mongoose     = require('mongoose');
 const GalleryImage = require('../models/GalleryImage');
 const requireAuth  = require('../middleware/auth');
 const { isSafeUrl } = require('../utils/configValidation');
+const { validateGalleryImage } = require('../utils/imageValidation');
 
 const router = express.Router();
 
@@ -63,6 +64,10 @@ router.get('/', async (req, res) => {
 router.post('/', requireAuth, handleImageUpload, async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Image file is required' });
+    const imageValidation = validateGalleryImage(req.file);
+    if (!imageValidation.valid) {
+      return res.status(400).json({ error: imageValidation.error });
+    }
     const { title, category, description, link, order } = req.body;
     if (!title) return res.status(400).json({ error: 'Title is required' });
 
@@ -83,7 +88,7 @@ router.post('/', requireAuth, handleImageUpload, async (req, res) => {
       publicId = result.public_id;
     } else {
       // Fallback: store as base64 (dev / no Cloudinary configured)
-      imageUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+      imageUrl = `data:${imageValidation.mime};base64,${req.file.buffer.toString('base64')}`;
     }
 
     const image = await GalleryImage.create({
