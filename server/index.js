@@ -31,35 +31,8 @@ app.set('trust proxy', 1);
 app.use(helmet());
 
 // CORS
-const defaultOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'https://anuragjaiswal.me',
-  'https://www.anuragjaiswal.me',
-];
-
-const envOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : [];
-
-const allowedOrigins = Array.from(new Set([...defaultOrigins, ...envOrigins]));
-const vercelPreviewRegex = /^https:\/\/(?:googleme-aj|googleme|google-me|gfolio)(?:-[a-z0-9-]+)?\.vercel\.app$/;
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (curl, Postman, server-to-server)
-      if (!origin) return callback(null, true);
-      // Exact match
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      // Allow project-specific Vercel preview URLs
-      if (vercelPreviewRegex.test(origin)) return callback(null, true);
-      // Disallow origin cleanly without triggering 500 error handler
-      callback(null, false);
-    },
-    credentials: true,
-  })
-);
+const { corsOptions } = require('./utils/corsConfig');
+app.use(cors(corsOptions));
 
 // Rate limiting — general
 const limiter = rateLimit({

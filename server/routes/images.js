@@ -5,6 +5,7 @@ const streamifier = require('streamifier');
 const mongoose     = require('mongoose');
 const GalleryImage = require('../models/GalleryImage');
 const requireAuth  = require('../middleware/auth');
+const { isSafeUrl } = require('../utils/configValidation');
 
 const router = express.Router();
 
@@ -65,6 +66,10 @@ router.post('/', requireAuth, handleImageUpload, async (req, res) => {
     const { title, category, description, link, order } = req.body;
     if (!title) return res.status(400).json({ error: 'Title is required' });
 
+    if (link !== undefined && link !== null && !isSafeUrl(link, { allowEmpty: true, allowLocal: false })) {
+      return res.status(400).json({ error: 'Invalid link URL. Must be a valid HTTP or HTTPS URL.' });
+    }
+
     let imageUrl = '';
     let publicId = '';
 
@@ -94,6 +99,9 @@ router.post('/', requireAuth, handleImageUpload, async (req, res) => {
 
     res.status(201).json(image);
   } catch (err) {
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ error: err.message });
+    }
     console.error('[images] POST upload failed:', err.message);
     res.status(500).json({ error: 'Failed to upload image' });
   }
@@ -106,14 +114,29 @@ router.patch('/:id', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid image ID' });
     }
     const { title, category, description, link, order } = req.body;
+
+    if (link !== undefined && link !== null && !isSafeUrl(link, { allowEmpty: true, allowLocal: false })) {
+      return res.status(400).json({ error: 'Invalid link URL. Must be a valid HTTP or HTTPS URL.' });
+    }
+
+    const updateData = {};
+    if (title !== undefined) updateData.title = title;
+    if (category !== undefined) updateData.category = category;
+    if (description !== undefined) updateData.description = description;
+    if (link !== undefined) updateData.link = link;
+    if (order !== undefined) updateData.order = parseInt(order);
+
     const updated = await GalleryImage.findByIdAndUpdate(
       req.params.id,
-      { title, category, description, link, ...(order !== undefined && { order: parseInt(order) }) },
+      updateData,
       { new: true, runValidators: true }
     );
     if (!updated) return res.status(404).json({ error: 'Image not found' });
     res.json(updated);
   } catch (err) {
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ error: err.message });
+    }
     console.error('[images] PATCH update failed:', err.message);
     res.status(500).json({ error: 'Failed to update image' });
   }

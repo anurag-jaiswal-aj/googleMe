@@ -231,25 +231,8 @@ const app = express();
 app.use(express.json());
 
 // Mount CORS exactly as in server/index.js
-const defaultOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'https://anuragjaiswal.me',
-  'https://www.anuragjaiswal.me',
-];
-const vercelPreviewRegex = /^https:\/\/(?:googleme-aj|googleme|google-me|gfolio)(?:-[a-z0-9-]+)?\.vercel\.app$/;
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (defaultOrigins.includes(origin)) return callback(null, true);
-      if (vercelPreviewRegex.test(origin)) return callback(null, true);
-      callback(null, false);
-    },
-    credentials: true,
-  })
-);
+const { corsOptions } = require('./utils/corsConfig');
+app.use(cors(corsOptions));
 
 app.use('/api/admin', adminAuthRoutes);
 app.use('/api/config', configRoutes);
@@ -355,24 +338,12 @@ test('H3. Contact email escapes HTML and normalizes attachment filenames', async
 });
 
 // ── M2: CORS Origin Validation & Rejection ──────────────────────────────────
-// ── M2: CORS Origin Validation & Rejection ──────────────────────────────────
-test('M2. Allowed production and preview origins receive Access-Control-Allow-Origin', async () => {
+test('M2. Allowed production and local origins receive Access-Control-Allow-Origin by default', async () => {
   const allowedOriginsToTest = [
-    // Exact production & local origins
     'http://localhost:3000',
     'http://localhost:5173',
     'https://anuragjaiswal.me',
     'https://www.anuragjaiswal.me',
-    // Expected Vercel project production & preview hostnames
-    'https://googleme-aj.vercel.app',
-    'https://googleme.vercel.app',
-    'https://google-me.vercel.app',
-    'https://gfolio.vercel.app',
-    'https://googleme-aj-preview-123.vercel.app',
-    'https://googleme-aj-git-main-anurag-jaiswal-aj.vercel.app',
-    'https://googleme-deploy-xyz.vercel.app',
-    'https://google-me-preview-456.vercel.app',
-    'https://gfolio-preview-abc.vercel.app',
   ];
 
   for (const origin of allowedOriginsToTest) {
@@ -389,10 +360,50 @@ test('M2. Allowed production and preview origins receive Access-Control-Allow-Or
   }
 });
 
+test('M2. Configured preview origins receive Access-Control-Allow-Origin when VERCEL_PREVIEW_PATTERN is set', async () => {
+  const originalPattern = process.env.VERCEL_PREVIEW_PATTERN;
+  try {
+    process.env.VERCEL_PREVIEW_PATTERN = '^https:\\/\\/(?:googleme-aj|googleme|google-me|gfolio)(?:-[a-z0-9-]+)?\\.vercel\\.app$';
+
+    const configuredPreviews = [
+      'https://googleme-aj.vercel.app',
+      'https://googleme.vercel.app',
+      'https://google-me.vercel.app',
+      'https://gfolio.vercel.app',
+      'https://googleme-aj-preview-123.vercel.app',
+      'https://googleme-aj-git-main-anurag-jaiswal-aj.vercel.app',
+      'https://googleme-deploy-xyz.vercel.app',
+      'https://google-me-preview-456.vercel.app',
+      'https://gfolio-preview-abc.vercel.app',
+    ];
+
+    for (const origin of configuredPreviews) {
+      const res = await fetch(`${BASE_URL}/admin/verify`, {
+        method: 'POST',
+        headers: { Origin: origin, ...authHeaders },
+      });
+      assert.strictEqual(res.status, 200, `Expected 200 for configured preview origin: ${origin}`);
+      assert.strictEqual(
+        res.headers.get('access-control-allow-origin'),
+        origin,
+        `Access-Control-Allow-Origin must match ${origin}`
+      );
+    }
+  } finally {
+    if (originalPattern !== undefined) {
+      process.env.VERCEL_PREVIEW_PATTERN = originalPattern;
+    } else {
+      delete process.env.VERCEL_PREVIEW_PATTERN;
+    }
+  }
+});
+
 test('M2. Unrelated, malicious, or non-matching origins are rejected cleanly without 500 error', async () => {
   const disallowedOriginsToTest = [
     'https://attacker.vercel.app',
     'https://otherproject.vercel.app',
+    'https://gfolio-attacker.vercel.app',
+    'https://googleme-evil.vercel.app',
     'https://evil-googleme-aj.vercel.app',
     'https://googleme-aj.vercel.app.attacker.com',
     'http://googleme-aj.vercel.app', // Insecure HTTP

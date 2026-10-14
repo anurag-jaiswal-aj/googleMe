@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { isSafeUrl } = require('../utils/configValidation');
 
 const galleryImageSchema = new mongoose.Schema(
   {
@@ -9,7 +10,15 @@ const galleryImageSchema = new mongoose.Schema(
       default: 'Other',
     },
     description: { type: String, trim: true, maxlength: 500, default: '' },
-    link:        { type: String, trim: true, default: '' },
+    link: {
+      type: String,
+      trim: true,
+      default: '',
+      validate: {
+        validator: (v) => isSafeUrl(v, { allowEmpty: true, allowLocal: false }),
+        message: 'Link must be a valid HTTP or HTTPS URL or empty',
+      },
+    },
     order:       { type: Number, default: 0 },
 
     // Cloudinary fields (new)
