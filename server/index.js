@@ -63,8 +63,9 @@ const submissionLimiter = rateLimit({
 app.use('/api/contact', submissionLimiter);
 app.use('/api/feedback', submissionLimiter);
 
-// Body parsing
-app.use(express.json({ limit: '10mb' }));
+// Body parsing: 1 MB limit for admin configuration, 50 KB for ordinary JSON endpoints
+app.use('/api/config', express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '50kb' }));
 
 // Routes
 app.use('/api/admin', adminAuthRoutes);
@@ -88,6 +89,13 @@ app.use((req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
+  if (err.type === 'entity.too.large' || err.status === 413) {
+    return res.status(413).json({ error: 'Payload too large' });
+  }
+  if (err.type === 'entity.parse.failed' || (err instanceof SyntaxError && err.status === 400 && 'body' in err)) {
+    return res.status(400).json({ error: 'Invalid JSON payload' });
+  }
+
   console.error(err.stack);
   res.status(err.status || 500).json({
     error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,

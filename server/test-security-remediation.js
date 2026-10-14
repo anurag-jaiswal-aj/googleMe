@@ -4,6 +4,8 @@
  */
 
 process.env.JWT_SECRET = 'test-security-secret';
+const bcrypt = require('bcryptjs');
+process.env.ADMIN_PASSWORD_HASH = bcrypt.hashSync('test-admin-password', 10);
 
 const test = require('node:test');
 const assert = require('node:assert');
@@ -23,7 +25,18 @@ const {
 const GalleryImage = require('./models/GalleryImage');
 const imagesRoutes = require('./routes/images');
 const adminAuthRoutes = require('./routes/adminAuth');
+const SiteConfig = require('./models/SiteConfig');
+const configRoutes = require('./routes/config');
 const requireAuth = require('./middleware/auth');
+
+const siteConfigs = new Map();
+SiteConfig.findOneAndUpdate = async (filter, update) => {
+  siteConfigs.set(filter.key, update.value);
+  return { key: filter.key, value: update.value };
+};
+SiteConfig.find = () => ({
+  lean: async () => Array.from(siteConfigs.entries()).map(([key, value]) => ({ key, value })),
+});
 const {
   detectImageSignature,
   normalizeImageMime,
@@ -94,7 +107,8 @@ GalleryImage.findByIdAndUpdate = async (id, update, options) => {
 
 // ── 2. Setup Test Express Server ────────────────────────────
 const app = express();
-app.use(express.json());
+app.use('/api/config', express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '50kb' }));
 app.use(cors(corsOptions));
 
 app.post('/api/test-cors', (req, res) => {
@@ -107,6 +121,21 @@ app.get('/api/test-protected', requireAuth, (req, res) => {
 });
 
 app.use('/api/images', imagesRoutes);
+app.use('/api/config', configRoutes);
+
+// Global error handler matching server/index.js
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.too.large' || err.status === 413) {
+    return res.status(413).json({ error: 'Payload too large' });
+  }
+  if (err.type === 'entity.parse.failed' || (err instanceof SyntaxError && err.status === 400 && 'body' in err)) {
+    return res.status(400).json({ error: 'Invalid JSON payload' });
+  }
+
+  res.status(err.status || 500).json({
+    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+  });
+});
 
 const PORT = 5588;
 const BASE_URL = `http://localhost:${PORT}/api`;
@@ -699,4 +728,126 @@ test('SEC-04: Malformed and missing tokens are rejected with HTTP 401', async ()
     });
     assert.strictEqual(routeRes.status, 401);
   }
+});
+
+// ── SEC-05: JSON Request-Body Limits ────────────────────────
+
+test('SEC-05: Normal JSON requests under 50 KB succeed on general routes', async () => {
+  // Test 1: Admin login with normal JSON payload
+  const loginRes = await fetch(`${BASE_URL}/admin/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: 'wrong-password' }),
+  });
+  // 401 proves the JSON body was successfully parsed and passed to the route handler
+  assert.strictEqual(loginRes.status, 401);
+  const loginData = await loginRes.json();
+  assert.strictEqual(loginData.error, 'Invalid password');
+
+  // Test 2: PATCH image metadata with normal JSON payload (< 2 KB)
+  const patchRes = await fetch(`${BASE_URL}/images/650000000000000000000001`, {
+    method: 'PATCH',
+    headers: { ...authHeaders, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: 'Updated Title' }),
+  });
+  // 404 image not found proves JSON was parsed and reached the route handler
+  assert.strictEqual(patchRes.status, 404);
+});
+
+test('SEC-05: Oversized JSON payload (> 50 KB) on general routes is rejected with HTTP 413', async () => {
+  const oversizedGeneralPayload = JSON.stringify({
+    password: 'x'.repeat(60 * 1024), // ~60 KB
+  });
+
+  // Test on /api/admin/login
+  const loginRes = await fetch(`${BASE_URL}/admin/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: oversizedGeneralPayload,
+  });
+  assert.strictEqual(loginRes.status, 413);
+  const loginData = await loginRes.json();
+  assert.strictEqual(loginData.error, 'Payload too large');
+
+  // Test on /api/images/:id
+  const patchRes = await fetch(`${BASE_URL}/images/650000000000000000000001`, {
+    method: 'PATCH',
+    headers: { ...authHeaders, 'Content-Type': 'application/json' },
+    body: oversizedGeneralPayload,
+  });
+  assert.strictEqual(patchRes.status, 413);
+  const patchData = await patchRes.json();
+  assert.strictEqual(patchData.error, 'Payload too large');
+});
+
+test('SEC-05: Valid large JSON payload up to 1 MB succeeds on /api/config', async () => {
+  const largeConfigValue = 'a'.repeat(200 * 1024); // ~200 KB
+  const configRes = await fetch(`${BASE_URL}/config`, {
+    method: 'POST',
+    headers: { ...authHeaders, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key: 'customSetting', value: largeConfigValue }),
+  });
+  assert.strictEqual(configRes.status, 200);
+  const configData = await configRes.json();
+  assert.strictEqual(configData.key, 'customSetting');
+});
+
+test('SEC-05: Oversized JSON payload (> 1 MB) on /api/config is rejected with HTTP 413', async () => {
+  const oversizedConfigPayload = JSON.stringify({
+    key: 'customSetting',
+    value: 'x'.repeat(1.2 * 1024 * 1024), // ~1.2 MB
+  });
+
+  const configRes = await fetch(`${BASE_URL}/config`, {
+    method: 'POST',
+    headers: { ...authHeaders, 'Content-Type': 'application/json' },
+    body: oversizedConfigPayload,
+  });
+  assert.strictEqual(configRes.status, 413);
+  const configData = await configRes.json();
+  assert.strictEqual(configData.error, 'Payload too large');
+});
+
+test('SEC-05: Malformed JSON payload is rejected with HTTP 400 without leaking stack traces', async () => {
+  const malformedPayload = '{"broken": ';
+
+  // Test on general route (/api/admin/login)
+  const loginRes = await fetch(`${BASE_URL}/admin/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: malformedPayload,
+  });
+  assert.strictEqual(loginRes.status, 400);
+  const loginData = await loginRes.json();
+  assert.strictEqual(loginData.error, 'Invalid JSON payload');
+
+  // Test on /api/config
+  const configRes = await fetch(`${BASE_URL}/config`, {
+    method: 'POST',
+    headers: { ...authHeaders, 'Content-Type': 'application/json' },
+    body: malformedPayload,
+  });
+  assert.strictEqual(configRes.status, 400);
+  const configData = await configRes.json();
+  assert.strictEqual(configData.error, 'Invalid JSON payload');
+});
+
+test('SEC-05: Multipart upload with payload > 50 KB remains governed by Multer limit', async () => {
+  // Create a 60 KB valid PNG by padding trailing metadata chunks
+  // Even though > 50 KB, Multer handles multipart up to 10 MB and should not be blocked by the 50 KB JSON limit
+  const paddedPng = Buffer.concat([validPngBuffer, Buffer.alloc(60 * 1024, 0)]);
+
+  const form = new FormData();
+  form.append('image', new Blob([paddedPng], { type: 'image/png' }), 'large-valid.png');
+  form.append('title', 'Multipart Large Upload');
+
+  const res = await fetch(`${BASE_URL}/images`, {
+    method: 'POST',
+    headers: authHeaders,
+    body: form,
+  });
+
+  assert.strictEqual(res.status, 201);
+  const data = await res.json();
+  assert.strictEqual(data.title, 'Multipart Large Upload');
 });
