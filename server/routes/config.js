@@ -25,6 +25,17 @@ const uploadPdf = multer({
   },
 });
 
+const uploadAvatar = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+      return cb(new Error('Only image files are allowed'));
+    }
+    cb(null, true);
+  },
+});
+
 // Simple in-memory cache — avoids a DB round-trip on every page load
 let _cache = null;
 const CACHE_TTL_MS = 60 * 1000; // 1 minute
@@ -41,6 +52,11 @@ router.get('/', async (req, res) => {
     }
     const docs = await SiteConfig.find({}).lean();
     const data = Object.fromEntries(docs.map((d) => [d.key, d.value]));
+    if (data.avatarUrl !== undefined && data.profilePhotoUrl === undefined) {
+      data.profilePhotoUrl = data.avatarUrl;
+    } else if (data.profilePhotoUrl !== undefined && data.avatarUrl === undefined) {
+      data.avatarUrl = data.profilePhotoUrl;
+    }
     _cache = { data, fetchedAt: Date.now() };
     res.json(data);
   } catch (err) {
@@ -154,9 +170,22 @@ router.post('/', requireAuth, async (req, res) => {
           }
         }
       }
+      const finalUpdatesMap = new Map();
+      for (const { key: k, value: v } of updates) {
+        finalUpdatesMap.set(k.trim(), v);
+      }
+      if (finalUpdatesMap.has('avatarUrl') && finalUpdatesMap.has('profilePhotoUrl')) {
+        // avatarUrl is canonical if both are supplied
+        finalUpdatesMap.set('profilePhotoUrl', finalUpdatesMap.get('avatarUrl'));
+      } else if (finalUpdatesMap.has('avatarUrl')) {
+        finalUpdatesMap.set('profilePhotoUrl', finalUpdatesMap.get('avatarUrl'));
+      } else if (finalUpdatesMap.has('profilePhotoUrl')) {
+        finalUpdatesMap.set('avatarUrl', finalUpdatesMap.get('profilePhotoUrl'));
+      }
+
       await Promise.all(
-        updates.map(({ key: k, value: v }) =>
-          SiteConfig.findOneAndUpdate({ key: k.trim() }, { key: k.trim(), value: v }, { upsert: true, new: true })
+        Array.from(finalUpdatesMap.entries()).map(([k, v]) =>
+          SiteConfig.findOneAndUpdate({ key: k }, { key: k, value: v }, { upsert: true, new: true })
         )
       );
       invalidateCache();
@@ -182,6 +211,24 @@ router.post('/', requireAuth, async (req, res) => {
         return res.status(400).json({ error: entryErr });
       }
     }
+    if (cleanKey === 'avatarUrl' || cleanKey === 'profilePhotoUrl') {
+      const counterpartKey = cleanKey === 'avatarUrl' ? 'profilePhotoUrl' : 'avatarUrl';
+      const [doc] = await Promise.all([
+        SiteConfig.findOneAndUpdate(
+          { key: cleanKey },
+          { key: cleanKey, value },
+          { upsert: true, new: true }
+        ),
+        SiteConfig.findOneAndUpdate(
+          { key: counterpartKey },
+          { key: counterpartKey, value },
+          { upsert: true, new: true }
+        ),
+      ]);
+      invalidateCache();
+      return res.json(doc);
+    }
+
     const doc = await SiteConfig.findOneAndUpdate(
       { key: cleanKey },
       { key: cleanKey, value },
@@ -236,6 +283,65 @@ router.post('/resume-upload', requireAuth, (req, res) => {
     } catch (uploadErr) {
       console.error('[config] POST /resume-upload failed:', uploadErr.message);
       res.status(500).json({ error: 'Failed to upload resume' });
+    }
+  });
+});
+
+// POST /api/config/avatar-upload - admin only
+router.post('/avatar-upload', requireAuth, (req, res) => {
+  uploadAvatar.single('avatar')(req, res, async (err) => {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ error: err.message });
+    } else if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    try {
+      if (!req.file) return res.status(400).json({ error: 'Image file is required' });
+      if (!process.env.CLOUDINARY_CLOUD_NAME) {
+        return res.status(500).json({ error: 'Cloudinary is not configured on this server.' });
+      }
+
+      // Verify magic bytes for image formats (JPEG, PNG, GIF, WebP)
+      const buf = req.file.buffer;
+      const isJpeg = buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+      const isPng = buf.length >= 4 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
+      const isGif = buf.length >= 3 && buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46;
+      const isWebp = buf.length >= 12 && buf.toString('utf-8', 0, 4) === 'RIFF' && buf.toString('utf-8', 8, 12) === 'WEBP';
+
+      if (!isJpeg && !isPng && !isGif && !isWebp) {
+        return res.status(400).json({ error: 'Invalid file content. Must be a valid image file.' });
+      }
+
+      const uploadPromise = new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: 'gfolio',
+            public_id: `avatar_${Date.now()}`,
+            transformation: [{ width: 500, height: 500, crop: 'limit', fetch_format: 'auto', quality: 'auto' }]
+          },
+          (uploadErr, result) => (uploadErr ? reject(uploadErr) : resolve(result))
+        );
+        streamifier.createReadStream(req.file.buffer).pipe(stream);
+      });
+
+      const result = await uploadPromise;
+      const newAvatarUrl = result.secure_url;
+
+      await SiteConfig.findOneAndUpdate(
+        { key: 'avatarUrl' },
+        { key: 'avatarUrl', value: newAvatarUrl },
+        { upsert: true, new: true }
+      );
+      await SiteConfig.findOneAndUpdate(
+        { key: 'profilePhotoUrl' },
+        { key: 'profilePhotoUrl', value: newAvatarUrl },
+        { upsert: true, new: true }
+      );
+      invalidateCache();
+      res.json({ avatarUrl: newAvatarUrl, profilePhotoUrl: newAvatarUrl });
+    } catch (uploadErr) {
+      console.error('[config] POST /avatar-upload failed:', uploadErr.message);
+      res.status(500).json({ error: 'Failed to upload profile photo' });
     }
   });
 });

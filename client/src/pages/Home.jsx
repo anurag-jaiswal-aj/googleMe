@@ -12,6 +12,7 @@ import { getAiReply } from '../utils/aiChat';
 import { resolveSearchRoute, filterSuggestions, SEARCH_SUGGESTIONS, isRouteVisible } from '../utils/searchRoute';
 import { getPageVisibility } from '../data/pageVisibility';
 import BugReportModal from '../components/BugReportModal';
+import Avatar from '../components/Avatar';
 
 const LANGUAGES = [
   { label: "हिन्दी", code: "hi" },
@@ -200,6 +201,7 @@ export default function Home() {
   const mailtoUrl   = sl.mailto   ?? LINKS.mailto;
   const resumeUrl   = (typeof cfg.resumeUrl === 'string' && cfg.resumeUrl.trim()) || sl.resume?.trim() || LINKS.resume;
   const name        = cfg.profile?.name ?? 'Anurag';
+  const avatarUrl   = (typeof cfg.avatarUrl === 'string' && cfg.avatarUrl.trim()) || (typeof cfg.profilePhotoUrl === 'string' && cfg.profilePhotoUrl.trim()) || '';
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
@@ -696,14 +698,16 @@ export default function Home() {
           </div>
           {/* Avatar */}
           <div className="relative" ref={avatarRef}>
-            <button
+            <Avatar
+              as="button"
               onClick={() => setAvatarOpen((o) => !o)}
-              className="w-9 h-9 rounded-full bg-[#1a73e8] flex items-center justify-center
-                       text-white text-sm font-medium cursor-pointer select-none
-                       ring-2 ring-[#EA4335] ring-offset-1 ring-offset-white dark:ring-offset-gray-950"
-            >
-              A
-            </button>
+              url={avatarUrl}
+              name={name}
+              size="sm"
+              ringClassName="ring-2 ring-[#EA4335] ring-offset-1 ring-offset-white dark:ring-offset-gray-950"
+              className="cursor-pointer select-none"
+              ariaLabel="Google Account"
+            />
             <AnimatePresence>
               {avatarOpen && (
                 <motion.div
@@ -717,13 +721,13 @@ export default function Home() {
                 >
                   {/* Top: avatar + name + email */}
                   <div className="flex flex-col items-center px-5 pt-6 pb-4 gap-2">
-                    <div
-                      className="w-16 h-16 rounded-full bg-[#1a73e8] flex items-center justify-center
-                                  text-white text-2xl font-semibold
-                                  ring-2 ring-[#EA4335] ring-offset-2 ring-offset-white dark:ring-offset-[#1e1f20] shrink-0"
-                    >
-                      A
-                    </div>
+                    <Avatar
+                      url={avatarUrl}
+                      name={name}
+                      size="lg"
+                      ringClassName="ring-2 ring-[#EA4335] ring-offset-2 ring-offset-white dark:ring-offset-[#1e1f20]"
+                      className="shrink-0"
+                    />
                     <div className="text-center">
                       <p className="text-[15px] font-semibold text-[#202124] dark:text-[#e8eaed] leading-snug">
                         {name}

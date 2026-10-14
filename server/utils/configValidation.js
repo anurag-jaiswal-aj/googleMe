@@ -10,6 +10,7 @@ const RECOGNIZED_CONFIG_KEYS = new Set([
   'githubUsername',
   'resumeUrl',
   'avatarUrl',
+  'profilePhotoUrl',
   'knowledgeSkills',
   'bioParagraphs',
   'education',
@@ -457,15 +458,18 @@ function validateResumeUrl(value) {
   return null;
 }
 
-function validateAvatarUrl(value) {
+function validateAvatarUrl(value, field = 'avatarUrl') {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
   if (typeof value !== 'string') {
-    return 'avatarUrl must be a string';
+    return `${field} must be a string`;
   }
   if (value.length > 1000) {
-    return 'avatarUrl cannot exceed 1000 characters';
+    return `${field} cannot exceed 1000 characters`;
   }
   if (!isSafeUrl(value, { allowEmpty: true, allowLocal: true })) {
-    return 'avatarUrl must be a valid URL';
+    return `${field} must be a valid URL`;
   }
   return null;
 }
@@ -512,7 +516,8 @@ function validateConfigEntry(key, value) {
     case 'resumeUrl':
       return validateResumeUrl(value);
     case 'avatarUrl':
-      return validateAvatarUrl(value);
+    case 'profilePhotoUrl':
+      return validateAvatarUrl(value, cleanKey);
     case 'customSetting':
       return null;
     default:

@@ -16,7 +16,7 @@ SiteConfig.findOneAndUpdate = async (filter, update, options) => {
   savedSiteConfigs.push({ filter, update, options });
   return { ok: true, key: update.key, value: update.value };
 };
-SiteConfig.find = () => ({ lean: async () => [] });
+SiteConfig.find = () => ({ lean: async () => savedSiteConfigs.map(s => ({ key: s.update.key, value: s.update.value })) });
 
 PortfolioConfig.findOneAndUpdate = async (filter, update, options) => {
   savedPortfolioConfigs.push({ filter, update, options });
@@ -320,6 +320,414 @@ test('Config Validation: resumeUrl and avatarUrl accept safe URLs and reject jav
     body: JSON.stringify({ key: 'avatarUrl', value: 'https://res.cloudinary.com/test/photo.jpg' }),
   });
   assert.strictEqual(goodAvatar.status, 200);
+
+  // profilePhotoUrl validates identically
+  const badProfilePhoto = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({ key: 'profilePhotoUrl', value: 'javascript:xss()' }),
+  });
+  assert.strictEqual(badProfilePhoto.status, 400);
+
+  const malformedPhoto = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({ key: 'profilePhotoUrl', value: 'not-a-valid-url' }),
+  });
+  assert.strictEqual(malformedPhoto.status, 400);
+
+  const goodProfilePhoto = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({ key: 'profilePhotoUrl', value: 'https://res.cloudinary.com/test/profile.png' }),
+  });
+  assert.strictEqual(goodProfilePhoto.status, 200);
+
+  // Empty string is accepted as "no photo configured" / removal
+  const removeAvatar = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({ key: 'avatarUrl', value: '' }),
+  });
+  assert.strictEqual(removeAvatar.status, 200);
+
+  const removeProfilePhoto = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({ key: 'profilePhotoUrl', value: '' }),
+  });
+  assert.strictEqual(removeProfilePhoto.status, 200);
+});
+
+test('Config Validation: profile photo update preserves existing configuration and exposes public config safely', async () => {
+  // Update photo via bulk update alongside other fields
+  const bulkRes = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'avatarUrl', value: 'https://res.cloudinary.com/test/avatar_public.jpg' },
+        { key: 'profilePhotoUrl', value: 'https://res.cloudinary.com/test/avatar_public.jpg' },
+        { key: 'githubUsername', value: 'anurag-jaiswal-aj' },
+      ],
+    }),
+  });
+  assert.strictEqual(bulkRes.status, 200);
+
+  // Fetch public config
+  const getRes = await fetch(CONFIG_URL);
+  assert.strictEqual(getRes.status, 200);
+  const publicConfig = await getRes.json();
+
+  // Exposes public photo URL
+  assert.strictEqual(publicConfig.avatarUrl, 'https://res.cloudinary.com/test/avatar_public.jpg');
+  assert.strictEqual(publicConfig.profilePhotoUrl, 'https://res.cloudinary.com/test/avatar_public.jpg');
+  // Existing values preserved
+  assert.strictEqual(publicConfig.githubUsername, 'anurag-jaiswal-aj');
+
+  // Must not expose any secrets or credentials
+  assert.strictEqual(publicConfig.CLOUDINARY_API_SECRET, undefined);
+  assert.strictEqual(publicConfig.JWT_SECRET, undefined);
+  assert.strictEqual(publicConfig.adminPassword, undefined);
+});
+
+test('Avatar Config Consistency: Updating profilePhotoUrl or avatarUrl synchronizes both keys and preserves unrelated settings', async () => {
+  // 1. Seed initial configuration with an unrelated setting and an existing photo
+  const seedRes = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'githubUsername', value: 'anurag-jaiswal-aj' },
+        { key: 'avatarUrl', value: 'https://res.cloudinary.com/test/initial_avatar.jpg' },
+        { key: 'profilePhotoUrl', value: 'https://res.cloudinary.com/test/initial_avatar.jpg' },
+      ],
+    }),
+  });
+  assert.strictEqual(seedRes.status, 200);
+
+  // 2. Direct single update to profilePhotoUrl must synchronize avatarUrl and preserve githubUsername
+  const singlePhotoRes = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({ key: 'profilePhotoUrl', value: 'https://res.cloudinary.com/test/updated_photo.jpg' }),
+  });
+  assert.strictEqual(singlePhotoRes.status, 200);
+
+  const getAfterPhoto = await fetch(CONFIG_URL);
+  assert.strictEqual(getAfterPhoto.status, 200);
+  const configAfterPhoto = await getAfterPhoto.json();
+  assert.strictEqual(configAfterPhoto.profilePhotoUrl, 'https://res.cloudinary.com/test/updated_photo.jpg');
+  assert.strictEqual(configAfterPhoto.avatarUrl, 'https://res.cloudinary.com/test/updated_photo.jpg');
+  assert.strictEqual(configAfterPhoto.githubUsername, 'anurag-jaiswal-aj');
+
+  // 3. Direct single update to avatarUrl must synchronize profilePhotoUrl and preserve githubUsername
+  const singleAvatarRes = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({ key: 'avatarUrl', value: 'https://res.cloudinary.com/test/updated_avatar.jpg' }),
+  });
+  assert.strictEqual(singleAvatarRes.status, 200);
+
+  const getAfterAvatar = await fetch(CONFIG_URL);
+  assert.strictEqual(getAfterAvatar.status, 200);
+  const configAfterAvatar = await getAfterAvatar.json();
+  assert.strictEqual(configAfterAvatar.avatarUrl, 'https://res.cloudinary.com/test/updated_avatar.jpg');
+  assert.strictEqual(configAfterAvatar.profilePhotoUrl, 'https://res.cloudinary.com/test/updated_avatar.jpg');
+  assert.strictEqual(configAfterAvatar.githubUsername, 'anurag-jaiswal-aj');
+
+  // 4. Bulk update with only profilePhotoUrl must synchronize avatarUrl and preserve githubUsername
+  const bulkPhotoOnlyRes = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'profilePhotoUrl', value: 'https://res.cloudinary.com/test/bulk_photo_only.jpg' },
+      ],
+    }),
+  });
+  assert.strictEqual(bulkPhotoOnlyRes.status, 200);
+
+  const getAfterBulkPhoto = await fetch(CONFIG_URL);
+  const configAfterBulkPhoto = await getAfterBulkPhoto.json();
+  assert.strictEqual(configAfterBulkPhoto.profilePhotoUrl, 'https://res.cloudinary.com/test/bulk_photo_only.jpg');
+  assert.strictEqual(configAfterBulkPhoto.avatarUrl, 'https://res.cloudinary.com/test/bulk_photo_only.jpg');
+  assert.strictEqual(configAfterBulkPhoto.githubUsername, 'anurag-jaiswal-aj');
+});
+
+test('Avatar Config Consistency: Photo removal through either key clears both keys and prevents stale fallback', async () => {
+  // 1. Seed active photo in both keys
+  const seedRes = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'avatarUrl', value: 'https://res.cloudinary.com/test/active_photo.jpg' },
+        { key: 'profilePhotoUrl', value: 'https://res.cloudinary.com/test/active_photo.jpg' },
+        { key: 'defaultTheme', value: 'dark' },
+      ],
+    }),
+  });
+  assert.strictEqual(seedRes.status, 200);
+
+  // 2. Remove via single update to profilePhotoUrl: must clear avatarUrl as well
+  const removeViaProfile = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({ key: 'profilePhotoUrl', value: '' }),
+  });
+  assert.strictEqual(removeViaProfile.status, 200);
+
+  const getAfterProfileRemoval = await fetch(CONFIG_URL);
+  const configAfterProfileRemoval = await getAfterProfileRemoval.json();
+  assert.strictEqual(configAfterProfileRemoval.profilePhotoUrl, '');
+  assert.strictEqual(configAfterProfileRemoval.avatarUrl, '');
+  assert.strictEqual(configAfterProfileRemoval.defaultTheme, 'dark');
+
+  // 3. Re-set photo via single update to avatarUrl
+  const restoreRes = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({ key: 'avatarUrl', value: 'https://res.cloudinary.com/test/restored_photo.jpg' }),
+  });
+  assert.strictEqual(restoreRes.status, 200);
+
+  // 4. Remove via single update to avatarUrl: must clear profilePhotoUrl as well
+  const removeViaAvatar = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({ key: 'avatarUrl', value: '' }),
+  });
+  assert.strictEqual(removeViaAvatar.status, 200);
+
+  const getAfterAvatarRemoval = await fetch(CONFIG_URL);
+  const configAfterAvatarRemoval = await getAfterAvatarRemoval.json();
+  assert.strictEqual(configAfterAvatarRemoval.avatarUrl, '');
+  assert.strictEqual(configAfterAvatarRemoval.profilePhotoUrl, '');
+  assert.strictEqual(configAfterAvatarRemoval.defaultTheme, 'dark');
+
+  // 5. Bulk removal with only one key clears both
+  await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({ key: 'avatarUrl', value: 'https://res.cloudinary.com/test/bulk_temp.jpg' }),
+  });
+  const bulkRemoveRes = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [{ key: 'profilePhotoUrl', value: '' }],
+    }),
+  });
+  assert.strictEqual(bulkRemoveRes.status, 200);
+
+  const getAfterBulkRemoval = await fetch(CONFIG_URL);
+  const configAfterBulkRemoval = await getAfterBulkRemoval.json();
+  assert.strictEqual(configAfterBulkRemoval.avatarUrl, '');
+  assert.strictEqual(configAfterBulkRemoval.profilePhotoUrl, '');
+});
+
+test('Avatar Config Consistency: Invalid avatar URLs fail fast without changing stored configuration or unrelated settings', async () => {
+  // 1. Seed valid baseline state
+  const baselineRes = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'avatarUrl', value: 'https://res.cloudinary.com/test/safe_avatar.jpg' },
+        { key: 'profilePhotoUrl', value: 'https://res.cloudinary.com/test/safe_avatar.jpg' },
+        { key: 'githubUsername', value: 'anurag-jaiswal-aj' },
+      ],
+    }),
+  });
+  assert.strictEqual(baselineRes.status, 200);
+
+  // 2. Reject single update with dangerous URI protocol
+  const badSingleRes = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({ key: 'profilePhotoUrl', value: 'javascript:alert(document.cookie)' }),
+  });
+  assert.strictEqual(badSingleRes.status, 400);
+
+  // Verify stored config was NOT modified
+  const getAfterBadSingle = await fetch(CONFIG_URL);
+  const configAfterBadSingle = await getAfterBadSingle.json();
+  assert.strictEqual(configAfterBadSingle.avatarUrl, 'https://res.cloudinary.com/test/safe_avatar.jpg');
+  assert.strictEqual(configAfterBadSingle.profilePhotoUrl, 'https://res.cloudinary.com/test/safe_avatar.jpg');
+  assert.strictEqual(configAfterBadSingle.githubUsername, 'anurag-jaiswal-aj');
+
+  // 3. Reject bulk update containing invalid avatar URL and valid other updates
+  const badBulkRes = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'avatarUrl', value: 'not-a-valid-http-url' },
+        { key: 'githubUsername', value: 'unintended-partial-update' },
+      ],
+    }),
+  });
+  assert.strictEqual(badBulkRes.status, 400);
+
+  // Verify zero persistence / fail-fast: neither avatarUrl nor githubUsername changed
+  const getAfterBadBulk = await fetch(CONFIG_URL);
+  const configAfterBadBulk = await getAfterBadBulk.json();
+  assert.strictEqual(configAfterBadBulk.avatarUrl, 'https://res.cloudinary.com/test/safe_avatar.jpg');
+  assert.strictEqual(configAfterBadBulk.profilePhotoUrl, 'https://res.cloudinary.com/test/safe_avatar.jpg');
+  assert.strictEqual(configAfterBadBulk.githubUsername, 'anurag-jaiswal-aj');
+});
+
+test('Avatar Config Consistency: Conflicting avatar keys in bulk update resolve to canonical avatarUrl regardless of order', async () => {
+  // Order 1: avatarUrl first, profilePhotoUrl second
+  const order1Res = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'avatarUrl', value: 'https://res.cloudinary.com/test/canonical_1.jpg' },
+        { key: 'profilePhotoUrl', value: 'https://res.cloudinary.com/test/secondary_1.jpg' },
+      ],
+    }),
+  });
+  assert.strictEqual(order1Res.status, 200);
+
+  const get1 = await fetch(CONFIG_URL);
+  assert.strictEqual(get1.status, 200);
+  const config1 = await get1.json();
+  assert.strictEqual(config1.avatarUrl, 'https://res.cloudinary.com/test/canonical_1.jpg');
+  assert.strictEqual(config1.profilePhotoUrl, 'https://res.cloudinary.com/test/canonical_1.jpg');
+
+  // Order 2: profilePhotoUrl first, avatarUrl second
+  const order2Res = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'profilePhotoUrl', value: 'https://res.cloudinary.com/test/secondary_2.jpg' },
+        { key: 'avatarUrl', value: 'https://res.cloudinary.com/test/canonical_2.jpg' },
+      ],
+    }),
+  });
+  assert.strictEqual(order2Res.status, 200);
+
+  const get2 = await fetch(CONFIG_URL);
+  assert.strictEqual(get2.status, 200);
+  const config2 = await get2.json();
+  assert.strictEqual(config2.avatarUrl, 'https://res.cloudinary.com/test/canonical_2.jpg');
+  assert.strictEqual(config2.profilePhotoUrl, 'https://res.cloudinary.com/test/canonical_2.jpg');
+});
+
+test('Avatar Config Consistency: Valid avatar alongside invalid unrelated setting fails fast with HTTP 400 and zero persistence', async () => {
+  // 1. Seed initial baseline state
+  const baselineRes = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'avatarUrl', value: 'https://res.cloudinary.com/test/base_avatar.jpg' },
+        { key: 'profilePhotoUrl', value: 'https://res.cloudinary.com/test/base_avatar.jpg' },
+        { key: 'githubUsername', value: 'clean-username' },
+      ],
+    }),
+  });
+  assert.strictEqual(baselineRes.status, 200);
+
+  // 2. Submit valid avatar update alongside invalid githubUsername
+  const badRes = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'avatarUrl', value: 'https://res.cloudinary.com/test/attempted_new_avatar.jpg' },
+        { key: 'githubUsername', value: '-invalid-leading-dash' },
+      ],
+    }),
+  });
+  assert.strictEqual(badRes.status, 400);
+
+  // 3. Verify neither the avatar configuration nor the unrelated setting was persisted
+  const getAfter = await fetch(CONFIG_URL);
+  assert.strictEqual(getAfter.status, 200);
+  const configAfter = await getAfter.json();
+  assert.strictEqual(configAfter.avatarUrl, 'https://res.cloudinary.com/test/base_avatar.jpg');
+  assert.strictEqual(configAfter.profilePhotoUrl, 'https://res.cloudinary.com/test/base_avatar.jpg');
+  assert.strictEqual(configAfter.githubUsername, 'clean-username');
+});
+
+test('Avatar Config Consistency: Duplicate avatar keys follow last-occurrence and preserve canonical precedence', async () => {
+  // 1. Duplicate avatarUrl entries: verify last occurrence wins and profilePhotoUrl synchronizes
+  const dupAvatarRes = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'avatarUrl', value: 'https://res.cloudinary.com/test/avatar_first.jpg' },
+        { key: 'avatarUrl', value: 'https://res.cloudinary.com/test/avatar_second.jpg' },
+      ],
+    }),
+  });
+  assert.strictEqual(dupAvatarRes.status, 200);
+
+  const getAfterDup = await fetch(CONFIG_URL);
+  const configAfterDup = await getAfterDup.json();
+  assert.strictEqual(configAfterDup.avatarUrl, 'https://res.cloudinary.com/test/avatar_second.jpg');
+  assert.strictEqual(configAfterDup.profilePhotoUrl, 'https://res.cloudinary.com/test/avatar_second.jpg');
+
+  // 2. Duplicate avatarUrl with intervening profilePhotoUrl: canonical key still governs both
+  const mixedDupRes = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'avatarUrl', value: 'https://res.cloudinary.com/test/avatar_early.jpg' },
+        { key: 'profilePhotoUrl', value: 'https://res.cloudinary.com/test/profile_ignored.jpg' },
+        { key: 'avatarUrl', value: 'https://res.cloudinary.com/test/avatar_final.jpg' },
+      ],
+    }),
+  });
+  assert.strictEqual(mixedDupRes.status, 200);
+
+  const getAfterMixed = await fetch(CONFIG_URL);
+  const configAfterMixed = await getAfterMixed.json();
+  assert.strictEqual(configAfterMixed.avatarUrl, 'https://res.cloudinary.com/test/avatar_final.jpg');
+  assert.strictEqual(configAfterMixed.profilePhotoUrl, 'https://res.cloudinary.com/test/avatar_final.jpg');
+});
+
+test('Avatar Config Consistency: Bulk update containing only avatarUrl synchronizes profilePhotoUrl and preserves unrelated settings', async () => {
+  // 1. Seed baseline with unrelated settings
+  const seedRes = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'defaultTheme', value: 'dark' },
+        { key: 'githubUsername', value: 'anurag-jaiswal-aj' },
+      ],
+    }),
+  });
+  assert.strictEqual(seedRes.status, 200);
+
+  // 2. Submit bulk update containing only avatarUrl
+  const bulkAvatarOnlyRes = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'avatarUrl', value: 'https://res.cloudinary.com/test/avatar_only_bulk.jpg' },
+      ],
+    }),
+  });
+  assert.strictEqual(bulkAvatarOnlyRes.status, 200);
+
+  // 3. Verify profilePhotoUrl receives the same value and unrelated settings are preserved
+  const getAfter = await fetch(CONFIG_URL);
+  assert.strictEqual(getAfter.status, 200);
+  const configAfter = await getAfter.json();
+  assert.strictEqual(configAfter.avatarUrl, 'https://res.cloudinary.com/test/avatar_only_bulk.jpg');
+  assert.strictEqual(configAfter.profilePhotoUrl, 'https://res.cloudinary.com/test/avatar_only_bulk.jpg');
+  assert.strictEqual(configAfter.defaultTheme, 'dark');
+  assert.strictEqual(configAfter.githubUsername, 'anurag-jaiswal-aj');
 });
 
 // ── 4. Profile & Canonical Education ─────────────────────────────────────────

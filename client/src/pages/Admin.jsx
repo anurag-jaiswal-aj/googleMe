@@ -12,6 +12,7 @@ import { clearConfigCache } from '../hooks/useConfig';
 import { getPageVisibility } from '../data/pageVisibility';
 import { setVerifiedAdminToken, clearVerifiedAdminSession } from '../utils/adminAuth';
 import SEO from '../components/SEO';
+import Avatar from '../components/Avatar';
 import { clearProjectCache } from '../utils/prefetch';
 import {
   DEFAULT_TOOLS,
@@ -178,11 +179,61 @@ function ProfileTab({ cfg, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState(cfg.avatarUrl || cfg.profilePhotoUrl || '');
+  const [avatarMode, setAvatarMode] = useState('upload');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarMsg, setAvatarMsg] = useState('');
+  const avatarFileInputRef = useRef(null);
   const [resumeUrl, setResumeUrl] = useState(cfg.resumeUrl ?? '');
   const [resumeMode, setResumeMode] = useState('external');
   const [uploadingResume, setUploadingResume] = useState(false);
   const [uploadMsg, setUploadMsg] = useState('');
   const fileInputRef = useRef(null);
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarMsg('File size must be under 5MB');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      setAvatarMsg('Only image files are allowed');
+      return;
+    }
+    setUploadingAvatar(true);
+    setAvatarMsg('Uploading...');
+    try {
+      const fd = new FormData();
+      fd.append('avatar', file);
+      const { data } = await api.post('/config/avatar-upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setAvatarUrl(data.avatarUrl);
+      clearConfigCache();
+      setAvatarMsg('Profile photo uploaded successfully!');
+      setSaved(true);
+    } catch (err) {
+      setAvatarMsg(err.response?.data?.error || 'Failed to upload profile photo');
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarFileInputRef.current) avatarFileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    setAvatarUrl('');
+    setAvatarMsg('Profile photo removed.');
+    try {
+      await saveConfigBulk([
+        { key: 'avatarUrl', value: '' },
+        { key: 'profilePhotoUrl', value: '' },
+      ]);
+      clearConfigCache();
+      setSaved(true);
+      onSaved?.();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to remove profile photo.');
+    }
+  };
 
   const handleResumeUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -218,25 +269,129 @@ function ProfileTab({ cfg, onSaved }) {
   const setLink = (k, v) => { setLinks(l => ({ ...l, [k]: v })); setSaved(false); };
 
   const save = async () => {
-    if (saving || uploadingResume) return;
+    if (saving || uploadingResume || uploadingAvatar) return;
     setSaving(true); setSaved(false); setError('');
     try {
       await saveConfigBulk([
-        { key: 'profile',       value: form },
-        { key: 'socialLinks',   value: { ...links, mailto: `mailto:${links.email}` } },
-        { key: 'githubUsername', value: githubUsername },
-        { key: 'resumeUrl',     value: resumeUrl },
+        { key: 'profile',         value: form },
+        { key: 'socialLinks',     value: { ...links, mailto: `mailto:${links.email}` } },
+        { key: 'githubUsername',   value: githubUsername },
+        { key: 'resumeUrl',       value: resumeUrl },
+        { key: 'avatarUrl',       value: avatarUrl },
+        { key: 'profilePhotoUrl', value: avatarUrl },
       ]);
       clearConfigCache();
       setSaved(true);
       onSaved?.();
-    } catch { setError('Save failed. Try again.'); }
+    } catch (err) { setError(err.response?.data?.error || 'Save failed. Try again.'); }
     finally { setSaving(false); }
   };
 
   return (
     <div className="space-y-5">
       <SectionHeader title="Profile" subtitle="Your identity — shown in the Knowledge Panel and throughout the site." />
+
+      {/* Profile Photo Section */}
+      <div className="border border-[#dadce0] dark:border-[#3c4043] rounded-xl p-4 bg-[#f8f9fa] dark:bg-[#202124]">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-4">
+            <div className="relative shrink-0">
+              <Avatar
+                url={avatarUrl}
+                name={form.name || 'Anurag'}
+                size="lg"
+                ringClassName="ring-2 ring-[#EA4335] ring-offset-2 ring-offset-white dark:ring-offset-[#202124]"
+              />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-[#202124] dark:text-[#e8eaed]">Profile Photo</h3>
+              <p className="text-xs text-[#5f6368] dark:text-[#9aa0a6] mt-0.5">
+                {avatarUrl
+                  ? 'Configured photo flips to letter "A" on hover. Visible in header, search, and knowledge panel.'
+                  : 'No photo configured. Showing the standard letter "A" circular avatar.'}
+              </p>
+            </div>
+          </div>
+          {avatarUrl && (
+            <button
+              type="button"
+              onClick={handleRemoveAvatar}
+              disabled={uploadingAvatar}
+              className="px-3 py-1.5 text-xs font-medium text-[#d93025] hover:bg-[#fce8e6] dark:hover:bg-[#d93025]/20 rounded-lg border border-[#f5c6cb] dark:border-[#5c1d1d] transition-colors shrink-0"
+            >
+              Remove Photo
+            </button>
+          )}
+        </div>
+
+        <div className="flex gap-4 mb-3 border-t border-[#e8eaed] dark:border-[#3c4043] pt-3">
+          <label className="flex items-center gap-2 text-xs font-medium text-[#202124] dark:text-[#e8eaed] cursor-pointer">
+            <input
+              type="radio"
+              name="avatarMode"
+              value="upload"
+              checked={avatarMode === 'upload'}
+              onChange={() => setAvatarMode('upload')}
+            />
+            Upload Image
+          </label>
+          <label className="flex items-center gap-2 text-xs font-medium text-[#202124] dark:text-[#e8eaed] cursor-pointer">
+            <input
+              type="radio"
+              name="avatarMode"
+              value="external"
+              checked={avatarMode === 'external'}
+              onChange={() => setAvatarMode('external')}
+            />
+            Image URL
+          </label>
+        </div>
+
+        {avatarMode === 'upload' ? (
+          <div>
+            <input
+              type="file"
+              accept="image/*"
+              ref={avatarFileInputRef}
+              onChange={handleAvatarUpload}
+              disabled={uploadingAvatar}
+              className="block w-full text-sm text-[#5f6368] dark:text-[#9aa0a6]
+                         file:mr-4 file:py-1.5 file:px-3 file:rounded-full file:border-0
+                         file:text-xs file:font-semibold file:bg-[#e8f0fe] file:text-[#1a73e8]
+                         dark:file:bg-[#3c4043] dark:file:text-[#8ab4f8]
+                         hover:file:bg-[#d2e3fc] dark:hover:file:bg-[#5f6368] transition-colors"
+            />
+            {avatarMsg && (
+              <p
+                className={`text-xs mt-2 ${
+                  avatarMsg.includes('successfully') || avatarMsg.includes('removed')
+                    ? 'text-[#137333] dark:text-[#81c995]'
+                    : avatarMsg === 'Uploading...'
+                    ? 'text-[#1a73e8] dark:text-[#8ab4f8]'
+                    : 'text-[#d93025] dark:text-[#f28b82]'
+                }`}
+              >
+                {avatarMsg}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div>
+            <Field label="Direct Image URL (HTTP/HTTPS)">
+              <input
+                className={inputCls}
+                value={avatarUrl}
+                onChange={(e) => {
+                  setAvatarUrl(e.target.value);
+                  setSaved(false);
+                  setAvatarMsg('');
+                }}
+                placeholder="https://res.cloudinary.com/... or https://example.com/photo.jpg"
+              />
+            </Field>
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="Full Name">
@@ -356,7 +511,7 @@ function ProfileTab({ cfg, onSaved }) {
         )}
       </div>
 
-      <SaveBar saving={saving} saved={saved} error={error} onSave={save} disabled={uploadingResume} />
+      <SaveBar saving={saving} saved={saved} error={error} onSave={save} disabled={uploadingResume || uploadingAvatar} />
     </div>
   );
 }

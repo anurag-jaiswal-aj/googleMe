@@ -44,7 +44,10 @@ cloudinary.uploader.upload_stream = (opts, cb) => {
   return new Writable({
     write(chunk, enc, next) { next(); },
     final(cbStream) {
-      cb(null, { secure_url: 'https://res.cloudinary.com/mock/resume.pdf' });
+      const url = opts.public_id && opts.public_id.includes('avatar')
+        ? 'https://res.cloudinary.com/mock/avatar.jpg'
+        : 'https://res.cloudinary.com/mock/resume.pdf';
+      cb(null, { secure_url: url });
       cbStream();
     }
   });
@@ -60,6 +63,7 @@ app.use('/api/config', configRoutes);
 // 3. Tests
 const PORT = 5555;
 const BASE_URL = `http://localhost:${PORT}/api/config/resume-upload`;
+const AVATAR_BASE_URL = `http://localhost:${PORT}/api/config/avatar-upload`;
 const token = jwt.sign({ admin: true }, process.env.JWT_SECRET);
 const headers = { 'Authorization': `Bearer ${token}` };
 
@@ -173,4 +177,88 @@ test('8. Database update failure is handled safely', async () => {
   assert.strictEqual(data.error, 'Failed to upload resume');
   assert.strictEqual(cloudinaryCallCount, 1); // Cloudinary still uploaded
   assert.strictEqual(dbCallCount, 0); // The mock throws before incrementing
+});
+
+test('9. Avatar upload: Unauthenticated request is rejected', async () => {
+  const res = await fetch(AVATAR_BASE_URL, { method: 'POST' });
+  assert.strictEqual(res.status, 401);
+});
+
+test('10. Avatar upload: Missing file is rejected', async () => {
+  const fd = new FormData();
+  const res = await fetch(AVATAR_BASE_URL, { method: 'POST', headers, body: fd });
+  assert.strictEqual(res.status, 400);
+  const data = await res.json();
+  assert.match(data.error, /Image file is required/);
+});
+
+test('11. Avatar upload: Non-image file is rejected', async () => {
+  const fd = new FormData();
+  const textBuffer = Buffer.from('plain text file');
+  fd.append('avatar', new Blob([textBuffer], { type: 'text/plain' }), 'document.txt');
+  const res = await fetch(AVATAR_BASE_URL, { method: 'POST', headers, body: fd });
+  assert.strictEqual(res.status, 400);
+  const data = await res.json();
+  assert.match(data.error, /Only image files are allowed/);
+});
+
+test('12. Avatar upload: Invalid image signature is rejected', async () => {
+  const fd = new FormData();
+  const fakeImgBuffer = Buffer.from('not an actual image');
+  fd.append('avatar', new Blob([fakeImgBuffer], { type: 'image/jpeg' }), 'fake.jpg');
+  const res = await fetch(AVATAR_BASE_URL, { method: 'POST', headers, body: fd });
+  assert.strictEqual(res.status, 400);
+  const data = await res.json();
+  assert.match(data.error, /Invalid file content/);
+});
+
+test('13. Avatar upload: File larger than 5 MB is rejected', async () => {
+  const fd = new FormData();
+  const largeBuffer = Buffer.alloc(6 * 1024 * 1024, 'a');
+  fd.append('avatar', new Blob([largeBuffer], { type: 'image/jpeg' }), 'large.jpg');
+  const res = await fetch(AVATAR_BASE_URL, { method: 'POST', headers, body: fd });
+  assert.strictEqual(res.status, 400);
+  const data = await res.json();
+  assert.match(data.error, /File too large/);
+});
+
+test('14. Avatar upload: Valid image upload succeeds and saves both avatarUrl and profilePhotoUrl', async () => {
+  const fd = new FormData();
+  // Valid JPEG header bytes: 0xff, 0xd8, 0xff
+  const validJpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]);
+  fd.append('avatar', new Blob([validJpeg], { type: 'image/jpeg' }), 'avatar.jpg');
+  const res = await fetch(AVATAR_BASE_URL, { method: 'POST', headers, body: fd });
+  assert.strictEqual(res.status, 200);
+  const data = await res.json();
+  assert.strictEqual(data.avatarUrl, 'https://res.cloudinary.com/mock/avatar.jpg');
+  assert.strictEqual(data.profilePhotoUrl, 'https://res.cloudinary.com/mock/avatar.jpg');
+  assert.strictEqual(cloudinaryCallCount, 1);
+  assert.strictEqual(dbCallCount, 2); // Updates both avatarUrl and profilePhotoUrl
+  assert.strictEqual(lastDbUpdate.value, 'https://res.cloudinary.com/mock/avatar.jpg');
+});
+
+test('15. Avatar upload: Cloudinary failure returns safe error and does not update setting', async () => {
+  cloudinaryShouldFail = true;
+  const fd = new FormData();
+  const validJpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+  fd.append('avatar', new Blob([validJpeg], { type: 'image/jpeg' }), 'avatar.jpg');
+  const res = await fetch(AVATAR_BASE_URL, { method: 'POST', headers, body: fd });
+  assert.strictEqual(res.status, 500);
+  const data = await res.json();
+  assert.strictEqual(data.error, 'Failed to upload profile photo');
+  assert.strictEqual(cloudinaryCallCount, 1);
+  assert.strictEqual(dbCallCount, 0);
+});
+
+test('16. Avatar upload: Database update failure is handled safely', async () => {
+  dbShouldFail = true;
+  const fd = new FormData();
+  const validJpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+  fd.append('avatar', new Blob([validJpeg], { type: 'image/jpeg' }), 'avatar.jpg');
+  const res = await fetch(AVATAR_BASE_URL, { method: 'POST', headers, body: fd });
+  assert.strictEqual(res.status, 500);
+  const data = await res.json();
+  assert.strictEqual(data.error, 'Failed to upload profile photo');
+  assert.strictEqual(cloudinaryCallCount, 1);
+  assert.strictEqual(dbCallCount, 0);
 });

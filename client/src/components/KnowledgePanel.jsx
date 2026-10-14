@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { LINKS } from "../config/links";
 import { useConfig } from "../hooks/useConfig";
+import Avatar from "./Avatar";
 import {
   DEFAULT_CURRENT_EDUCATION,
   getEffectiveCurrentEducation,
@@ -43,6 +44,7 @@ export default function KnowledgePanel() {
   const profile = { ...DEFAULT_PROFILE,   ...(cfg.profile   ?? {}) };
   const skills  = cfg.knowledgeSkills ?? DEFAULT_SKILLS;
   const links   = { ...DEFAULT_LINKS,     ...(cfg.socialLinks ?? {}) };
+  const avatarUrl = (typeof cfg.avatarUrl === 'string' && cfg.avatarUrl.trim()) || (typeof cfg.profilePhotoUrl === 'string' && cfg.profilePhotoUrl.trim()) || '';
 
   const edu = getEffectiveCurrentEducation(profile.education);
 
@@ -116,28 +118,14 @@ export default function KnowledgePanel() {
         {/* Header */}
         <div className="px-5 pt-5 pb-1 flex items-center gap-4">
           <div className="relative shrink-0">
-            <div className="w-16 h-16 rounded-full overflow-hidden bg-[#4285F4] flex items-center justify-center shadow-md ring-[3px] ring-[#EA4335] ring-offset-2 ring-offset-white dark:ring-offset-[#202124]">
-              {cfg.avatarUrl ? (
-                <>
-                  <img
-                    src={cfg.avatarUrl}
-                    alt={profile.name}
-                    className="w-full h-full object-cover"
-                    onError={e => {
-                      e.currentTarget.style.display = "none";
-                      if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = "flex";
-                    }}
-                  />
-                  <span className="hidden w-full h-full items-center justify-center text-white text-2xl font-bold select-none">
-                    {profile.name?.charAt(0) ?? "A"}
-                  </span>
-                </>
-              ) : (
-                <span className="w-full h-full flex items-center justify-center text-white text-2xl font-bold select-none">
-                  {profile.name?.charAt(0) ?? "A"}
-                </span>
-              )}
-            </div>
+            <Avatar
+              url={avatarUrl}
+              name={profile.name}
+              size="lg"
+              bgClassName="bg-[#4285F4]"
+              ringClassName="ring-[3px] ring-[#EA4335] ring-offset-2 ring-offset-white dark:ring-offset-[#202124] shadow-md"
+              textClassName="text-2xl font-bold"
+            />
           </div>
           <div className="min-w-0">
             <h2 className="text-[18px] font-semibold text-[#202124] dark:text-[#e8eaed] leading-tight">

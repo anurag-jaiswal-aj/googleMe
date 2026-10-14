@@ -11,6 +11,7 @@ import { useVoiceSearch } from "../hooks/useVoiceSearch";
 import BugReportModal from "./BugReportModal";
 import { resolveSearchRoute, filterSuggestions } from "../utils/searchRoute";
 import { getPageVisibility } from "../data/pageVisibility";
+import Avatar from "./Avatar";
 
 const TABS = [
   { label: "All",     to: "/all",      query: "anurag developer portfolio" },
@@ -56,6 +57,7 @@ export default function SearchLayout() {
   const leetcodeUrl     = sl.leetcode ?? LINKS.leetcode;
   const codechefUrl     = sl.codechef ?? LINKS.codechef;
   const name            = cfg.profile?.name ?? 'Anurag';
+  const avatarUrl       = (typeof cfg.avatarUrl === 'string' && cfg.avatarUrl.trim()) || (typeof cfg.profilePhotoUrl === 'string' && cfg.profilePhotoUrl.trim()) || '';
   const { isDark, toggle } = useTheme();
 
   const visibility = getPageVisibility(cfg);
@@ -727,14 +729,16 @@ export default function SearchLayout() {
 
             {/* Avatar */}
             <div className="relative" ref={avatarRef}>
-              <button
+              <Avatar
+                as="button"
                 onClick={() => setAvatarOpen((o) => !o)}
-                className="w-9 h-9 rounded-full bg-[#1a73e8] flex items-center justify-center
-                            text-white text-sm font-medium cursor-pointer select-none ml-1
-                            ring-2 ring-[#EA4335] ring-offset-1 ring-offset-white dark:ring-offset-[#202124]"
-              >
-                A
-              </button>
+                url={avatarUrl}
+                name={name}
+                size="sm"
+                ringClassName="ring-2 ring-[#EA4335] ring-offset-1 ring-offset-white dark:ring-offset-[#202124]"
+                className="cursor-pointer select-none ml-1"
+                ariaLabel="Google Account"
+              />
               <AnimatePresence>
                 {avatarOpen && (
                   <motion.div
@@ -748,13 +752,13 @@ export default function SearchLayout() {
                   >
                     {/* Top: avatar + name + subtitle */}
                     <div className="flex flex-col items-center px-5 pt-6 pb-4 gap-2">
-                      <div
-                        className="w-16 h-16 rounded-full bg-[#1a73e8] flex items-center justify-center
-                                      text-white text-2xl font-semibold
-                                      ring-2 ring-[#EA4335] ring-offset-2 ring-offset-white dark:ring-offset-[#1e1f20] shrink-0"
-                      >
-                        A
-                      </div>
+                      <Avatar
+                        url={avatarUrl}
+                        name={name}
+                        size="lg"
+                        ringClassName="ring-2 ring-[#EA4335] ring-offset-2 ring-offset-white dark:ring-offset-[#1e1f20]"
+                        className="shrink-0"
+                      />
                       <div className="text-center">
                         <p className="text-[15px] font-semibold text-[#202124] dark:text-[#e8eaed] leading-snug">
                           {name}
