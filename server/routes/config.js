@@ -139,6 +139,7 @@ function validatePageVisibilityConfig(value) {
 }
 
 const { validateConfigEntry } = require('../utils/configValidation');
+const { invalidateRepoCache } = require('./github');
 
 // POST /api/config — admin only
 router.post('/', requireAuth, async (req, res) => {
@@ -153,18 +154,22 @@ router.post('/', requireAuth, async (req, res) => {
           return res.status(400).json({ error: 'Each update item must contain a non-empty string key' });
         }
         const cleanKey = item.key.trim();
+        let valToValidate = item.value;
+        if (cleanKey === 'githubUsername' && typeof valToValidate === 'string') {
+          valToValidate = valToValidate.trim();
+        }
         if (cleanKey === 'tools') {
-          const toolsErr = validateToolsConfig(item.value);
+          const toolsErr = validateToolsConfig(valToValidate);
           if (toolsErr) {
             return res.status(400).json({ error: toolsErr });
           }
         } else if (cleanKey === 'pageVisibility') {
-          const pvErr = validatePageVisibilityConfig(item.value);
+          const pvErr = validatePageVisibilityConfig(valToValidate);
           if (pvErr) {
             return res.status(400).json({ error: pvErr });
           }
         } else {
-          const entryErr = validateConfigEntry(cleanKey, item.value);
+          const entryErr = validateConfigEntry(cleanKey, valToValidate);
           if (entryErr) {
             return res.status(400).json({ error: entryErr });
           }
@@ -172,7 +177,12 @@ router.post('/', requireAuth, async (req, res) => {
       }
       const finalUpdatesMap = new Map();
       for (const { key: k, value: v } of updates) {
-        finalUpdatesMap.set(k.trim(), v);
+        const cleanKey = k.trim();
+        let cleanVal = v;
+        if (cleanKey === 'githubUsername' && typeof v === 'string') {
+          cleanVal = v.trim();
+        }
+        finalUpdatesMap.set(cleanKey, cleanVal);
       }
       if (finalUpdatesMap.has('avatarUrl') && finalUpdatesMap.has('profilePhotoUrl')) {
         // avatarUrl is canonical if both are supplied
@@ -189,24 +199,35 @@ router.post('/', requireAuth, async (req, res) => {
         )
       );
       invalidateCache();
+      if (finalUpdatesMap.has('githubUsername')) {
+        try {
+          invalidateRepoCache?.();
+        } catch (cacheErr) {
+          console.error('[config] Failed to invalidate repo cache:', cacheErr.message);
+        }
+      }
       return res.json({ ok: true });
     }
     if (!key || typeof key !== 'string' || !key.trim()) {
       return res.status(400).json({ error: 'key is required' });
     }
     const cleanKey = key.trim();
+    let cleanVal = value;
+    if (cleanKey === 'githubUsername' && typeof value === 'string') {
+      cleanVal = value.trim();
+    }
     if (cleanKey === 'tools') {
-      const toolsErr = validateToolsConfig(value);
+      const toolsErr = validateToolsConfig(cleanVal);
       if (toolsErr) {
         return res.status(400).json({ error: toolsErr });
       }
     } else if (cleanKey === 'pageVisibility') {
-      const pvErr = validatePageVisibilityConfig(value);
+      const pvErr = validatePageVisibilityConfig(cleanVal);
       if (pvErr) {
         return res.status(400).json({ error: pvErr });
       }
     } else {
-      const entryErr = validateConfigEntry(cleanKey, value);
+      const entryErr = validateConfigEntry(cleanKey, cleanVal);
       if (entryErr) {
         return res.status(400).json({ error: entryErr });
       }
@@ -216,12 +237,12 @@ router.post('/', requireAuth, async (req, res) => {
       const [doc] = await Promise.all([
         SiteConfig.findOneAndUpdate(
           { key: cleanKey },
-          { key: cleanKey, value },
+          { key: cleanKey, value: cleanVal },
           { upsert: true, new: true }
         ),
         SiteConfig.findOneAndUpdate(
           { key: counterpartKey },
-          { key: counterpartKey, value },
+          { key: counterpartKey, value: cleanVal },
           { upsert: true, new: true }
         ),
       ]);
@@ -231,10 +252,17 @@ router.post('/', requireAuth, async (req, res) => {
 
     const doc = await SiteConfig.findOneAndUpdate(
       { key: cleanKey },
-      { key: cleanKey, value },
+      { key: cleanKey, value: cleanVal },
       { upsert: true, new: true }
     );
     invalidateCache();
+    if (cleanKey === 'githubUsername') {
+      try {
+        invalidateRepoCache?.();
+      } catch (cacheErr) {
+        console.error('[config] Failed to invalidate repo cache:', cacheErr.message);
+      }
+    }
     res.json(doc);
   } catch (err) {
     console.error('[config] POST failed:', err.message);

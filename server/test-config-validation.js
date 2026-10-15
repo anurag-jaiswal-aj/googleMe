@@ -17,6 +17,12 @@ SiteConfig.findOneAndUpdate = async (filter, update, options) => {
   return { ok: true, key: update.key, value: update.value };
 };
 SiteConfig.find = () => ({ lean: async () => savedSiteConfigs.map(s => ({ key: s.update.key, value: s.update.value })) });
+SiteConfig.findOne = (filter) => ({
+  lean: async () => {
+    const item = savedSiteConfigs.find(s => s.filter && s.filter.key === filter.key);
+    return item ? { key: item.update.key, value: item.update.value } : null;
+  }
+});
 
 PortfolioConfig.findOneAndUpdate = async (filter, update, options) => {
   savedPortfolioConfigs.push({ filter, update, options });
@@ -1078,4 +1084,66 @@ test('GitHub Selection: Accepts empty array and valid object entries with expect
   assert.strictEqual(savedPortfolioConfigs.length, 2);
   assert.strictEqual(savedPortfolioConfigs[1].options.runValidators, true);
   assert.deepStrictEqual(savedPortfolioConfigs[1].update.selectedRepos, validSelection);
+});
+
+// ── SEC-17: Config Validation & Normalization for githubUsername ─────────────────
+
+test('SEC-17: Single config update trims surrounding whitespace on githubUsername before persistence', async () => {
+  savedSiteConfigs = [];
+  const res = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({ key: 'githubUsername', value: '   anurag-trimmed-user   ' }),
+  });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(savedSiteConfigs.length, 1);
+  assert.strictEqual(savedSiteConfigs[0].update.key, 'githubUsername');
+  assert.strictEqual(savedSiteConfigs[0].update.value, 'anurag-trimmed-user');
+});
+
+test('SEC-17: Bulk config update trims surrounding whitespace on githubUsername before persistence', async () => {
+  savedSiteConfigs = [];
+  const res = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'githubUsername', value: '   bulk-trimmed-user   ' },
+      ],
+    }),
+  });
+  assert.strictEqual(res.status, 200);
+  const ghUpdate = savedSiteConfigs.find(s => s.update.key === 'githubUsername');
+  assert.ok(ghUpdate, 'githubUsername update must be persisted');
+  assert.strictEqual(ghUpdate.update.value, 'bulk-trimmed-user');
+});
+
+test('SEC-17: Single config update rejects whitespace-only githubUsername with 400', async () => {
+  savedSiteConfigs = [];
+  const res = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({ key: 'githubUsername', value: '     ' }),
+  });
+  assert.strictEqual(res.status, 400);
+  const data = await res.json();
+  assert.strictEqual(data.error, 'githubUsername cannot be empty');
+  assert.strictEqual(savedSiteConfigs.length, 0);
+});
+
+test('SEC-17: Bulk config update rejects whitespace-only githubUsername with 400 and zero persistence', async () => {
+  savedSiteConfigs = [];
+  const res = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'githubUsername', value: '     ' },
+      ],
+    }),
+  });
+  assert.strictEqual(res.status, 400);
+  const data = await res.json();
+  assert.strictEqual(data.error, 'githubUsername cannot be empty');
+  assert.strictEqual(savedSiteConfigs.length, 0);
 });

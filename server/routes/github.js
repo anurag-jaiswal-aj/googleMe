@@ -1,22 +1,63 @@
 const express = require('express');
 const router = express.Router();
 const PortfolioConfig = require('../models/PortfolioConfig');
+const SiteConfig = require('../models/SiteConfig');
 const requireAuth = require('../middleware/auth');
+const { validateConfigEntry, validateGithubSelection } = require('../utils/configValidation');
 
-const GITHUB_USER = process.env.GITHUB_USERNAME || 'anurag-jaiswal-aj';
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
-
-let repoCache = null;
+const CANONICAL_GITHUB_USER = 'anurag-jaiswal-aj';
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
+let repoCache = null; // { user: string, data: Array, fetchedAt: number }
+
+function invalidateRepoCache() {
+  repoCache = null;
+}
+
 const githubHeaders = () => {
+  const token = process.env.GITHUB_TOKEN || '';
   const h = {
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
   };
-  if (GITHUB_TOKEN) h.Authorization = `Bearer ${GITHUB_TOKEN}`;
+  if (token) h.Authorization = `Bearer ${token}`;
   return h;
 };
+
+/**
+ * Validates a candidate GitHub username string against the contract:
+ * 1-39 characters consisting of alphanumeric characters and single hyphens.
+ */
+function isValidGithubUsername(candidate) {
+  if (typeof candidate !== 'string') return false;
+  const trimmed = candidate.trim();
+  if (!trimmed) return false;
+  return validateConfigEntry('githubUsername', trimmed) === null;
+}
+
+/**
+ * Resolves active GitHub username with precedence:
+ * 1. SiteConfig.githubUsername from MongoDB (if valid and non-empty)
+ * 2. process.env.GITHUB_USERNAME (if valid and non-empty)
+ * 3. Canonical fallback 'anurag-jaiswal-aj'
+ */
+async function getGithubUser() {
+  try {
+    const doc = await SiteConfig.findOne({ key: 'githubUsername' }).lean();
+    if (doc && isValidGithubUsername(doc.value)) {
+      return doc.value.trim();
+    }
+  } catch (err) {
+    console.error('Failed to read githubUsername from SiteConfig:', err.message);
+  }
+
+  const envUser = process.env.GITHUB_USERNAME;
+  if (isValidGithubUsername(envUser)) {
+    return envUser.trim();
+  }
+
+  return CANONICAL_GITHUB_USER;
+}
 
 // Fetch all languages for a single repo, sorted by byte count
 async function fetchRepoLanguages(fullName) {
@@ -36,49 +77,63 @@ async function fetchRepoLanguages(fullName) {
 }
 
 // Fetch all public repos + their language breakdowns
-async function fetchAllRepos() {
-  if (repoCache && Date.now() - repoCache.fetchedAt < CACHE_TTL_MS) {
+async function fetchAllRepos(usernameOverride) {
+  const activeUser = (usernameOverride && isValidGithubUsername(usernameOverride))
+    ? usernameOverride.trim()
+    : await getGithubUser();
+
+  if (repoCache && repoCache.user === activeUser && Date.now() - repoCache.fetchedAt < CACHE_TTL_MS) {
     return repoCache.data;
   }
 
   let page = 1;
   let all = [];
-  while (true) {
-    const res = await fetch(
-      `https://api.github.com/users/${GITHUB_USER}/repos?per_page=100&page=${page}&sort=updated`,
-      { headers: githubHeaders() }
+  const encodedUser = encodeURIComponent(activeUser);
+  try {
+    while (true) {
+      const res = await fetch(
+        `https://api.github.com/users/${encodedUser}/repos?per_page=100&page=${page}&sort=updated`,
+        { headers: githubHeaders() }
+      );
+      if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
+      const batch = await res.json();
+      if (!batch.length) break;
+      all = all.concat(batch);
+      if (batch.length < 100) break;
+      page++;
+    }
+
+    const nonForks = all.filter((r) => !r.fork);
+
+    // Fetch languages for all repos in parallel
+    const languagesPerRepo = await Promise.all(
+      nonForks.map((r) => fetchRepoLanguages(r.full_name))
     );
-    if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
-    const batch = await res.json();
-    if (!batch.length) break;
-    all = all.concat(batch);
-    if (batch.length < 100) break;
-    page++;
+
+    const repos = nonForks.map((r, i) => ({
+      name: r.name,
+      fullName: r.full_name,
+      description: r.description || '',
+      repoUrl: r.html_url,
+      demoUrl: r.homepage || '',
+      languages: languagesPerRepo[i], // ['HTML', 'CSS', 'JavaScript']
+      stars: r.stargazers_count,
+      forks: r.forks_count,
+      updatedAt: r.updated_at,
+      topics: r.topics || [],
+      isPrivate: r.private,
+    }));
+
+    repoCache = { user: activeUser, data: repos, fetchedAt: Date.now() };
+    return repos;
+  } catch (err) {
+    // Stale fallback: only return cache if it matches the current active user
+    if (repoCache && repoCache.user === activeUser && Array.isArray(repoCache.data)) {
+      console.error(`GitHub fetch failed, returning stale cache for ${activeUser}:`, err.message);
+      return repoCache.data;
+    }
+    throw err;
   }
-
-  const nonForks = all.filter((r) => !r.fork);
-
-  // Fetch languages for all repos in parallel
-  const languagesPerRepo = await Promise.all(
-    nonForks.map((r) => fetchRepoLanguages(r.full_name))
-  );
-
-  const repos = nonForks.map((r, i) => ({
-    name: r.name,
-    fullName: r.full_name,
-    description: r.description || '',
-    repoUrl: r.html_url,
-    demoUrl: r.homepage || '',
-    languages: languagesPerRepo[i], // ['HTML', 'CSS', 'JavaScript']
-    stars: r.stargazers_count,
-    forks: r.forks_count,
-    updatedAt: r.updated_at,
-    topics: r.topics || [],
-    isPrivate: r.private,
-  }));
-
-  repoCache = { data: repos, fetchedAt: Date.now() };
-  return repos;
 }
 
 // GET /api/github/repos: all repos for admin picker (admin only)
@@ -92,8 +147,6 @@ router.get('/repos', requireAuth, async (req, res, next) => {
     next(err);
   }
 });
-
-const { validateGithubSelection } = require('../utils/configValidation');
 
 // POST /api/github/selection: save selected repo names + featured flags (admin only)
 router.post('/selection', requireAuth, async (req, res, next) => {
@@ -116,3 +169,7 @@ router.post('/selection', requireAuth, async (req, res, next) => {
 
 module.exports = router;
 module.exports.fetchAllRepos = fetchAllRepos;
+module.exports.getGithubUser = getGithubUser;
+module.exports.isValidGithubUsername = isValidGithubUsername;
+module.exports.invalidateRepoCache = invalidateRepoCache;
+module.exports.CANONICAL_GITHUB_USER = CANONICAL_GITHUB_USER;

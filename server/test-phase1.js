@@ -19,6 +19,14 @@ SiteConfig.findOneAndUpdate = async (filter, update) => {
 SiteConfig.find = () => ({
   lean: async () => Object.entries(siteConfigs).map(([key, value]) => ({ key, value }))
 });
+SiteConfig.findOne = (filter) => ({
+  lean: async () => {
+    if (siteConfigs && siteConfigs[filter.key] !== undefined) {
+      return { key: filter.key, value: siteConfigs[filter.key] };
+    }
+    return null;
+  }
+});
 
 const PortfolioConfig = require('./models/PortfolioConfig');
 let mockSelectedRepos = [{ name: 'portfolio-test', featured: true }];
@@ -28,20 +36,27 @@ PortfolioConfig.findOneAndUpdate = async (filter, update) => {
   return { selectedRepos: mockSelectedRepos };
 };
 
+let requestedGithubUrls = [];
 const originalFetch = global.fetch;
 global.fetch = async (url, opts) => {
   if (typeof url === 'string' && url.includes('api.github.com')) {
+    requestedGithubUrls.push(url);
     if (url.includes('/languages')) {
       return { ok: true, json: async () => ({ JavaScript: 1000 }) };
     }
+    const match = url.match(/\/users\/([^/]+)\/repos/);
+    const user = match ? decodeURIComponent(match[1]) : 'test-user';
+    const isDefault = (user === 'test-user' || user === 'anurag-jaiswal-aj');
+    const repoName = isDefault ? 'portfolio-test' : `repo-for-${user}`;
+    const repoUrl = isDefault ? 'https://github.com/test-user/portfolio-test' : `https://github.com/${user}/${repoName}`;
     return {
       ok: true,
       json: async () => [
         {
-          name: 'portfolio-test',
-          full_name: 'test-user/portfolio-test',
-          description: 'Test Repo',
-          html_url: 'https://github.com/test-user/portfolio-test',
+          name: repoName,
+          full_name: `${user}/${repoName}`,
+          description: `Test Repo for ${user}`,
+          html_url: repoUrl,
           homepage: 'https://test.example.com',
           stargazers_count: 5,
           forks_count: 1,
@@ -224,6 +239,7 @@ const contactRoutes   = require('./routes/contact');
 const feedbackRoutes  = require('./routes/feedback');
 const imagesRoutes    = require('./routes/images');
 const githubRoutes    = require('./routes/github');
+const { fetchAllRepos, getGithubUser, invalidateRepoCache, CANONICAL_GITHUB_USER } = require('./routes/github');
 
 const cors = require('cors');
 
@@ -271,6 +287,9 @@ test.beforeEach(() => {
   galleryImageCreateShouldFail = false;
   galleryImageUpdateShouldFail = false;
   delete process.env.CLOUDINARY_CLOUD_NAME;
+  delete process.env.GITHUB_USERNAME;
+  requestedGithubUrls = [];
+  invalidateRepoCache();
 });
 
 // ── H1: Admin Login Validation & Error Handling ──────────────────────────────
@@ -1896,4 +1915,150 @@ test('Phase 2B: Content-Security-Policy enforced in vercel.json with verified di
   const expectedHash = crypto.createHash('sha256').update(scriptMatch[1]).digest('base64');
   const hashToken = `'sha256-${expectedHash}'`;
   assert.ok(csp.includes(hashToken), `CSP must include exact sha256 token ${hashToken} for inline theme bootstrap`);
+});
+
+// ── SEC-17: GitHub Username Dynamic Resolution, Precedence, and Cache ───────────
+
+test('SEC-17: Database username overrides different environment username', async () => {
+  siteConfigs['githubUsername'] = 'db-user';
+  process.env.GITHUB_USERNAME = 'env-user';
+  invalidateRepoCache();
+
+  const user = await getGithubUser();
+  assert.strictEqual(user, 'db-user', 'SiteConfig must take precedence over GITHUB_USERNAME env');
+
+  await fetchAllRepos();
+  const repoFetch = requestedGithubUrls.find(u => u.includes('/users/db-user/repos'));
+  assert.ok(repoFetch, 'GitHub request must target the db-user');
+  assert.ok(!requestedGithubUrls.some(u => u.includes('/users/env-user/repos')), 'env-user must not be queried when db-user is present');
+});
+
+test('SEC-17: Environment fallback when database key is absent', async () => {
+  delete siteConfigs['githubUsername'];
+  process.env.GITHUB_USERNAME = 'env-user';
+  invalidateRepoCache();
+
+  const user = await getGithubUser();
+  assert.strictEqual(user, 'env-user', 'Must fall back to GITHUB_USERNAME when SiteConfig is absent');
+
+  await fetchAllRepos();
+  const repoFetch = requestedGithubUrls.find(u => u.includes('/users/env-user/repos'));
+  assert.ok(repoFetch, 'GitHub request must target env-user');
+});
+
+test('SEC-17: Canonical fallback when both database and environment are absent', async () => {
+  delete siteConfigs['githubUsername'];
+  delete process.env.GITHUB_USERNAME;
+  invalidateRepoCache();
+
+  const user = await getGithubUser();
+  assert.strictEqual(user, CANONICAL_GITHUB_USER, 'Must fall back to canonical user when both sources are absent');
+
+  await fetchAllRepos();
+  const repoFetch = requestedGithubUrls.find(u => u.includes(`/users/${CANONICAL_GITHUB_USER}/repos`));
+  assert.ok(repoFetch, `GitHub request must target canonical default ${CANONICAL_GITHUB_USER}`);
+});
+
+test('SEC-17: Surrounding whitespace is trimmed before validation and URL construction', async () => {
+  siteConfigs['githubUsername'] = '   whitespace-user   ';
+  invalidateRepoCache();
+
+  const user = await getGithubUser();
+  assert.strictEqual(user, 'whitespace-user', 'Surrounding whitespace must be trimmed from resolved username');
+
+  await fetchAllRepos();
+  const repoFetch = requestedGithubUrls.find(u => u.includes('/users/whitespace-user/repos'));
+  assert.ok(repoFetch, 'URL must not contain raw untrimmed whitespace');
+  assert.ok(!requestedGithubUrls.some(u => u.includes('%20') || u.includes(' ')), 'URL must be clean without spaces');
+});
+
+test('SEC-17: Invalid database values fall back safely to environment variable', async () => {
+  siteConfigs['githubUsername'] = '-leading-dash-invalid';
+  process.env.GITHUB_USERNAME = 'valid-env-user';
+  invalidateRepoCache();
+
+  const user = await getGithubUser();
+  assert.strictEqual(user, 'valid-env-user', 'Invalid database username must fall back to valid environment user');
+
+  await fetchAllRepos();
+  const repoFetch = requestedGithubUrls.find(u => u.includes('/users/valid-env-user/repos'));
+  assert.ok(repoFetch, 'Request must target the valid fallback environment username');
+});
+
+test('SEC-17: Invalid environment values do not enter request URL and fall back to canonical default', async () => {
+  delete siteConfigs['githubUsername'];
+  process.env.GITHUB_USERNAME = '../../../traversal-or-spaces bad';
+  invalidateRepoCache();
+
+  const user = await getGithubUser();
+  assert.strictEqual(user, CANONICAL_GITHUB_USER, 'Malformed environment username must fall back to canonical default');
+
+  await fetchAllRepos();
+  const repoFetch = requestedGithubUrls.find(u => u.includes(`/users/${CANONICAL_GITHUB_USER}/repos`));
+  assert.ok(repoFetch, 'Request must safely target canonical default');
+  assert.ok(!requestedGithubUrls.some(u => u.includes('traversal')), 'Malformed string must never enter request URL');
+});
+
+test('SEC-17: Changing username cannot return previous user cached repositories', async () => {
+  siteConfigs['githubUsername'] = 'user-alpha';
+  invalidateRepoCache();
+
+  const reposAlpha = await fetchAllRepos();
+  assert.strictEqual(reposAlpha[0].name, 'repo-for-user-alpha');
+
+  // Change to user-beta
+  siteConfigs['githubUsername'] = 'user-beta';
+
+  const reposBeta = await fetchAllRepos();
+  assert.strictEqual(reposBeta[0].name, 'repo-for-user-beta');
+  assert.notStrictEqual(reposBeta[0].name, reposAlpha[0].name, 'Cache must not return user-alpha repos for user-beta');
+});
+
+test('SEC-17: Same-user requests reuse valid cached data without redundant network calls', async () => {
+  siteConfigs['githubUsername'] = 'cache-test-user';
+  invalidateRepoCache();
+
+  const callsStart = requestedGithubUrls.length;
+  const first = await fetchAllRepos();
+  const callsAfterFirst = requestedGithubUrls.length;
+  assert.ok(callsAfterFirst > callsStart, 'First call must fetch from network');
+
+  const second = await fetchAllRepos();
+  const callsAfterSecond = requestedGithubUrls.length;
+  assert.strictEqual(callsAfterSecond, callsAfterFirst, 'Subsequent call within TTL for same user must reuse cache');
+  assert.deepStrictEqual(second, first, 'Cached data must match first call');
+});
+
+test('SEC-17: MongoDB lookup failure falls back safely without crashing', async () => {
+  const originalFindOne = SiteConfig.findOne;
+  SiteConfig.findOne = () => {
+    throw new Error('Database connection lost');
+  };
+
+  try {
+    process.env.GITHUB_USERNAME = 'resilient-env-user';
+    invalidateRepoCache();
+
+    const user = await getGithubUser();
+    assert.strictEqual(user, 'resilient-env-user', 'Must fall back to environment variable when DB query throws');
+
+    const repos = await fetchAllRepos();
+    assert.ok(Array.isArray(repos), 'Must return repository list without crashing');
+    assert.strictEqual(repos[0].name, 'repo-for-resilient-env-user');
+  } finally {
+    SiteConfig.findOne = originalFindOne;
+  }
+});
+
+test('SEC-17: GET /api/github/repos reflects dynamic username in admin endpoint', async () => {
+  siteConfigs['githubUsername'] = 'admin-dynamic-user';
+  invalidateRepoCache();
+
+  const res = await fetch(`${BASE_URL}/github/repos`, {
+    headers: { ...authHeaders },
+  });
+  assert.strictEqual(res.status, 200);
+  const data = await res.json();
+  assert.ok(Array.isArray(data.repos));
+  assert.strictEqual(data.repos[0].name, 'repo-for-admin-dynamic-user');
 });
