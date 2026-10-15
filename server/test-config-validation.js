@@ -1240,3 +1240,68 @@ test('SEC-21: Bulk config update rejects lone @ and malformed mediumUsername wit
     assert.strictEqual(savedSiteConfigs.length, 0);
   }
 });
+
+// ── SEC-22: Default Theme Configuration Normalization Tests ───────────────────
+
+test('SEC-22: Single config update trims surrounding whitespace on defaultTheme before persistence', async () => {
+  savedSiteConfigs = [];
+  const res = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({ key: 'defaultTheme', value: '   dark   ' }),
+  });
+  assert.strictEqual(res.status, 200);
+  const data = await res.json();
+  assert.strictEqual(data.value, 'dark');
+  assert.strictEqual(savedSiteConfigs.length, 1);
+  assert.strictEqual(savedSiteConfigs[0].update.value, 'dark');
+});
+
+test('SEC-22: Bulk config update trims surrounding whitespace on defaultTheme before persistence', async () => {
+  savedSiteConfigs = [];
+  const res = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'defaultTheme', value: '   light   ' },
+      ],
+    }),
+  });
+  assert.strictEqual(res.status, 200);
+  const themeUpdate = savedSiteConfigs.find(s => s.update.key === 'defaultTheme');
+  assert.ok(themeUpdate, 'defaultTheme update must be persisted');
+  assert.strictEqual(themeUpdate.update.value, 'light');
+});
+
+test('SEC-22: Single config update rejects invalid defaultTheme values with 400 and zero persistence', async () => {
+  const badThemes = ['neon-blue', 'DARK', 'LIGHT', 'auto', '   ', ''];
+  for (const bad of badThemes) {
+    savedSiteConfigs = [];
+    const res = await fetch(CONFIG_URL, {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({ key: 'defaultTheme', value: bad }),
+    });
+    assert.strictEqual(res.status, 400, `Should reject "${bad}"`);
+    assert.strictEqual(savedSiteConfigs.length, 0);
+  }
+});
+
+test('SEC-22: Bulk config update rejects invalid defaultTheme values with 400 and zero persistence', async () => {
+  const badThemes = ['neon-blue', 'DARK', 'LIGHT', 'auto', '   ', ''];
+  for (const bad of badThemes) {
+    savedSiteConfigs = [];
+    const res = await fetch(CONFIG_URL, {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({
+        updates: [
+          { key: 'defaultTheme', value: bad },
+        ],
+      }),
+    });
+    assert.strictEqual(res.status, 400, `Bulk should reject "${bad}"`);
+    assert.strictEqual(savedSiteConfigs.length, 0);
+  }
+});

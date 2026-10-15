@@ -160,6 +160,8 @@ router.post('/', requireAuth, async (req, res) => {
           valToValidate = valToValidate.trim();
         } else if (cleanKey === 'mediumUsername' && typeof valToValidate === 'string') {
           valToValidate = valToValidate.trim();
+        } else if (cleanKey === 'defaultTheme' && typeof valToValidate === 'string') {
+          valToValidate = valToValidate.trim();
         }
         if (cleanKey === 'tools') {
           const toolsErr = validateToolsConfig(valToValidate);
@@ -186,6 +188,8 @@ router.post('/', requireAuth, async (req, res) => {
           cleanVal = v.trim();
         } else if (cleanKey === 'mediumUsername' && typeof v === 'string') {
           cleanVal = v.trim().replace(/^@/, '');
+        } else if (cleanKey === 'defaultTheme' && typeof v === 'string') {
+          cleanVal = v.trim();
         }
         finalUpdatesMap.set(cleanKey, cleanVal);
       }
@@ -228,6 +232,8 @@ router.post('/', requireAuth, async (req, res) => {
     if (cleanKey === 'githubUsername' && typeof value === 'string') {
       cleanVal = value.trim();
     } else if (cleanKey === 'mediumUsername' && typeof value === 'string') {
+      cleanVal = value.trim();
+    } else if (cleanKey === 'defaultTheme' && typeof value === 'string') {
       cleanVal = value.trim();
     }
     if (cleanKey === 'tools') {
