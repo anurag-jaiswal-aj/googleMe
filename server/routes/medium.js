@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Parser = require('rss-parser');
 const SiteConfig = require('../models/SiteConfig');
+const { validateConfigEntry } = require('../utils/configValidation');
 
-const DEFAULT_MEDIUM_USER = 'janurag582004';
+const DEFAULT_MEDIUM_USER = 'therightrag';
 
 const parser = new Parser({
   customFields: { item: [['content:encoded', 'contentEncoded']] },
@@ -14,14 +15,29 @@ const parser = new Parser({
   },
 });
 
+function isValidMediumUsername(candidate) {
+  if (typeof candidate !== 'string') return false;
+  const trimmed = candidate.trim();
+  if (!trimmed) return false;
+  return validateConfigEntry('mediumUsername', trimmed) === null;
+}
+
+function normalizeMediumUsername(candidate) {
+  if (typeof candidate !== 'string') return '';
+  return candidate.trim().replace(/^@/, '');
+}
+
 // Read username from DB so admin changes take effect without redeploying
 async function getMediumUser() {
   try {
     const doc = await SiteConfig.findOne({ key: 'mediumUsername' }).lean();
-    return (doc?.value || DEFAULT_MEDIUM_USER).replace(/^@/, '');
-  } catch {
-    return DEFAULT_MEDIUM_USER;
+    if (doc && isValidMediumUsername(doc.value)) {
+      return normalizeMediumUsername(doc.value);
+    }
+  } catch (err) {
+    console.error('Failed to read mediumUsername from SiteConfig:', err.message);
   }
+  return DEFAULT_MEDIUM_USER;
 }
 
 function estimateReadTime(html = '') {
@@ -55,16 +71,24 @@ let cacheTime = 0;
 let cachedUser = null;
 const CACHE_TTL = 30 * 60 * 1000;
 
+function invalidateMediumCache() {
+  cache = null;
+  cacheTime = 0;
+  cachedUser = null;
+}
+
 router.get('/', async (_req, res) => {
+  let user = DEFAULT_MEDIUM_USER;
   try {
-    const user = await getMediumUser();
+    user = await getMediumUser();
 
     // Invalidate cache if username changed since last fetch
     if (cache && cachedUser === user && Date.now() - cacheTime < CACHE_TTL) {
       return res.json(cache);
     }
 
-    const feed = await parser.parseURL(`https://medium.com/feed/@${user}`);
+    const encodedUser = encodeURIComponent(user);
+    const feed = await parser.parseURL(`https://medium.com/feed/@${encodedUser}`);
 
     const posts = feed.items.map((item, i) => {
       const rawContent = item.contentEncoded || item.content || '';
@@ -93,7 +117,7 @@ router.get('/', async (_req, res) => {
     res.json(posts);
   } catch (err) {
     console.error('Medium RSS fetch failed:', err.message);
-    if (cache && Array.isArray(cache) && cache.length > 0) {
+    if (cache && cachedUser === user && Array.isArray(cache) && cache.length > 0) {
       return res.json(cache);
     }
     res.status(502).json({ error: 'Failed to fetch Medium posts' });
@@ -101,3 +125,9 @@ router.get('/', async (_req, res) => {
 });
 
 module.exports = router;
+module.exports.getMediumUser = getMediumUser;
+module.exports.isValidMediumUsername = isValidMediumUsername;
+module.exports.normalizeMediumUsername = normalizeMediumUsername;
+module.exports.invalidateMediumCache = invalidateMediumCache;
+module.exports.DEFAULT_MEDIUM_USER = DEFAULT_MEDIUM_USER;
+module.exports.parser = parser;

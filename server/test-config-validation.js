@@ -1147,3 +1147,96 @@ test('SEC-17: Bulk config update rejects whitespace-only githubUsername with 400
   assert.strictEqual(data.error, 'githubUsername cannot be empty');
   assert.strictEqual(savedSiteConfigs.length, 0);
 });
+
+test('SEC-21: Single config update normalizes whitespace and optional leading @ on mediumUsername', async () => {
+  savedSiteConfigs = [];
+  const res = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({ key: 'mediumUsername', value: '   @therightrag   ' }),
+  });
+  assert.strictEqual(res.status, 200);
+  const data = await res.json();
+  assert.strictEqual(data.value, 'therightrag');
+  assert.strictEqual(savedSiteConfigs.length, 1);
+  assert.strictEqual(savedSiteConfigs[0].update.value, 'therightrag');
+});
+
+test('SEC-21: Bulk config update normalizes whitespace and optional leading @ on mediumUsername', async () => {
+  savedSiteConfigs = [];
+  const res = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'mediumUsername', value: '   @therightrag   ' },
+      ],
+    }),
+  });
+  assert.strictEqual(res.status, 200);
+  const mediumUpdate = savedSiteConfigs.find(s => s.update.key === 'mediumUsername');
+  assert.ok(mediumUpdate, 'mediumUsername update must be persisted');
+  assert.strictEqual(mediumUpdate.update.value, 'therightrag');
+});
+
+test('SEC-21: Single config update rejects whitespace-only mediumUsername with 400 and zero persistence', async () => {
+  savedSiteConfigs = [];
+  const res = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({ key: 'mediumUsername', value: '     ' }),
+  });
+  assert.strictEqual(res.status, 400);
+  const data = await res.json();
+  assert.strictEqual(data.error, 'mediumUsername cannot be empty');
+  assert.strictEqual(savedSiteConfigs.length, 0);
+});
+
+test('SEC-21: Bulk config update rejects whitespace-only mediumUsername with 400 and zero persistence', async () => {
+  savedSiteConfigs = [];
+  const res = await fetch(CONFIG_URL, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      updates: [
+        { key: 'mediumUsername', value: '     ' },
+      ],
+    }),
+  });
+  assert.strictEqual(res.status, 400);
+  const data = await res.json();
+  assert.strictEqual(data.error, 'mediumUsername cannot be empty');
+  assert.strictEqual(savedSiteConfigs.length, 0);
+});
+
+test('SEC-21: Single config update rejects lone @ and malformed mediumUsername with 400', async () => {
+  const invalidUsers = ['@', '@@therightrag', 'user name', 'user/with/slashes', '../path-traversal'];
+  for (const bad of invalidUsers) {
+    savedSiteConfigs = [];
+    const res = await fetch(CONFIG_URL, {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({ key: 'mediumUsername', value: bad }),
+    });
+    assert.strictEqual(res.status, 400, `Should reject "${bad}"`);
+    assert.strictEqual(savedSiteConfigs.length, 0);
+  }
+});
+
+test('SEC-21: Bulk config update rejects lone @ and malformed mediumUsername with 400 and zero persistence', async () => {
+  const invalidUsers = ['@', '@@therightrag', 'user name', 'user/with/slashes', '../path-traversal'];
+  for (const bad of invalidUsers) {
+    savedSiteConfigs = [];
+    const res = await fetch(CONFIG_URL, {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({
+        updates: [
+          { key: 'mediumUsername', value: bad },
+        ],
+      }),
+    });
+    assert.strictEqual(res.status, 400, `Bulk should reject "${bad}"`);
+    assert.strictEqual(savedSiteConfigs.length, 0);
+  }
+});

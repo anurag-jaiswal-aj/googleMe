@@ -140,6 +140,7 @@ function validatePageVisibilityConfig(value) {
 
 const { validateConfigEntry } = require('../utils/configValidation');
 const { invalidateRepoCache } = require('./github');
+const { invalidateMediumCache } = require('./medium');
 
 // POST /api/config — admin only
 router.post('/', requireAuth, async (req, res) => {
@@ -156,6 +157,8 @@ router.post('/', requireAuth, async (req, res) => {
         const cleanKey = item.key.trim();
         let valToValidate = item.value;
         if (cleanKey === 'githubUsername' && typeof valToValidate === 'string') {
+          valToValidate = valToValidate.trim();
+        } else if (cleanKey === 'mediumUsername' && typeof valToValidate === 'string') {
           valToValidate = valToValidate.trim();
         }
         if (cleanKey === 'tools') {
@@ -181,6 +184,8 @@ router.post('/', requireAuth, async (req, res) => {
         let cleanVal = v;
         if (cleanKey === 'githubUsername' && typeof v === 'string') {
           cleanVal = v.trim();
+        } else if (cleanKey === 'mediumUsername' && typeof v === 'string') {
+          cleanVal = v.trim().replace(/^@/, '');
         }
         finalUpdatesMap.set(cleanKey, cleanVal);
       }
@@ -206,6 +211,13 @@ router.post('/', requireAuth, async (req, res) => {
           console.error('[config] Failed to invalidate repo cache:', cacheErr.message);
         }
       }
+      if (finalUpdatesMap.has('mediumUsername')) {
+        try {
+          invalidateMediumCache?.();
+        } catch (cacheErr) {
+          console.error('[config] Failed to invalidate medium cache:', cacheErr.message);
+        }
+      }
       return res.json({ ok: true });
     }
     if (!key || typeof key !== 'string' || !key.trim()) {
@@ -214,6 +226,8 @@ router.post('/', requireAuth, async (req, res) => {
     const cleanKey = key.trim();
     let cleanVal = value;
     if (cleanKey === 'githubUsername' && typeof value === 'string') {
+      cleanVal = value.trim();
+    } else if (cleanKey === 'mediumUsername' && typeof value === 'string') {
       cleanVal = value.trim();
     }
     if (cleanKey === 'tools') {
@@ -231,6 +245,9 @@ router.post('/', requireAuth, async (req, res) => {
       if (entryErr) {
         return res.status(400).json({ error: entryErr });
       }
+    }
+    if (cleanKey === 'mediumUsername' && typeof cleanVal === 'string') {
+      cleanVal = cleanVal.replace(/^@/, '');
     }
     if (cleanKey === 'avatarUrl' || cleanKey === 'profilePhotoUrl') {
       const counterpartKey = cleanKey === 'avatarUrl' ? 'profilePhotoUrl' : 'avatarUrl';
@@ -261,6 +278,13 @@ router.post('/', requireAuth, async (req, res) => {
         invalidateRepoCache?.();
       } catch (cacheErr) {
         console.error('[config] Failed to invalidate repo cache:', cacheErr.message);
+      }
+    }
+    if (cleanKey === 'mediumUsername') {
+      try {
+        invalidateMediumCache?.();
+      } catch (cacheErr) {
+        console.error('[config] Failed to invalidate medium cache:', cacheErr.message);
       }
     }
     res.json(doc);

@@ -240,6 +240,45 @@ const feedbackRoutes  = require('./routes/feedback');
 const imagesRoutes    = require('./routes/images');
 const githubRoutes    = require('./routes/github');
 const { fetchAllRepos, getGithubUser, invalidateRepoCache, CANONICAL_GITHUB_USER } = require('./routes/github');
+const mediumRoutes    = require('./routes/medium');
+const {
+  getMediumUser,
+  isValidMediumUsername,
+  normalizeMediumUsername,
+  invalidateMediumCache,
+  DEFAULT_MEDIUM_USER,
+  parser: mediumParser,
+} = require('./routes/medium');
+
+let requestedMediumUrls = [];
+let mockMediumItems = [
+  {
+    guid: 'article-1',
+    title: 'Modern Architecture Patterns',
+    link: 'https://medium.com/@user/modern-architecture-patterns',
+    pubDate: '2026-02-01T12:00:00Z',
+    contentEncoded: '<p>Exploring scalable backend services in Node.js and distributed systems.</p>',
+  },
+];
+let parseMediumShouldFail = false;
+
+mediumParser.parseURL = async (url) => {
+  requestedMediumUrls.push(url);
+  if (parseMediumShouldFail) {
+    throw new Error('Medium RSS network failure: 500 Internal Server Error');
+  }
+  const match = url.match(/@([^/]+)$/);
+  const user = match ? decodeURIComponent(match[1]) : 'default';
+  return {
+    items: mockMediumItems.map((item) => ({
+      guid: `${item.guid}-${user}`,
+      title: `${item.title} (${user})`,
+      link: item.link.replace('@user', `@${user}`),
+      pubDate: item.pubDate,
+      contentEncoded: item.contentEncoded,
+    })),
+  };
+};
 
 const cors = require('cors');
 
@@ -256,6 +295,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/images', imagesRoutes);
 app.use('/api/github', githubRoutes);
+app.use('/api/medium', mediumRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -2061,4 +2101,231 @@ test('SEC-17: GET /api/github/repos reflects dynamic username in admin endpoint'
   const data = await res.json();
   assert.ok(Array.isArray(data.repos));
   assert.strictEqual(data.repos[0].name, 'repo-for-admin-dynamic-user');
+});
+
+// ── SEC-21: Medium Username Configuration Consistency Tests ──────────────────
+
+test('SEC-21: Canonical Medium fallback username is therightrag', async () => {
+  delete siteConfigs['mediumUsername'];
+  invalidateMediumCache();
+
+  const user = await getMediumUser();
+  assert.strictEqual(user, 'therightrag');
+  assert.strictEqual(DEFAULT_MEDIUM_USER, 'therightrag');
+});
+
+test('SEC-21: Valid database username overrides canonical fallback', async () => {
+  siteConfigs['mediumUsername'] = 'my-custom-medium';
+  invalidateMediumCache();
+
+  const user = await getMediumUser();
+  assert.strictEqual(user, 'my-custom-medium');
+});
+
+test('SEC-21: Missing or invalid DB configuration falls back safely to therightrag', async () => {
+  const invalidValues = [null, undefined, '', '   ', 'invalid username', 'user/path', 12345, true, {}];
+  for (const val of invalidValues) {
+    siteConfigs['mediumUsername'] = val;
+    invalidateMediumCache();
+
+    const user = await getMediumUser();
+    assert.strictEqual(user, 'therightrag', `Value ${JSON.stringify(val)} must fall back to therightrag`);
+  }
+});
+
+test('SEC-21: Optional @ prefix and surrounding whitespace are normalized', async () => {
+  siteConfigs['mediumUsername'] = '   @normalized-user   ';
+  invalidateMediumCache();
+
+  const user = await getMediumUser();
+  assert.strictEqual(user, 'normalized-user');
+
+  siteConfigs['mediumUsername'] = '@therightrag';
+  invalidateMediumCache();
+  assert.strictEqual(await getMediumUser(), 'therightrag');
+});
+
+test('SEC-21: Whitespace-only and malformed usernames are rejected by validator', () => {
+  assert.strictEqual(isValidMediumUsername('   '), false);
+  assert.strictEqual(isValidMediumUsername(''), false);
+  assert.strictEqual(isValidMediumUsername('@'), false);
+  assert.strictEqual(isValidMediumUsername('user name'), false);
+  assert.strictEqual(isValidMediumUsername('path/traversal'), false);
+  assert.strictEqual(isValidMediumUsername(null), false);
+  assert.strictEqual(isValidMediumUsername(123), false);
+
+  assert.strictEqual(isValidMediumUsername('therightrag'), true);
+  assert.strictEqual(isValidMediumUsername('@therightrag'), true);
+  assert.strictEqual(isValidMediumUsername('  @therightrag  '), true);
+});
+
+test('SEC-21: Single and bulk config updates persist normalized username and invalidate cache', async () => {
+  // Prime cache
+  siteConfigs['mediumUsername'] = 'initial-user';
+  invalidateMediumCache();
+  requestedMediumUrls = [];
+  const initialRes = await fetch(`${BASE_URL}/medium`);
+  assert.strictEqual(initialRes.status, 200);
+  assert.strictEqual(requestedMediumUrls.length, 1);
+
+  // Single update via admin endpoint
+  const singleRes = await fetch(`${BASE_URL}/config`, {
+    method: 'POST',
+    headers: { ...authHeaders, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key: 'mediumUsername', value: '   @single-user   ' }),
+  });
+  assert.strictEqual(singleRes.status, 200);
+  assert.strictEqual(siteConfigs['mediumUsername'], 'single-user');
+
+  // Verify cache was invalidated by checking next fetch calls network
+  requestedMediumUrls = [];
+  const afterSingle = await fetch(`${BASE_URL}/medium`);
+  assert.strictEqual(afterSingle.status, 200);
+  assert.strictEqual(requestedMediumUrls.length, 1);
+  assert.strictEqual(requestedMediumUrls[0], 'https://medium.com/feed/@single-user');
+
+  // Bulk update via admin endpoint
+  const bulkRes = await fetch(`${BASE_URL}/config`, {
+    method: 'POST',
+    headers: { ...authHeaders, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      updates: [{ key: 'mediumUsername', value: '   @bulk-user   ' }],
+    }),
+  });
+  assert.strictEqual(bulkRes.status, 200);
+  assert.strictEqual(siteConfigs['mediumUsername'], 'bulk-user');
+
+  // Verify cache was invalidated
+  requestedMediumUrls = [];
+  const afterBulk = await fetch(`${BASE_URL}/medium`);
+  assert.strictEqual(afterBulk.status, 200);
+  assert.strictEqual(requestedMediumUrls.length, 1);
+  assert.strictEqual(requestedMediumUrls[0], 'https://medium.com/feed/@bulk-user');
+});
+
+test('SEC-21: Changing username cannot return previous user cached articles even without manual invalidation', async () => {
+  siteConfigs['mediumUsername'] = 'user-alpha';
+  invalidateMediumCache();
+
+  const resAlpha = await fetch(`${BASE_URL}/medium`);
+  assert.strictEqual(resAlpha.status, 200);
+  const dataAlpha = await resAlpha.json();
+  assert.strictEqual(dataAlpha[0].title, 'Modern Architecture Patterns (user-alpha)');
+
+  // Change username directly in DB without calling invalidateMediumCache
+  siteConfigs['mediumUsername'] = 'user-beta';
+
+  const resBeta = await fetch(`${BASE_URL}/medium`);
+  assert.strictEqual(resBeta.status, 200);
+  const dataBeta = await resBeta.json();
+  assert.strictEqual(dataBeta[0].title, 'Modern Architecture Patterns (user-beta)');
+  assert.notStrictEqual(dataBeta[0].title, dataAlpha[0].title, 'Must never return user-alpha articles for user-beta');
+});
+
+test('SEC-21: Same-user requests reuse valid cached data within TTL', async () => {
+  siteConfigs['mediumUsername'] = 'cache-reuse-user';
+  invalidateMediumCache();
+  requestedMediumUrls = [];
+
+  const firstRes = await fetch(`${BASE_URL}/medium`);
+  assert.strictEqual(firstRes.status, 200);
+  const firstData = await firstRes.json();
+  assert.strictEqual(requestedMediumUrls.length, 1);
+
+  const secondRes = await fetch(`${BASE_URL}/medium`);
+  assert.strictEqual(secondRes.status, 200);
+  const secondData = await secondRes.json();
+  assert.strictEqual(requestedMediumUrls.length, 1, 'Subsequent request within TTL must reuse cache');
+  assert.deepStrictEqual(secondData, firstData);
+});
+
+test('SEC-21: Feed failure can reuse stale cache only for same user; different user returns 502', async () => {
+  siteConfigs['mediumUsername'] = 'resilient-user';
+  invalidateMediumCache();
+  parseMediumShouldFail = false;
+
+  // Prime cache for resilient-user
+  const primed = await fetch(`${BASE_URL}/medium`);
+  assert.strictEqual(primed.status, 200);
+
+  // Now simulate feed failure
+  parseMediumShouldFail = true;
+
+  try {
+    // Same user: reuses stale cache
+    const staleRes = await fetch(`${BASE_URL}/medium`);
+    assert.strictEqual(staleRes.status, 200, 'Same user should fall back to cached articles on feed failure');
+    const staleData = await staleRes.json();
+    assert.strictEqual(staleData[0].title, 'Modern Architecture Patterns (resilient-user)');
+
+    // Different user with no prior cache
+    siteConfigs['mediumUsername'] = 'uncached-user';
+    const failedRes = await fetch(`${BASE_URL}/medium`);
+    assert.strictEqual(failedRes.status, 502, 'Different user must receive 502 and never receive another user stale cache');
+    const failedData = await failedRes.json();
+    assert.strictEqual(failedData.error, 'Failed to fetch Medium posts');
+  } finally {
+    parseMediumShouldFail = false;
+  }
+});
+
+test('SEC-21: Database lookup failure falls back safely to therightrag without crashing', async () => {
+  const originalFindOne = SiteConfig.findOne;
+  SiteConfig.findOne = () => {
+    throw new Error('Database connection timed out');
+  };
+
+  try {
+    invalidateMediumCache();
+    requestedMediumUrls = [];
+
+    const res = await fetch(`${BASE_URL}/medium`);
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(requestedMediumUrls.length, 1);
+    assert.strictEqual(requestedMediumUrls[0], 'https://medium.com/feed/@therightrag');
+  } finally {
+    SiteConfig.findOne = originalFindOne;
+  }
+});
+
+test('SEC-21: Invalid usernames never reach the feed URL', async () => {
+  const malformedUsernames = ['../traversal', 'attacker.com/rss', 'user name', 'foo@bar'];
+  for (const bad of malformedUsernames) {
+    siteConfigs['mediumUsername'] = bad;
+    invalidateMediumCache();
+    requestedMediumUrls = [];
+
+    const res = await fetch(`${BASE_URL}/medium`);
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(requestedMediumUrls.length, 1);
+    assert.strictEqual(
+      requestedMediumUrls[0],
+      'https://medium.com/feed/@therightrag',
+      `Malformed username "${bad}" must not appear in feed URL`
+    );
+  }
+});
+
+test('SEC-21: Medium API response shape conforms to contract', async () => {
+  siteConfigs['mediumUsername'] = 'shape-test-user';
+  invalidateMediumCache();
+
+  const res = await fetch(`${BASE_URL}/medium`);
+  assert.strictEqual(res.status, 200);
+  const data = await res.json();
+  assert.ok(Array.isArray(data));
+  assert.strictEqual(data.length, 1);
+
+  const post = data[0];
+  assert.strictEqual(typeof post.id, 'string');
+  assert.strictEqual(typeof post.title, 'string');
+  assert.strictEqual(typeof post.url, 'string');
+  assert.strictEqual(typeof post.href, 'string');
+  assert.strictEqual(typeof post.date, 'string');
+  assert.strictEqual(typeof post.readTime, 'string');
+  assert.match(post.readTime, /^\d+\s+min\s+read$/);
+  assert.strictEqual(typeof post.snippet, 'string');
+  assert.strictEqual(typeof post.content, 'string');
+  assert.ok(Array.isArray(post.tags));
+  assert.strictEqual(post.faviconBg, '#00ab6c');
 });

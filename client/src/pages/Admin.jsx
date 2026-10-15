@@ -1777,7 +1777,7 @@ function ProjectsTab() {
    TAB: BLOG
 ══════════════════════════════════════════════════════ */
 function BlogTab({ cfg, onSaved }) {
-  const [mediumUsername, setMediumUsername] = useState(cfg.mediumUsername ?? 'janurag582004');
+  const [mediumUsername, setMediumUsername] = useState(cfg.mediumUsername ?? 'therightrag');
   const [postsPerPage, setPostsPerPage]     = useState(cfg.blogPostsPerPage ?? 6);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved]   = useState(false);
