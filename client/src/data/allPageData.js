@@ -1,3 +1,9 @@
+import {
+  getBioSnippet,
+  getSkillsSnippet,
+  getExperienceSnippet,
+} from './aboutData.js';
+
 // ─── About / Q&A cards shown on the All page ─────────────────────────────────
 // Original 3 items preserved exactly as they were.
 // Only `type` and `pageName` added as metadata for All.jsx expanded rendering.
@@ -37,6 +43,24 @@ export const ABOUT_QA = [
     faviconLetter: "A",
   },
 ];
+
+/**
+ * Returns the effective snippet for a Q&A card, dynamically resolving
+ * configured bio, skills, or experience when present, and falling back safely.
+ */
+export function getQASnippet(item, cfg) {
+  if (!item) return '';
+  if (item.type === 'bio') {
+    return getBioSnippet(cfg?.bioParagraphs, item.answer);
+  }
+  if (item.type === 'skills') {
+    return getSkillsSnippet(cfg?.skills, item.answer);
+  }
+  if (item.type === 'experience') {
+    return getExperienceSnippet(cfg?.experience, item.answer);
+  }
+  return item.answer || '';
+}
 
 // ─── People Also Ask accordion (bottom of All page) ──────────────────────────
 

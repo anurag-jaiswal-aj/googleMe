@@ -6,12 +6,25 @@ import {
   SKILLS,
   EDUCATION,
   EXPERIENCE,
+  SKILLS_SNIPPET,
+  EXPERIENCE_SNIPPET,
   getEffectiveSkills,
   getEffectiveEducation,
   getEffectiveExperience,
   getEffectiveCertifications,
   getExpandedBioParagraphs,
+  getSkillsSnippet,
+  getExperienceSnippet,
+  getBioSnippet,
 } from './src/data/aboutData.js';
+import {
+  DEFAULT_BLOG_POSTS_PER_PAGE,
+  MIN_BLOG_POSTS_PER_PAGE,
+  MAX_BLOG_POSTS_PER_PAGE,
+  getEffectiveBlogPostsPerPage,
+  FALLBACK_BLOG_POSTS,
+} from './src/data/blogPosts.js';
+import { ABOUT_QA, getQASnippet } from './src/data/allPageData.js';
 
 // ── Contact configuration tests ──────────────────────────────────────────────
 
@@ -210,4 +223,235 @@ test('Q&A /all & /about Parity: Both pages consume identical effective data stru
   const aboutExp = getEffectiveExperience(sampleConfig.experience);
   const allExp = getEffectiveExperience(sampleConfig.experience);
   assert.deepStrictEqual(aboutExp, allExp);
+});
+
+// ── SEC-13 Blog Pagination Tests ─────────────────────────────────────────────
+
+test('Blog Pagination: getEffectiveBlogPostsPerPage returns configured integer within approved range [1, 50]', () => {
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: 1 }), 1);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: 6 }), 6);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: 10 }), 10);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: 50 }), 50);
+});
+
+test('Blog Pagination: getEffectiveBlogPostsPerPage coerces valid integer strings within range', () => {
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: '1' }), 1);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: '12' }), 12);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: '50' }), 50);
+});
+
+test('Blog Pagination: getEffectiveBlogPostsPerPage falls back to default 6 on missing, null, or undefined', () => {
+  assert.strictEqual(getEffectiveBlogPostsPerPage(null), DEFAULT_BLOG_POSTS_PER_PAGE);
+  assert.strictEqual(getEffectiveBlogPostsPerPage(undefined), DEFAULT_BLOG_POSTS_PER_PAGE);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({}), DEFAULT_BLOG_POSTS_PER_PAGE);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: undefined }), DEFAULT_BLOG_POSTS_PER_PAGE);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: null }), DEFAULT_BLOG_POSTS_PER_PAGE);
+});
+
+test('Blog Pagination: getEffectiveBlogPostsPerPage rejects out-of-range values and falls back to 6', () => {
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: 0 }), 6);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: -1 }), 6);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: -100 }), 6);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: 51 }), 6);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: 1000 }), 6);
+});
+
+test('Blog Pagination: getEffectiveBlogPostsPerPage rejects non-integers, NaN, and invalid types', () => {
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: 4.5 }), 6);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: NaN }), 6);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: Infinity }), 6);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: 'invalid' }), 6);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: '' }), 6);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: ' ' }), 6);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: [] }), 6);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: {} }), 6);
+  assert.strictEqual(getEffectiveBlogPostsPerPage({ blogPostsPerPage: true }), 6);
+});
+
+test('Blog Pagination: Pagination slice and page count reflect effective blogPostsPerPage', () => {
+  const posts = FALLBACK_BLOG_POSTS; // 6 fallback posts
+  const perPage2 = getEffectiveBlogPostsPerPage({ blogPostsPerPage: 2 });
+  const totalPages2 = Math.ceil(posts.length / perPage2);
+  assert.strictEqual(perPage2, 2);
+  assert.strictEqual(totalPages2, 3);
+  assert.strictEqual(posts.slice(0, perPage2).length, 2);
+  assert.strictEqual(posts.slice(2, 4).length, 2);
+  assert.strictEqual(posts.slice(4, 6).length, 2);
+
+  const perPage10 = getEffectiveBlogPostsPerPage({ blogPostsPerPage: 10 });
+  const totalPages10 = Math.ceil(posts.length / perPage10);
+  assert.strictEqual(perPage10, 10);
+  assert.strictEqual(totalPages10, 1);
+  assert.strictEqual(posts.slice(0, perPage10).length, 6);
+});
+
+// ── SEC-13 Contact Location Tests ────────────────────────────────────────────
+
+test('Contact Location: getContactDetails extracts non-empty location from contactInfo', () => {
+  const cfg = {
+    contactInfo: { location: 'Bengaluru, India' },
+  };
+  const details = getContactDetails(cfg);
+  assert.strictEqual(details.location, 'Bengaluru, India');
+});
+
+test('Contact Location: getContactDetails trims surrounding whitespace from location', () => {
+  const cfg = {
+    contactInfo: { location: '   New Delhi, India   ' },
+  };
+  const details = getContactDetails(cfg);
+  assert.strictEqual(details.location, 'New Delhi, India');
+});
+
+test('Contact Location: getContactDetails returns empty string when location is absent or empty', () => {
+  assert.strictEqual(getContactDetails({}).location, '');
+  assert.strictEqual(getContactDetails({ contactInfo: {} }).location, '');
+  assert.strictEqual(getContactDetails({ contactInfo: { location: '' } }).location, '');
+  assert.strictEqual(getContactDetails({ contactInfo: { location: '   ' } }).location, '');
+  assert.strictEqual(getContactDetails({ contactInfo: { location: null } }).location, '');
+  assert.strictEqual(getContactDetails({ contactInfo: { location: 12345 } }).location, '');
+});
+
+// ── SEC-13 Collapsed Skills & Experience Previews Tests ─────────────────────
+
+test('Skills Preview: getSkillsSnippet derives concise summary from configured skills', () => {
+  const configuredSkills = [
+    { cat: 'Languages', list: ['TypeScript', 'Python', 'Go'] },
+    { cat: 'Cloud & DevOps', list: ['AWS', 'Docker', 'Kubernetes'] },
+  ];
+  const snippet = getSkillsSnippet(configuredSkills);
+  assert.strictEqual(snippet, 'Languages: TypeScript, Python, Go. Cloud & DevOps: AWS, Docker, Kubernetes.');
+});
+
+test('Skills Preview: getSkillsSnippet ignores empty categories and whitespace-only items', () => {
+  const configuredSkills = [
+    { cat: 'Backend', list: ['Node.js', '  Express  ', ''] },
+    { cat: '   ', list: ['Ignored'] },
+    { cat: 'Empty Category', list: [] },
+  ];
+  const snippet = getSkillsSnippet(configuredSkills);
+  assert.strictEqual(snippet, 'Backend: Node.js, Express.');
+});
+
+test('Skills Preview: getSkillsSnippet falls back to static default when config is absent or empty', () => {
+  assert.strictEqual(getSkillsSnippet(null), SKILLS_SNIPPET);
+  assert.strictEqual(getSkillsSnippet(undefined), SKILLS_SNIPPET);
+  assert.strictEqual(getSkillsSnippet([]), SKILLS_SNIPPET);
+  assert.strictEqual(getSkillsSnippet([{ cat: '', list: [] }]), SKILLS_SNIPPET);
+  assert.strictEqual(getSkillsSnippet('invalid'), SKILLS_SNIPPET);
+
+  const customFallback = ABOUT_QA[1].answer;
+  assert.strictEqual(getSkillsSnippet(null, customFallback), customFallback);
+  assert.strictEqual(getSkillsSnippet([], customFallback), customFallback);
+});
+
+test('Experience Preview: getExperienceSnippet derives concise summary from multiple configured roles', () => {
+  const configuredExperience = [
+    {
+      period: '2025 - Present',
+      role: 'Staff Software Engineer',
+      company: 'Tech Giant Corp',
+      detail: 'Architecting distributed backend platforms.',
+    },
+    {
+      period: '2023 - 2025',
+      role: 'Full-Stack Developer',
+      company: 'High Growth Startup',
+      detail: 'Built React apps and Node microservices.',
+    },
+  ];
+  const snippet = getExperienceSnippet(configuredExperience);
+  assert.strictEqual(
+    snippet,
+    'Staff Software Engineer at Tech Giant Corp (2025 - Present). Full-Stack Developer at High Growth Startup (2023 - 2025).'
+  );
+});
+
+test('Experience Preview: getExperienceSnippet formats single entry with detail when present', () => {
+  const singleExperience = [
+    {
+      period: '2024 - Present',
+      role: 'Lead Architect',
+      company: 'Acme Solutions',
+      detail: 'Leading core web platform development and mentoring engineers.',
+    },
+  ];
+  const snippet = getExperienceSnippet(singleExperience);
+  assert.strictEqual(
+    snippet,
+    'Lead Architect at Acme Solutions (2024 - Present). Leading core web platform development and mentoring engineers.'
+  );
+});
+
+test('Experience Preview: getExperienceSnippet handles missing company or period gracefully', () => {
+  const partialExperience = [
+    {
+      period: '2025',
+      role: 'Independent Open Source Maintainer',
+      company: '',
+    },
+    {
+      period: '',
+      role: 'Frontend Consultant',
+      company: 'Digital Agency',
+    },
+  ];
+  const snippet = getExperienceSnippet(partialExperience);
+  assert.strictEqual(
+    snippet,
+    'Independent Open Source Maintainer (2025). Frontend Consultant at Digital Agency.'
+  );
+});
+
+test('Experience Preview: getExperienceSnippet falls back to static default when config is absent or empty', () => {
+  assert.strictEqual(getExperienceSnippet(null), EXPERIENCE_SNIPPET);
+  assert.strictEqual(getExperienceSnippet(undefined), EXPERIENCE_SNIPPET);
+  assert.strictEqual(getExperienceSnippet([]), EXPERIENCE_SNIPPET);
+  assert.strictEqual(getExperienceSnippet([{ role: '', company: '' }]), EXPERIENCE_SNIPPET);
+  assert.strictEqual(getExperienceSnippet('invalid'), EXPERIENCE_SNIPPET);
+
+  const customFallback = ABOUT_QA[2].answer;
+  assert.strictEqual(getExperienceSnippet(null, customFallback), customFallback);
+  assert.strictEqual(getExperienceSnippet([], customFallback), customFallback);
+});
+
+test('Q&A /all: getQASnippet routes each card type to dynamic configuration and preserves safe fallback', () => {
+  const customConfig = {
+    bioParagraphs: ['Custom bio paragraph for Q&A.'],
+    skills: [{ cat: 'Languages', list: ['Rust', 'Zig'] }],
+    experience: [{ period: '2026', role: 'Systems Engineer', company: 'Embedded Inc' }],
+  };
+
+  const bioCard = ABOUT_QA[0];
+  const skillsCard = ABOUT_QA[1];
+  const expCard = ABOUT_QA[2];
+
+  assert.strictEqual(getQASnippet(bioCard, customConfig), 'Custom bio paragraph for Q&A.');
+  assert.strictEqual(getQASnippet(skillsCard, customConfig), 'Languages: Rust, Zig.');
+  assert.strictEqual(getQASnippet(expCard, customConfig), 'Systems Engineer at Embedded Inc (2026).');
+
+  // When config is empty, falls back safely to item.answer
+  assert.strictEqual(getQASnippet(bioCard, {}), bioCard.answer);
+  assert.strictEqual(getQASnippet(skillsCard, {}), skillsCard.answer);
+  assert.strictEqual(getQASnippet(expCard, {}), expCard.answer);
+});
+
+test('Q&A Snippet Parity: /all and /about derive identical dynamic snippets for the same configuration', () => {
+  const config = {
+    bioParagraphs: ['Shared bio statement.'],
+    skills: [{ cat: 'Full-Stack', list: ['React', 'Node.js'] }],
+    experience: [{ period: '2025 - Present', role: 'Full-Stack Engineer', company: 'Global Tech' }],
+  };
+
+  const aboutBioSnippet = getBioSnippet(config.bioParagraphs, ABOUT_QA[0].answer);
+  const allBioSnippet = getQASnippet(ABOUT_QA[0], config);
+  assert.strictEqual(aboutBioSnippet, allBioSnippet);
+
+  const aboutSkillsSnippet = getSkillsSnippet(config.skills, ABOUT_QA[1].answer);
+  const allSkillsSnippet = getQASnippet(ABOUT_QA[1], config);
+  assert.strictEqual(aboutSkillsSnippet, allSkillsSnippet);
+
+  const aboutExpSnippet = getExperienceSnippet(config.experience, ABOUT_QA[2].answer);
+  const allExpSnippet = getQASnippet(ABOUT_QA[2], config);
+  assert.strictEqual(aboutExpSnippet, allExpSnippet);
 });

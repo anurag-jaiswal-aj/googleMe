@@ -18,6 +18,8 @@ import {
   getEffectiveExperience,
   getEffectiveCertifications,
   getEducationSnippet,
+  getSkillsSnippet,
+  getExperienceSnippet,
 } from "../data/aboutData";
 import { LINKS } from "../config/links";
 import { useConfig } from "../hooks/useConfig";
@@ -129,6 +131,8 @@ export default function About() {
 
   const bioSnippet = getBioSnippet(cfg.bioParagraphs, aboutSummaryById.Bio.answer);
   const expandedBioParagraphs = getExpandedBioParagraphs(cfg.bioParagraphs, bioSnippet);
+  const skillsSnippet = getSkillsSnippet(cfg.skills, aboutSummaryById.Skills.answer);
+  const experienceSnippet = getExperienceSnippet(cfg.experience, aboutSummaryById.Experience.answer);
 
   const ALL = [
     { id: "Bio", delay: 0.05 },
@@ -265,7 +269,7 @@ export default function About() {
           <SearchResult
             url="anuragjaiswal.me/about/skills"
             title="Skills & Technologies | My Tech Stack"
-            snippet={aboutSummaryById.Skills.answer}
+            snippet={skillsSnippet}
             onTitleClick={() => openSection("skills")}
             menuItems={aboutMenuItems}
           >
@@ -319,7 +323,7 @@ export default function About() {
           <SearchResult
             url="anuragjaiswal.me/about/experience"
             title="Experience | Work & Internships"
-            snippet={aboutSummaryById.Experience.answer}
+            snippet={experienceSnippet}
             onTitleClick={() => openSection("exp")}
             menuItems={aboutMenuItems}
           >

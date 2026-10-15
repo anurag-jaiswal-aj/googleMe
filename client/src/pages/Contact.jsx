@@ -31,9 +31,9 @@ const fileIconColor = (type) => {
 };
 
 /* ── Contact Form ─────────────────────────────────── */
-function ContactForm() {
+export function ContactForm() {
   const cfg = useConfig();
-  const { email: emailAddr, phone } = getContactDetails(cfg);
+  const { email: emailAddr, phone, location } = getContactDetails(cfg);
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '', _hp: '' });
   const [files, setFiles] = useState([]);
   const [errors, setErrors] = useState({});
@@ -176,6 +176,24 @@ function ContactForm() {
                   Copy phone
                 </button>
               )}
+              {location && (
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(location);
+                    toast.success('Location copied');
+                    setMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2.5 pl-4 pr-3 py-2.5 text-left whitespace-nowrap
+                             text-[13px] text-[#202124] dark:text-[#e8eaed]
+                             hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] transition-colors"
+                >
+                  <svg className="w-4 h-4 text-[#5f6368] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                  Copy location
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -223,11 +241,23 @@ function ContactForm() {
               />
             </div>
             {/* Header strip */}
-            <div className="px-3 sm:px-6 pt-2 sm:pt-3 pb-2 sm:pb-3 border-b border-[#f1f3f4] dark:border-[#3c4043]">
+            <div className="px-3 sm:px-6 pt-2 sm:pt-3 pb-2 sm:pb-3 border-b border-[#f1f3f4] dark:border-[#3c4043] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
               <p className="text-sm text-[#5f6368] dark:text-[#9aa0a6]">
                 I typically respond within 24 hours.
                 All fields marked <span className="text-[#c5221f]">*</span> are required.
               </p>
+              {location && (
+                <div
+                  data-testid="contact-location"
+                  className="inline-flex items-center gap-1.5 text-xs text-[#5f6368] dark:text-[#9aa0a6] shrink-0"
+                >
+                  <svg className="w-3.5 h-3.5 text-[#1a73e8] dark:text-[#8ab4f8] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                  <span>{location}</span>
+                </div>
+              )}
             </div>
 
             <div className="px-3 sm:px-6 py-2 sm:py-3 space-y-4">

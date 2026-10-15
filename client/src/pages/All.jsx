@@ -20,7 +20,7 @@ import { LINKS } from "../config/links";
 import { getBlogCards } from "../data/blogPosts";
 import { getSocialProfiles } from "../data/socialProfiles";
 import { getToolCards } from "../data/toolsData";
-import { ABOUT_QA, PEOPLE_ALSO_ASK } from "../data/allPageData";
+import { ABOUT_QA, PEOPLE_ALSO_ASK, getQASnippet } from "../data/allPageData";
 import { useImagesPageEnabled } from "../hooks/useImagesPageEnabled";
 import { useConfig } from "../hooks/useConfig";
 import { getProjectUrlInfo } from "../utils/projectUrls";
@@ -437,9 +437,7 @@ export default function All() {
       {/* Q&A cards */}
       {QA.map((item, i) => {
         const isOpen = expandedQA === item.question;
-        const snippet = item.type === "bio"
-          ? getBioSnippet(cfg.bioParagraphs, item.answer)
-          : item.answer;
+        const snippet = getQASnippet(item, cfg);
         return (
           <motion.div
             key={item.question}

@@ -5,6 +5,12 @@
 export const BIO_SNIPPET =
   'I am a B.E. CS student and full-stack developer specialising in the MERN stack. I care deeply about clean UI, developer tooling, and building practical products.';
 
+export const SKILLS_SNIPPET =
+  'JavaScript and Python are my primary languages. On the frontend I use React, TailwindCSS, and Framer Motion. Backend is Node.js and Express with MongoDB. I also work with NumPy, Pandas, Scikit-learn, and TensorFlow for machine learning.';
+
+export const EXPERIENCE_SNIPPET =
+  'I have internship and freelance experience building production web features, improving API performance, and contributing to open-source projects on GitHub.';
+
 // Full bio shown when the "About Me" card is expanded
 export const BIO_PARAGRAPHS = [
   'I enjoy building scalable full-stack web applications and exploring how machine learning can power intelligent, data-driven systems. My work involves developing applications using JavaScript, the MERN stack, Python, MongoDB, and MySQL, while also experimenting with machine learning models and data analysis.',
@@ -416,4 +422,92 @@ export function getEffectiveCertifications(saved) {
     if (valid.length > 0) return valid;
   }
   return CERTIFICATIONS;
+}
+
+/**
+ * Derives a concise search-result summary from configured skills,
+ * falling back to the existing static copy when configuration is absent or empty.
+ */
+export function getSkillsSnippet(saved, fallback = SKILLS_SNIPPET) {
+  if (Array.isArray(saved) && saved.length > 0) {
+    const valid = saved
+      .filter(
+        (c) =>
+          c &&
+          typeof c === 'object' &&
+          typeof c.cat === 'string' &&
+          c.cat.trim().length > 0 &&
+          Array.isArray(c.list)
+      )
+      .map((c) => ({
+        cat: c.cat.trim(),
+        list: c.list
+          .map((s) => (typeof s === 'string' ? s.trim() : String(s).trim()))
+          .filter(Boolean),
+      }))
+      .filter((c) => c.list.length > 0);
+
+    if (valid.length > 0) {
+      return (
+        valid
+          .map((c) => `${c.cat}: ${c.list.join(', ')}`)
+          .join('. ') + '.'
+      );
+    }
+  }
+  return fallback;
+}
+
+/**
+ * Derives a concise search-result summary from configured experience,
+ * falling back to the existing static copy when configuration is absent or empty.
+ */
+export function getExperienceSnippet(saved, fallback = EXPERIENCE_SNIPPET) {
+  if (Array.isArray(saved) && saved.length > 0) {
+    const valid = saved
+      .filter(
+        (e) =>
+          e &&
+          typeof e === 'object' &&
+          ((typeof e.role === 'string' && e.role.trim().length > 0) ||
+            (typeof e.company === 'string' && e.company.trim().length > 0))
+      )
+      .map((e) => ({
+        period: typeof e.period === 'string' ? e.period.trim() : '',
+        role: typeof e.role === 'string' ? e.role.trim() : '',
+        company: typeof e.company === 'string' ? e.company.trim() : '',
+        detail: typeof e.detail === 'string' ? e.detail.trim() : '',
+      }));
+
+    if (valid.length > 0) {
+      if (valid.length === 1 && valid[0].detail) {
+        const headline = [
+          valid[0].role && valid[0].company
+            ? `${valid[0].role} at ${valid[0].company}`
+            : (valid[0].role || valid[0].company),
+          valid[0].period ? `(${valid[0].period})` : '',
+        ]
+          .filter(Boolean)
+          .join(' ');
+        const cleanDetail = valid[0].detail.endsWith('.')
+          ? valid[0].detail
+          : `${valid[0].detail}.`;
+        return headline ? `${headline}. ${cleanDetail}` : cleanDetail;
+      }
+
+      return (
+        valid
+          .map((e) => {
+            const heading =
+              e.role && e.company
+                ? `${e.role} at ${e.company}`
+                : (e.role || e.company);
+            return e.period ? `${heading} (${e.period})` : heading;
+          })
+          .filter(Boolean)
+          .join('. ') + '.'
+      );
+    }
+  }
+  return fallback;
 }

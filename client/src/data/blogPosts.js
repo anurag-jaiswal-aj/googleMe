@@ -82,3 +82,26 @@ export const getBlogCards = (count = 3) =>
     faviconBg: post.faviconBg,
     faviconLetter: 'B',
   }));
+
+export const DEFAULT_BLOG_POSTS_PER_PAGE = 6;
+export const MIN_BLOG_POSTS_PER_PAGE = 1;
+export const MAX_BLOG_POSTS_PER_PAGE = 50;
+
+/**
+ * Resolves the effective number of blog posts per page from saved configuration,
+ * enforcing the server-approved integer range [1, 50] and falling back to 6.
+ */
+export function getEffectiveBlogPostsPerPage(cfg) {
+  const value = cfg?.blogPostsPerPage;
+  if (typeof value !== 'number' && typeof value !== 'string') {
+    return DEFAULT_BLOG_POSTS_PER_PAGE;
+  }
+  if (typeof value === 'string' && value.trim() === '') {
+    return DEFAULT_BLOG_POSTS_PER_PAGE;
+  }
+  const num = typeof value === 'number' ? value : Number(value);
+  if (Number.isInteger(num) && num >= MIN_BLOG_POSTS_PER_PAGE && num <= MAX_BLOG_POSTS_PER_PAGE) {
+    return num;
+  }
+  return DEFAULT_BLOG_POSTS_PER_PAGE;
+}

@@ -7,7 +7,10 @@ import api from '../api';
 import { getMediumPosts } from '../utils/prefetch';
 import { LINKS } from '../config/links';
 import { useConfig } from '../hooks/useConfig';
-import { FALLBACK_BLOG_POSTS } from '../data/blogPosts';
+import {
+  FALLBACK_BLOG_POSTS,
+  getEffectiveBlogPostsPerPage,
+} from '../data/blogPosts';
 import { getFaviconProps } from '../utils/favicon';
 import { sanitizeMediumHtml } from '../utils/sanitizeHtml';
 
@@ -287,7 +290,7 @@ export default function Blog() {
   const [sortOpen,    setSortOpen]    = useState(false);
   const [reading,     setReading]     = useState(null); // post being read in modal
   const [page,        setPage]        = useState(1);
-  const PER_PAGE = 6;
+  const perPage = getEffectiveBlogPostsPerPage(cfg);
 
   useEffect(() => {
     getMediumPosts()
@@ -310,8 +313,15 @@ export default function Blog() {
   if (sort === 'oldest')   filtered = [...filtered].sort((a, b) => new Date(a.date) - new Date(b.date));
   if (sort === 'shortest') filtered = [...filtered].sort((a, b) => parseInt(a.readTime) - parseInt(b.readTime));
 
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const totalPages = Math.ceil(filtered.length / perPage);
+  const safePage   = totalPages > 0 ? Math.min(Math.max(1, page), totalPages) : 1;
+  const paginated  = filtered.slice((safePage - 1) * perPage, safePage * perPage);
+
+  useEffect(() => {
+    if (totalPages > 0 && page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [totalPages, page]);
 
   // Reset to page 1 whenever filter or sort changes
   const handleTagChange = vals => { setActiveTag(vals.length ? vals[vals.length - 1] : 'All'); setPage(1); };
@@ -391,8 +401,8 @@ export default function Blog() {
         <div className="max-w-[680px] mt-8 flex items-center justify-center gap-0.5 sm:gap-1 flex-wrap">
           {/* Prev */}
           <button
-            onClick={() => { setPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-            disabled={page === 1}
+            onClick={() => { setPage(p => Math.max(1, (totalPages > 0 ? Math.min(p, totalPages) : 1) - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            disabled={safePage === 1}
             className="flex items-center gap-1 px-4 py-2 text-sm text-[#1a73e8] dark:text-[#8ab4f8]
                        hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] rounded disabled:opacity-30
                        disabled:pointer-events-none transition-colors">
@@ -408,7 +418,7 @@ export default function Blog() {
               key={n}
               onClick={() => { setPage(n); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
               className={`w-9 h-9 rounded-full text-sm font-medium transition-colors
-                ${ n === page
+                ${ n === safePage
                   ? 'bg-[#1a73e8] text-white'
                   : 'text-[#1a73e8] dark:text-[#8ab4f8] hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043]'
                 }`}>
@@ -418,8 +428,8 @@ export default function Blog() {
 
           {/* Next */}
           <button
-            onClick={() => { setPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-            disabled={page === totalPages}
+            onClick={() => { setPage(p => Math.min(totalPages, (totalPages > 0 ? Math.min(p, totalPages) : 1) + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            disabled={safePage === totalPages}
             className="flex items-center gap-1 px-4 py-2 text-sm text-[#1a73e8] dark:text-[#8ab4f8]
                        hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] rounded disabled:opacity-30
                        disabled:pointer-events-none transition-colors">
