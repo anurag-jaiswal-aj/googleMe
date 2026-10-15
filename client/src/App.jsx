@@ -7,11 +7,11 @@ import WelcomeSplash from './components/WelcomeSplash';
 import { getCachedConfig } from './hooks/useConfig';
 import { fetchConfig } from './api';
 import { LINKS } from './config/links';
-import { inlineResumeUrl } from './utils/resumeUrl';
+import { inlineResumeUrl, getSafeResumeUrl } from './utils/resumeUrl';
 
 import VisibilityGuard from './components/VisibilityGuard';
 
-// Page-level code splitting — each page loads only when first visited
+// Page-level code splitting - each page loads only when first visited
 const Home     = lazy(() => import('./pages/Home'));
 const All      = lazy(() => import('./pages/All'));
 const About    = lazy(() => import('./pages/About'));
@@ -44,16 +44,12 @@ function ResumeRedirect() {
     }
 
     let isMounted = true;
-    const fallbackTarget = inlineResumeUrl(LINKS.resume);
 
     const navigateTo = (rawTarget) => {
       if (!isMounted) return;
-      const cleanTarget = inlineResumeUrl(rawTarget);
-      // Guard against self-redirect loops
-      if (cleanTarget && cleanTarget !== '/resume' && cleanTarget !== '/resume/' && cleanTarget !== window.location.href) {
-        window.location.replace(cleanTarget);
-      } else if (fallbackTarget && fallbackTarget !== '/resume' && fallbackTarget !== '/resume/' && fallbackTarget !== window.location.href) {
-        window.location.replace(fallbackTarget);
+      const destination = getSafeResumeUrl(rawTarget, LINKS.resume);
+      if (destination) {
+        window.location.replace(destination);
       }
     };
 
@@ -133,7 +129,7 @@ export default function App() {
           {/* Admin — standalone page */}
           <Route path="/admin" element={<ErrorBoundary><Admin /></ErrorBoundary>} />
 
-          {/* Direct resume route — compatibility fallback for older service workers */}
+          {/* Direct resume route - dynamic client-side redirect honoring configured resumeUrl */}
           <Route path="/resume" element={<ResumeRedirect />} />
 
           <Route path="*" element={<NotFound />} />

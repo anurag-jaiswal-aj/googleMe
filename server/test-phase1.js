@@ -1362,24 +1362,15 @@ test('Resume 2. LINKS.resume default points to current configured Cloudinary res
   assert.strictEqual(LINKS.resume, expectedCloudinaryUrl);
 });
 
-test('Resume 3. Vercel routing configuration redirects /resume to Cloudinary and rewrites legacy .pdf filenames', async () => {
+test('Resume 3. Vercel routing configuration allows /resume to reach SPA and rewrites legacy .pdf filenames', async () => {
   const fs = require('fs');
   const path = require('path');
   const vercelConfig = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../client/vercel.json'), 'utf-8'));
-  const expectedCloudinaryUrl = 'https://res.cloudinary.com/dgsstziwz/raw/upload/v1791779439/gfolio/resume_1791779438123.pdf';
 
-  assert.ok(Array.isArray(vercelConfig.redirects), 'vercel.json must have redirects array');
-  const resumeRedirects = vercelConfig.redirects.filter(r => r.destination === expectedCloudinaryUrl);
-  const redirectSources = resumeRedirects.map(r => r.source);
-  assert.ok(redirectSources.includes('/resume'), 'Must redirect /resume');
-  assert.ok(redirectSources.includes('/resume/'), 'Must redirect /resume/');
-  assert.ok(redirectSources.includes('/Resume'), 'Must redirect /Resume');
-  assert.ok(redirectSources.includes('/Resume/'), 'Must redirect /Resume/');
-
-  // All redirects must be temporary (permanent: false) to allow future updates
-  resumeRedirects.forEach(r => {
-    assert.strictEqual(r.permanent, false, `Redirect for ${r.source} must be temporary (permanent: false)`);
-  });
+  // Static redirects for /resume and its variants must be removed so the SPA handles dynamic resumeUrl
+  const redirects = Array.isArray(vercelConfig.redirects) ? vercelConfig.redirects : [];
+  const resumeRedirects = redirects.filter(r => /^\/resume\/?$/i.test(r.source));
+  assert.strictEqual(resumeRedirects.length, 0, 'vercel.json must not statically redirect /resume routes');
 
   // Legacy PDF rewrites must be preserved
   assert.ok(Array.isArray(vercelConfig.rewrites), 'vercel.json must have rewrites array');
@@ -1388,15 +1379,21 @@ test('Resume 3. Vercel routing configuration redirects /resume to Cloudinary and
   assert.ok(pdfSources.includes('/resume.pdf'), 'Must preserve /resume.pdf rewrite');
   assert.ok(pdfSources.includes('/Resume.pdf'), 'Must preserve /Resume.pdf rewrite');
   assert.ok(pdfSources.includes('/resume_aj.pdf'), 'Must preserve /resume_aj.pdf rewrite');
+
+  // SPA catch-all rewrite must exist so /resume routes reach /index.html
+  const catchAll = vercelConfig.rewrites.find(r => r.source === '/(.*)' && r.destination === '/index.html');
+  assert.ok(catchAll, 'vercel.json must route SPA traffic to /index.html');
 });
 
-test('Resume 4. Workbox service worker configuration denylists extensionless resume paths from SPA fallback', async () => {
+test('Resume 4. Workbox service worker configuration allows SPA fallback for /resume while denylisting PDFs and API', async () => {
   const fs = require('fs');
   const path = require('path');
   const viteConfig = fs.readFileSync(path.resolve(__dirname, '../client/vite.config.js'), 'utf-8');
 
-  assert.ok(viteConfig.includes('/^\\/resume\\/?$/i'), 'vite.config.js must denylist extensionless /resume');
+  // /resume must not be denylisted from SPA navigation fallback
+  assert.ok(!viteConfig.includes('/^\\/resume\\/?$/i'), 'vite.config.js must not denylist extensionless /resume');
   assert.ok(viteConfig.includes('/\\.pdf$/i'), 'vite.config.js must denylist .pdf extensions');
+  assert.ok(viteConfig.includes('/^\\/api/'), 'vite.config.js must denylist /api');
 });
 
 test('Resume 5. useConfig exports getCachedConfig and App.jsx handles dynamic resume resolution', () => {
@@ -1409,6 +1406,76 @@ test('Resume 5. useConfig exports getCachedConfig and App.jsx handles dynamic re
   assert.ok(appContent.includes('fetchConfig'), 'App.jsx ResumeRedirect must call fetchConfig');
   assert.ok(appContent.includes('getCachedConfig'), 'App.jsx ResumeRedirect must check getCachedConfig');
   assert.ok(appContent.includes('inlineResumeUrl'), 'App.jsx ResumeRedirect must normalize url');
+  assert.ok(appContent.includes('getSafeResumeUrl'), 'App.jsx ResumeRedirect must safely resolve resume destination');
+});
+
+test('Resume 6. getSafeResumeUrl safely resolves URLs, prevents redirect loops, and falls back correctly', async () => {
+  const { getSafeResumeUrl, isSafeResumeUrl } = await import('../client/src/utils/resumeUrl.js');
+  const { LINKS } = await import('../client/src/config/links.js');
+
+  const currentUrl = 'https://googleme.vercel.app/resume';
+
+  // 1. Valid custom URL is honored
+  const customUrl = 'https://custom-host.com/my-resume.pdf';
+  assert.strictEqual(getSafeResumeUrl(customUrl, LINKS.resume, currentUrl), customUrl);
+
+  // 2. Google Drive share link is converted to /preview
+  const driveShare = 'https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view?usp=sharing';
+  const expectedPreview = 'https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/preview';
+  assert.strictEqual(getSafeResumeUrl(driveShare, LINKS.resume, currentUrl), expectedPreview);
+
+  // 3. Local PDF path is preserved
+  assert.strictEqual(getSafeResumeUrl('/Resume_aj.pdf', LINKS.resume, currentUrl), '/Resume_aj.pdf');
+
+  // 4. Redirect loop prevention - candidate pointing to /resume on same origin falls back
+  assert.strictEqual(getSafeResumeUrl('/resume', LINKS.resume, currentUrl), LINKS.resume);
+  assert.strictEqual(getSafeResumeUrl('/resume/', LINKS.resume, currentUrl), LINKS.resume);
+  assert.strictEqual(getSafeResumeUrl('/Resume', LINKS.resume, currentUrl), LINKS.resume);
+  assert.strictEqual(getSafeResumeUrl('/Resume/', LINKS.resume, currentUrl), LINKS.resume);
+  assert.strictEqual(getSafeResumeUrl('https://googleme.vercel.app/resume', LINKS.resume, currentUrl), LINKS.resume);
+  assert.strictEqual(getSafeResumeUrl('https://googleme.vercel.app/Resume/', LINKS.resume, currentUrl), LINKS.resume);
+
+  // 5. Self-redirect loop matching current URL exactly falls back
+  assert.strictEqual(getSafeResumeUrl(currentUrl, LINKS.resume, currentUrl), LINKS.resume);
+
+  // 6. Dangerous URI schemes are rejected and fall back safely
+  assert.strictEqual(getSafeResumeUrl('javascript:alert(1)', LINKS.resume, currentUrl), LINKS.resume);
+  assert.strictEqual(getSafeResumeUrl('data:text/html;base64,PHNjcmlwdD4=', LINKS.resume, currentUrl), LINKS.resume);
+  assert.strictEqual(getSafeResumeUrl('vbscript:msgbox(1)', LINKS.resume, currentUrl), LINKS.resume);
+
+  // 7. Missing, whitespace, or invalid types fall back safely
+  assert.strictEqual(getSafeResumeUrl('', LINKS.resume, currentUrl), LINKS.resume);
+  assert.strictEqual(getSafeResumeUrl('   ', LINKS.resume, currentUrl), LINKS.resume);
+  assert.strictEqual(getSafeResumeUrl(null, LINKS.resume, currentUrl), LINKS.resume);
+  assert.strictEqual(getSafeResumeUrl(undefined, LINKS.resume, currentUrl), LINKS.resume);
+
+  // 8. Both candidate and fallback failing safely defaults to root
+  assert.strictEqual(getSafeResumeUrl('/resume', '/Resume', currentUrl), '/');
+  assert.strictEqual(getSafeResumeUrl('javascript:alert(1)', 'javascript:alert(2)', currentUrl), '/');
+
+  // 9. External URLs ending in /resume on another host are valid external destinations (not self-loops)
+  assert.strictEqual(
+    getSafeResumeUrl('https://external-service.org/user/resume', LINKS.resume, currentUrl),
+    'https://external-service.org/user/resume'
+  );
+});
+
+test('Resume 7. SPA route patterns match /resume and case/trailing-slash variants', () => {
+  const path = require('path');
+  const { createRequire } = require('module');
+  const clientRequire = createRequire(path.resolve(__dirname, '../client/package.json'));
+  const { matchPath } = clientRequire('react-router-dom');
+
+  // The SPA route <Route path="/resume" /> must match standard access variants
+  const pattern = { path: '/resume' };
+  assert.ok(matchPath(pattern, '/resume'), '/resume must match SPA route');
+  assert.ok(matchPath(pattern, '/Resume'), '/Resume must match SPA route');
+  assert.ok(matchPath(pattern, '/resume/'), '/resume/ must match SPA route');
+  assert.ok(matchPath(pattern, '/Resume/'), '/Resume/ must match SPA route');
+
+  // Legacy PDF paths must not be captured by /resume SPA route
+  assert.strictEqual(matchPath(pattern, '/resume.pdf'), null, '/resume.pdf must not match /resume');
+  assert.strictEqual(matchPath(pattern, '/resume_aj.pdf'), null, '/resume_aj.pdf must not match /resume');
 });
 
 // ── Batch 2 Security & Hardening Tests ─────────────────────────────────

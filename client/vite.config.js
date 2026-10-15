@@ -28,7 +28,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,jpg,woff2}'],
         globIgnores: ['**/og-image.jpg'],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api/, /\.pdf$/i, /^\/resume\/?$/i, /^\/resume_aj\/?$/i],
+        navigateFallbackDenylist: [/^\/api/, /\.pdf$/i, /^\/resume_aj\/?$/i],
       },
     }),
   ],
