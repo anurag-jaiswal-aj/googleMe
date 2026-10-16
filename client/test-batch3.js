@@ -17,6 +17,7 @@ import {
   getAlternatePortfolioUrl,
 } from './src/config/links.js';
 import { getAiReply } from './src/utils/aiChat.js';
+import { isSafeGalleryLink, getSafeGalleryLink } from './src/utils/galleryUrl.js';
 import sharedProjects from '../shared/projects.json' with { type: 'json' };
 
 // ── 1. Canonical Education Defaults ──────────────────────────────────────────
@@ -251,4 +252,221 @@ test('Alternate Portfolio: Returns genuine configured alternate URL', () => {
 
 test('Alternate Portfolio: Default LINKS.alternatePortfolio is empty', () => {
   assert.strictEqual(LINKS.alternatePortfolio, '');
+});
+
+// ── 6. Gallery External Link Validation ──────────────────────────────────────
+
+test('Gallery Links: Accepts and canonicalizes valid absolute HTTP and HTTPS URLs', () => {
+  assert.strictEqual(
+    getSafeGalleryLink('https://github.com/anurag-jaiswal-aj/googleMe'),
+    'https://github.com/anurag-jaiswal-aj/googleMe'
+  );
+  assert.strictEqual(
+    getSafeGalleryLink('https://example.com/demo?test=1&b=2#section'),
+    'https://example.com/demo?test=1&b=2#section'
+  );
+  assert.strictEqual(
+    getSafeGalleryLink('http://example.com'),
+    'http://example.com/'
+  );
+  assert.strictEqual(
+    getSafeGalleryLink('http://localhost:3000/preview'),
+    'http://localhost:3000/preview'
+  );
+  assert.strictEqual(
+    getSafeGalleryLink('  https://example.com/trimmed  '),
+    'https://example.com/trimmed'
+  );
+  assert.strictEqual(isSafeGalleryLink('https://github.com/anurag-jaiswal-aj/googleMe'), true);
+});
+
+test('Gallery Links: Canonicalizes mixed-case schemes, default ports, and path traversal', () => {
+  assert.strictEqual(
+    getSafeGalleryLink('HTTPS://EXAMPLE.COM'),
+    'https://example.com/'
+  );
+  assert.strictEqual(
+    getSafeGalleryLink('hTtP://example.com/demo'),
+    'http://example.com/demo'
+  );
+  assert.strictEqual(
+    getSafeGalleryLink('https://example.com:443/test'),
+    'https://example.com/test'
+  );
+  assert.strictEqual(
+    getSafeGalleryLink('http://example.com:80/test'),
+    'http://example.com/test'
+  );
+  assert.strictEqual(
+    getSafeGalleryLink('https://example.com:8443/test'),
+    'https://example.com:8443/test'
+  );
+  assert.strictEqual(
+    getSafeGalleryLink('https://example.com/a/../b'),
+    'https://example.com/b'
+  );
+});
+
+test('Gallery Links: Canonicalizes spaces and control characters in URLs', () => {
+  assert.strictEqual(
+    getSafeGalleryLink('https://example.com/foo bar'),
+    'https://example.com/foo%20bar'
+  );
+  assert.strictEqual(
+    getSafeGalleryLink('https://exam\nple.com/path'),
+    'https://example.com/path'
+  );
+  assert.strictEqual(
+    getSafeGalleryLink('https://example.com/foo\tbar'),
+    'https://example.com/foobar'
+  );
+});
+
+test('Gallery Links: Rejects embedded URL credentials while accepting legitimate @ in path/query/fragment', () => {
+  // Embedded credentials MUST be rejected
+  assert.strictEqual(getSafeGalleryLink('https://user:password@example.com/path'), null);
+  assert.strictEqual(getSafeGalleryLink('https://user@example.com'), null);
+  assert.strictEqual(getSafeGalleryLink('https://:password@example.com'), null);
+  assert.strictEqual(getSafeGalleryLink('http://admin:secret@127.0.0.1:3000'), null);
+
+  assert.strictEqual(isSafeGalleryLink('https://user:password@example.com/path'), false);
+  assert.strictEqual(isSafeGalleryLink('https://user@example.com'), false);
+  assert.strictEqual(isSafeGalleryLink('https://:password@example.com'), false);
+
+  // Legitimate @ in path, query, or fragment MUST be accepted
+  assert.strictEqual(
+    getSafeGalleryLink('https://example.com/@anurag'),
+    'https://example.com/@anurag'
+  );
+  assert.strictEqual(
+    getSafeGalleryLink('https://example.com/search?q=@test'),
+    'https://example.com/search?q=@test'
+  );
+  assert.strictEqual(
+    getSafeGalleryLink('https://example.com/path#@section'),
+    'https://example.com/path#@section'
+  );
+  assert.strictEqual(isSafeGalleryLink('https://example.com/@anurag'), true);
+});
+
+test('Gallery Links: Rejects dangerous URI schemes (javascript, data, vbscript)', () => {
+  assert.strictEqual(isSafeGalleryLink('javascript:alert(1)'), false);
+  assert.strictEqual(isSafeGalleryLink('JAVASCRIPT:alert(document.cookie)'), false);
+  assert.strictEqual(isSafeGalleryLink('JavaScript:void(0)'), false);
+  assert.strictEqual(isSafeGalleryLink('javascript: alert(1)'), false);
+  assert.strictEqual(isSafeGalleryLink('data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=='), false);
+  assert.strictEqual(isSafeGalleryLink('DATA:image/svg+xml;utf8,<svg onload=alert(1)>'), false);
+  assert.strictEqual(isSafeGalleryLink('vbscript:msgbox(1)'), false);
+  assert.strictEqual(isSafeGalleryLink('VBSCRIPT:alert(1)'), false);
+
+  assert.strictEqual(getSafeGalleryLink('javascript:alert(1)'), null);
+  assert.strictEqual(getSafeGalleryLink('JAVASCRIPT:alert(document.cookie)'), null);
+  assert.strictEqual(getSafeGalleryLink('data:text/html,evil'), null);
+  assert.strictEqual(getSafeGalleryLink('vbscript:msgbox(1)'), null);
+});
+
+test('Gallery Links: Rejects protocol-relative URLs (//example.com)', () => {
+  assert.strictEqual(isSafeGalleryLink('//example.com'), false);
+  assert.strictEqual(isSafeGalleryLink('//example.com/evil/path'), false);
+  assert.strictEqual(isSafeGalleryLink('///example.com'), false);
+  assert.strictEqual(isSafeGalleryLink('  //example.com  '), false);
+
+  assert.strictEqual(getSafeGalleryLink('//example.com'), null);
+  assert.strictEqual(getSafeGalleryLink('//example.com/evil/path'), null);
+});
+
+test('Gallery Links: Rejects the observed legacy database value "ver" and relative paths', () => {
+  // Observed in production Atlas database record 69d74eac375974b360c7c666
+  assert.strictEqual(isSafeGalleryLink('ver'), false);
+  assert.strictEqual(getSafeGalleryLink('ver'), null);
+
+  // Other relative paths
+  assert.strictEqual(isSafeGalleryLink('relative/path'), false);
+  assert.strictEqual(isSafeGalleryLink('/images/ver'), false);
+  assert.strictEqual(isSafeGalleryLink('./photo.jpg'), false);
+  assert.strictEqual(isSafeGalleryLink('../secret'), false);
+
+  assert.strictEqual(getSafeGalleryLink('relative/path'), null);
+  assert.strictEqual(getSafeGalleryLink('/images/ver'), null);
+});
+
+test('Gallery Links: Rejects other non-HTTP schemes and malformed URLs', () => {
+  assert.strictEqual(isSafeGalleryLink('file:///etc/passwd'), false);
+  assert.strictEqual(isSafeGalleryLink('mailto:test@example.com'), false);
+  assert.strictEqual(isSafeGalleryLink('ftp://ftp.example.com'), false);
+  assert.strictEqual(isSafeGalleryLink('blob:https://example.com/uuid'), false);
+
+  assert.strictEqual(isSafeGalleryLink('https://'), false);
+  assert.strictEqual(isSafeGalleryLink('http://'), false);
+  assert.strictEqual(isSafeGalleryLink('https://   '), false);
+  assert.strictEqual(isSafeGalleryLink('not a url'), false);
+
+  assert.strictEqual(getSafeGalleryLink('file:///etc/passwd'), null);
+  assert.strictEqual(getSafeGalleryLink('mailto:test@example.com'), null);
+  assert.strictEqual(getSafeGalleryLink('https://'), null);
+  assert.strictEqual(getSafeGalleryLink('http://'), null);
+});
+
+test('Gallery Links: Rejects non-string, empty, and nullish inputs', () => {
+  assert.strictEqual(isSafeGalleryLink(''), false);
+  assert.strictEqual(isSafeGalleryLink('   '), false);
+  assert.strictEqual(isSafeGalleryLink(null), false);
+  assert.strictEqual(isSafeGalleryLink(undefined), false);
+  assert.strictEqual(isSafeGalleryLink(12345), false);
+  assert.strictEqual(isSafeGalleryLink({}), false);
+  assert.strictEqual(isSafeGalleryLink([]), false);
+
+  assert.strictEqual(getSafeGalleryLink(''), null);
+  assert.strictEqual(getSafeGalleryLink('   '), null);
+  assert.strictEqual(getSafeGalleryLink(null), null);
+  assert.strictEqual(getSafeGalleryLink(undefined), null);
+  assert.strictEqual(getSafeGalleryLink(12345), null);
+});
+
+test('Gallery Links: Rendering boundary preserves image display while suppressing invalid links', () => {
+  // Simulate gallery image records as received by frontend
+  const legacyRecord = {
+    _id: '69d74eac375974b360c7c666',
+    title: 'Legacy Sample',
+    category: 'Other',
+    link: 'ver',
+  };
+  const xssRecord = {
+    _id: 'xss-1',
+    title: 'XSS Attempt',
+    category: 'Other',
+    link: 'javascript:alert(1)',
+  };
+  const credentialRecord = {
+    _id: 'cred-1',
+    title: 'Phishing Attempt with Credentials',
+    category: 'Other',
+    link: 'https://user:password@malicious.com',
+  };
+  const validRecord = {
+    _id: 'valid-1',
+    title: 'Valid Project',
+    category: 'Projects',
+    link: 'https://github.com/anurag-jaiswal-aj/googleMe',
+  };
+
+  // Safe link resolution for each record
+  const legacySafeLink = getSafeGalleryLink(legacyRecord.link);
+  const xssSafeLink = getSafeGalleryLink(xssRecord.link);
+  const credSafeLink = getSafeGalleryLink(credentialRecord.link);
+  const validSafeLink = getSafeGalleryLink(validRecord.link);
+
+  assert.strictEqual(legacySafeLink, null, 'Legacy "ver" link must resolve to null (no anchor rendered)');
+  assert.strictEqual(xssSafeLink, null, 'javascript: link must resolve to null (no anchor rendered)');
+  assert.strictEqual(credSafeLink, null, 'Embedded credentials must resolve to null (no anchor rendered)');
+  assert.strictEqual(
+    validSafeLink,
+    'https://github.com/anurag-jaiswal-aj/googleMe',
+    'Valid HTTPS link must resolve to canonical URL'
+  );
+
+  // Verify that image metadata is preserved regardless of link validity
+  assert.strictEqual(legacyRecord.title, 'Legacy Sample');
+  assert.strictEqual(legacyRecord.category, 'Other');
+  assert.strictEqual(credentialRecord.title, 'Phishing Attempt with Credentials');
 });

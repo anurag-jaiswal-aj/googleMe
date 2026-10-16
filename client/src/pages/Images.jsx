@@ -3,11 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { fetchImages } from '../api';
 import FilterSort from '../components/FilterSort';
 import SEO from '../components/SEO';
+import { isSafeGalleryLink, getSafeGalleryLink } from '../utils/galleryUrl.js';
 
 const CATEGORIES = ['Projects', 'Certificates', 'UI Work', 'Other'];
 
 /* ── Lightbox ───────────────────────────────────── */
 function Lightbox({ image, onClose, onPrev, onNext, hasPrev, hasNext }) {
+  const safeLink = getSafeGalleryLink(image?.link);
+
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     const onKey = (e) => {
@@ -33,8 +36,8 @@ function Lightbox({ image, onClose, onPrev, onNext, hasPrev, hasNext }) {
           {image.category && <p className="text-white/50 text-xs mt-0.5">{image.category}</p>}
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-4">
-          {image.link && (
-            <a href={image.link} target="_blank" rel="noopener noreferrer"
+          {safeLink && (
+            <a href={safeLink} target="_blank" rel="noopener noreferrer"
                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-white
                           border border-white/30 hover:bg-white/10 transition-colors">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -84,6 +87,8 @@ function Lightbox({ image, onClose, onPrev, onNext, hasPrev, hasNext }) {
 
 /* ── Image card ─────────────────────────────────── */
 function ImageCard({ image, onClick }) {
+  const safeLink = getSafeGalleryLink(image?.link);
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.97 }}
@@ -107,8 +112,8 @@ function ImageCard({ image, onClick }) {
           <p className="text-sm text-[#202124] dark:text-[#e8eaed] font-medium leading-snug line-clamp-1 flex-1">
             {image.title}
           </p>
-          {image.link && (
-            <a href={image.link} target="_blank" rel="noopener noreferrer"
+          {safeLink && (
+            <a href={safeLink} target="_blank" rel="noopener noreferrer"
                onClick={e => e.stopPropagation()}
                className="shrink-0 text-[#1a73e8] dark:text-[#8ab4f8] hover:text-[#1557b0] mt-0.5"
                title="Open link">
@@ -238,3 +243,5 @@ export default function Images() {
     </div>
   );
 }
+
+export { Lightbox, ImageCard, isSafeGalleryLink, getSafeGalleryLink };
