@@ -71,50 +71,47 @@ Detailed architectural deep dives, security specifications, API contracts, and o
 ## System Architecture
 
 ```mermaid
-flowchart TD
-  subgraph Client["Frontend Architecture"]
-    Browser["Visitor Browser<br/>(React 18 SPA · SERP Routing · AI Chat)"]
-    Vercel["Vercel Edge Network<br/>(Global CDN · Static Assets · PWA)"]
-    Vercel -->|Delivers SPA Bundle| Browser
+flowchart LR
+  subgraph Client["Frontend · Vercel Edge"]
+    direction TB
+    Vercel["Vercel CDN<br/>(Edge Assets)"]
+    Browser["Visitor Browser<br/>(React 18 SPA)"]
+    Vercel -->|Delivers App| Browser
   end
 
-  subgraph Backend["Backend Architecture · Render Web Service"]
+  subgraph Backend["Backend API · Render"]
     direction TB
-    Express["Express API Server<br/>(Trust Proxy · Helmet · CORS · Rate Limiting)"]
-
-    subgraph Controllers["Modular Controllers & Services"]
-      ConfigSvc["Config & Projects Handlers<br/>(SiteConfig & Portfolio State)"]
-      ProxySvc["GitHub & Medium Proxy Routes<br/>(In-Memory Cache · 30m TTL)"]
-      SubmitSvc["Contact & Feedback Handlers<br/>(SEC-24 Lease Fencing)"]
-      UploadSvc["Upload Validation Handler<br/>(Magic-Byte Binary Inspection)"]
-      EmailSvc["Email Delivery Service<br/>(sendEmail Dispatcher)"]
-    end
+    Express["Express Server<br/>(Security & Routing)"]
+    ConfigSvc["Config & Projects<br/>(Site State)"]
+    ProxySvc["External Proxies<br/>(GitHub & Medium)"]
+    UploadSvc["Media Validation<br/>(Magic-Byte Check)"]
+    SubmitSvc["Form Submissions<br/>(SEC-24 Fencing)"]
+    EmailSvc["Email Dispatcher<br/>(Dual-Channel)"]
 
     Express --> ConfigSvc
     Express --> ProxySvc
-    Express --> SubmitSvc
     Express --> UploadSvc
-    SubmitSvc -->|Idempotency Ownership Verified| EmailSvc
+    Express --> SubmitSvc
+    SubmitSvc -->|Ownership OK| EmailSvc
   end
 
-  subgraph DataAndExternal["Persistence & External Services"]
-    MongoDB[("MongoDB Atlas<br/>(Config, Projects, Gallery, Contact, Feedback, Idempotency)")]
-    Cloudinary["Cloudinary CDN<br/>(WebP Optimization & Media Storage)"]
-    ExternalAPIs["GitHub REST API & Medium RSS<br/>(Offline Fallback: shared/projects.json)"]
+  subgraph External["Persistence & Services"]
+    direction TB
+    MongoDB[("MongoDB Atlas<br/>(Database)")]
+    ExternalAPIs["GitHub & Medium<br/>(REST & RSS)"]
+    Cloudinary["Cloudinary CDN<br/>(Media Storage)"]
+    Resend["Resend API<br/>(Primary Email)"]
+    SMTP["Nodemailer SMTP<br/>(Gmail Fallback)"]
 
-    subgraph EmailProviders["Dual-Channel Email Delivery"]
-      Resend["Resend API<br/>(Primary Transactional Provider)"]
-      SMTP["Nodemailer SMTP<br/>(Secondary Gmail Fallback)"]
-      Resend -.->|On Failure or Unconfigured| SMTP
-    end
+    Resend -.->|On Failure or Unconfigured| SMTP
   end
 
-  Browser <-->|HTTPS API / JSON & Multipart| Express
+  Browser <-->|HTTPS API| Express
   ConfigSvc <--> MongoDB
   ProxySvc <--> ExternalAPIs
-  SubmitSvc <-->|Atomic Locks & Inquiries| MongoDB
-  UploadSvc -->|Validated Stream| Cloudinary
-  UploadSvc -->|Media Metadata| MongoDB
+  UploadSvc --> Cloudinary
+  UploadSvc --> MongoDB
+  SubmitSvc <--> MongoDB
   EmailSvc --> Resend
 ```
 *For detailed request lifecycles, execution boundaries, and the extended component flowchart, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).*
