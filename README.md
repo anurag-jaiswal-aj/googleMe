@@ -7,7 +7,7 @@
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-anuragjaiswal.me-4285F4?style=for-the-badge&logo=google-chrome&logoColor=white)](https://www.anuragjaiswal.me)
 [![CI Pipeline](https://img.shields.io/github/actions/workflow/status/anurag-jaiswal-aj/googleMe/ci.yml?branch=main&style=for-the-badge&label=CI%20Pipeline)](https://github.com/anurag-jaiswal-aj/googleMe/actions/workflows/ci.yml)
 [![Automated Tests](https://img.shields.io/badge/Tests-386%20Passed-34A853?style=for-the-badge&logo=node.js&logoColor=white)](https://github.com/anurag-jaiswal-aj/googleMe)
-[![Node Runtime](https://img.shields.io/badge/Node.js-20.x%20%7C%2022.x-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Node Runtime](https://img.shields.io/badge/Node.js-%3E%3D22.22.0-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-FBBC05?style=for-the-badge)](LICENSE)
 
 <br />
@@ -246,7 +246,7 @@ Verify isClaimOwner()
 - **Telemetry:** `@vercel/analytics` 2.0.1, `@vercel/speed-insights` 2.0.0
 
 ### Backend Architecture
-- **Runtime:** Node.js (Engine: `>=22.22.0 <23.0.0`, CI runner: Node 20)
+- **Runtime:** Node.js (Engine: `>=22.22.0 <23.0.0`, CI runner: Node 22)
 - **HTTP Framework:** Express 4.18.3
 - **Security Middleware:** Helmet 7.1.0, CORS 2.8.5
 - **Rate Limiting:** `express-rate-limit` 7.2.0 (Three-tiered: general, login, submissions)
@@ -269,7 +269,7 @@ Verify isClaimOwner()
 - **Test Framework:** Node.js native test runner (`node:test`, `node:assert`)
 - **Frontend Hosting:** Vercel Global Edge Network (SPA rewrite rules, custom security headers, CSP)
 - **Backend Hosting:** Render Web Service (Proxy mode enabled, health monitoring)
-- **Continuous Integration:** GitHub Actions (`ubuntu-latest`, Node 20, isolated `mongo:6.0` container)
+- **Continuous Integration:** GitHub Actions (`ubuntu-latest`, Node 22, isolated `mongo:6.0` container)
 
 ---
 
@@ -279,7 +279,7 @@ Verify isClaimOwner()
 googleMe/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml               # GitHub Actions CI workflow (Node 20, MongoDB 6.0 service)
+│       └── ci.yml               # GitHub Actions CI workflow (Node 22, MongoDB 6.0 service)
 ├── client/                      # React 18 + Vite frontend SPA
 │   ├── public/                  # Static assets (Resume PDF, favicon.svg, sitemap.xml, robots.txt)
 │   ├── src/
@@ -313,7 +313,7 @@ googleMe/
 ## Getting Started
 
 ### Prerequisites
-- **Node.js:** `>=20.x` supported in local testing and CI; `server/package.json` specifies `"node": ">=22.22.0 <23.0.0"`. (The active production runtime on Render is governed by host settings and cannot be verified from repository configuration alone.)
+- **Node.js:** `server/package.json` specifies `"node": ">=22.22.0 <23.0.0"`, aligned with CI (Node 22). (The active production runtime on Render is governed by host settings and cannot be verified from repository configuration alone.)
 - **npm:** `>=10.0.0`
 - **MongoDB:** A running local MongoDB instance (`mongodb://localhost:27017`) or a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster URI.
 - **Cloudinary Account (Optional):** Free tier account for image uploads.
@@ -514,14 +514,14 @@ The automated test suite exercises 386 test cases across the client and server w
 
 ### GitHub Actions CI Workflow
 The continuous integration workflow (`.github/workflows/ci.yml`) runs automatically on all pushes and pull requests to `main` and `master`:
-- **Virtual Environment:** `ubuntu-latest` running Node.js 20 (`node-version: 20`).
+- **Virtual Environment:** `ubuntu-latest` running Node.js 22 (`node-version: 22`).
 - **Dedicated Database Container:** Automatically spins up a healthy `mongo:6.0` service container on port 27017 with periodic health checks (`mongosh --eval 'db.adminCommand({ ping: 1 })'`).
 - **Pipeline Stages:**
   1. `npm ci` and `npm test` in `client/` (153 tests).
   2. `npm run build` in `client/` (validating Vite bundling, chunk splitting, and PWA generation).
   3. `npm ci` and `node --check index.js` syntax inspection in `server/`.
   4. `npm test` in `server/` against the isolated MongoDB service container (233 tests).
-- **Runtime Discrepancy:** `.github/workflows/ci.yml` is configured with Node 20, whereas `server/package.json` declares an engine specification of `"node": ">=22.22.0 <23.0.0"`. Standard `npm ci` does not enforce engine restrictions unless `--engine-strict` is configured, allowing CI to pass on Node 20. The active production runtime on Render cannot be independently confirmed from repository files alone.
+- **Runtime Alignment:** `.github/workflows/ci.yml` is configured with Node 22 (`node-version: 22`), matching the engine requirement declared in `server/package.json` (`>=22.22.0 <23.0.0`). The active production runtime on Render cannot be independently confirmed from repository files alone.
 
 ---
 
