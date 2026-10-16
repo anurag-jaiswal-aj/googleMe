@@ -13,9 +13,9 @@
 <br />
 
 <p align="center">
-  <img src="./lighthouse.png" alt="GoogleMe Lighthouse Audit Scores: 95 Performance, 98 Accessibility, 96 Best Practices, 100 SEO" width="850" />
+  <img src="./lighthouse.png" alt="GoogleMe Lighthouse Audit Scores: 98 Performance, 94 Accessibility, 96 Best Practices, 100 SEO" width="850" />
 </p>
-<p align="center"><sub>Audit snapshot taken from <code>./lighthouse.png</code> against a production build. Live scores vary depending on client network conditions, device capabilities, and geographic routing.</sub></p>
+<p align="center"><sub>Desktop Lighthouse audit snapshot captured on October 16, 2026, against the production build (<code>./lighthouse.png</code>). Live scores may vary depending on network conditions, device capabilities, and browser environment.</sub></p>
 
 [Live Demo](https://www.anuragjaiswal.me) · [Architecture](docs/ARCHITECTURE.md) · [API Reference](docs/API.md) · [Security](docs/SECURITY.md) · [Testing](docs/TESTING.md) · [Deployment](docs/DEPLOYMENT.md) · [Configuration](docs/CONFIGURATION.md)
 
