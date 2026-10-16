@@ -212,8 +212,19 @@ test.before(async () => {
   });
 });
 
-test.after(() => {
-  if (server) server.close();
+test.after(async () => {
+  try {
+    if (server) server.close();
+  } catch (err) {
+    console.error('[test-teardown] Error closing test HTTP server:', err.message);
+  }
+  try {
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
+  } catch (err) {
+    console.error('[test-teardown] Error disconnecting MongoDB:', err.message);
+  }
 });
 
 test.beforeEach(() => {
@@ -1361,4 +1372,349 @@ test('SEC-24 Round 5: Legacy records lacking requestHash safely match on text fi
   assert.strictEqual(res2.status, 422);
   const data2 = await res2.json();
   assert.match(data2.error, /different request parameters/i);
+});
+
+// ── Real MongoDB Integration: Setup Helper ──────────────────────────────────
+
+const LOCAL_MONGO_URI = 'mongodb://127.0.0.1:27017/googleme_sec24_integration_test';
+
+async function withRealMongo(testFn) {
+  if (mongoose.connection.readyState === 0) {
+    try {
+      await mongoose.connect(LOCAL_MONGO_URI, { serverSelectionTimeoutMS: 3000 });
+    } catch (connErr) {
+      throw new Error(
+        `[SEC-24 Integration] Mandatory isolated MongoDB instance is unavailable at ${LOCAL_MONGO_URI}: ${connErr.message}. ` +
+        `This integration test is required to verify real MongoDB E11000 concurrency behavior and must not be silently skipped.`
+      );
+    }
+  }
+
+  // Safety checks: strictly verify database name and host to prevent accidental execution against production
+  assert.strictEqual(
+    mongoose.connection.name,
+    'googleme_sec24_integration_test',
+    'Safety violation: withRealMongo must target only googleme_sec24_integration_test'
+  );
+  assert.strictEqual(
+    mongoose.connection.host,
+    '127.0.0.1',
+    'Safety violation: withRealMongo must target only localhost (127.0.0.1)'
+  );
+
+  const savedStubs = {
+    contactInit: Contact.init,
+    contactCreate: Contact.create,
+    contactFindOne: Contact.findOne,
+    feedbackInit: Feedback.init,
+    feedbackCreate: Feedback.create,
+    feedbackFindOne: Feedback.findOne,
+    idempInit: IdempotencyRecord.init,
+    idempCreate: IdempotencyRecord.create,
+    idempFindOne: IdempotencyRecord.findOne,
+    idempFindOneAndUpdate: IdempotencyRecord.findOneAndUpdate,
+  };
+
+  delete Contact.init;
+  delete Contact.create;
+  delete Contact.findOne;
+  delete Feedback.init;
+  delete Feedback.create;
+  delete Feedback.findOne;
+  delete IdempotencyRecord.init;
+  delete IdempotencyRecord.create;
+  delete IdempotencyRecord.findOne;
+  delete IdempotencyRecord.findOneAndUpdate;
+
+  try {
+    await Promise.all([
+      Contact.init(),
+      Feedback.init(),
+      IdempotencyRecord.init(),
+    ]);
+
+    await testFn();
+  } finally {
+    Contact.init = savedStubs.contactInit;
+    Contact.create = savedStubs.contactCreate;
+    Contact.findOne = savedStubs.contactFindOne;
+    Feedback.init = savedStubs.feedbackInit;
+    Feedback.create = savedStubs.feedbackCreate;
+    Feedback.findOne = savedStubs.feedbackFindOne;
+    IdempotencyRecord.init = savedStubs.idempInit;
+    IdempotencyRecord.create = savedStubs.idempCreate;
+    IdempotencyRecord.findOne = savedStubs.idempFindOne;
+    IdempotencyRecord.findOneAndUpdate = savedStubs.idempFindOneAndUpdate;
+  }
+}
+
+// ── 28. Integration: Contact Route Real E11000 Duplicate-Key Catch Recovery ─
+
+test('SEC-24 Integration: Contact route catches actual MongoDB E11000 during concurrent race and recovers', async () => {
+  await withRealMongo(async () => {
+    const key = 'race-contact-e11000-001';
+    const mismatchKey = 'race-contact-e11000-mismatch-002';
+    const testKeys = [key, mismatchKey];
+
+    const realContactFindOne = Contact.findOne.bind(Contact);
+    const realContactCreate = Contact.create.bind(Contact);
+
+    try {
+      // ── Sub-test A: Matching Payload -> 201 Deduplicated Recovery ────────
+      const payload = {
+        name: 'Deterministic Contact Winner',
+        email: 'detcontact@example.com',
+        message: 'Testing actual route catch block under real E11000 race',
+        subject: 'Race Verification',
+      };
+      const requestHash = computePayloadHash('contact', payload);
+
+      // 1. Worker 1 claims key and lease expires (>120s)
+      await claimIdempotency('contact', key, requestHash);
+      await IdempotencyRecord.collection.updateOne(
+        { scope: 'contact', key },
+        { $set: { updatedAt: new Date(Date.now() - 130000) } }
+      );
+
+      let barrierFired = 0;
+      let routeCreateEncounteredE11000 = false;
+      let winningContactDoc = null;
+
+      Contact.findOne = async function (filter, ...args) {
+        if (filter?.idempotencyKey === key) {
+          if (barrierFired === 0) {
+            barrierFired++;
+            // Worker 1 inserts winning document into real MongoDB before Worker 2's Contact.create runs!
+            winningContactDoc = await realContactCreate({
+              ...payload,
+              idempotencyKey: key,
+              requestHash,
+            });
+            // Worker 2's pre-check returns null (simulating concurrent read before commit)
+            return null;
+          }
+        }
+        return realContactFindOne(filter, ...args);
+      };
+
+      Contact.create = async function (...args) {
+        try {
+          return await realContactCreate(...args);
+        } catch (err) {
+          if ((err.code === 11000 || err.name === 'MongoServerError') && err.keyPattern?.idempotencyKey) {
+            routeCreateEncounteredE11000 = true;
+          }
+          throw err;
+        }
+      };
+
+      sentEmails = [];
+      const res = await fetch(`${BASE_URL}/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key },
+        body: JSON.stringify(payload),
+      });
+
+      // Assertions proving actual route E11000 catch block execution
+      assert.strictEqual(barrierFired, 1, 'Synchronization barrier must fire exactly once');
+      assert.strictEqual(routeCreateEncounteredE11000, true, 'Route Contact.create must encounter real MongoDB E11000');
+      assert.strictEqual(res.status, 201, 'Response status must be 201');
+      const body = await res.json();
+      assert.strictEqual(body.deduplicated, true, 'Response body must indicate deduplicated: true from catch block');
+      assert.strictEqual(body.id, winningContactDoc._id.toString(), 'Response ID must match winning contact ID');
+      assert.strictEqual(await Contact.countDocuments({ idempotencyKey: key }), 1, 'Exactly one contact document in MongoDB');
+      assert.strictEqual(sentEmails.length, 0, 'Zero duplicate emails dispatched on E11000 recovery');
+
+      // ── Sub-test B: Mismatched Payload -> 422 Rejection in Catch Block ────
+      const worker2Payload = { ...payload, message: 'Worker 2 payload mismatch' };
+      const worker2Hash = computePayloadHash('contact', worker2Payload);
+
+      await claimIdempotency('contact', mismatchKey, worker2Hash);
+      await IdempotencyRecord.collection.updateOne(
+        { scope: 'contact', key: mismatchKey },
+        { $set: { updatedAt: new Date(Date.now() - 130000) } }
+      );
+
+      let mismatchBarrierFired = 0;
+      Contact.findOne = async function (filter, ...args) {
+        if (filter?.idempotencyKey === mismatchKey) {
+          if (mismatchBarrierFired === 0) {
+            mismatchBarrierFired++;
+            // Worker 1 inserted a document with a DIFFERENT payload and hash
+            await realContactCreate({
+              name: 'Original Winner',
+              email: 'original@example.com',
+              message: 'Original message',
+              idempotencyKey: mismatchKey,
+              requestHash: computePayloadHash('contact', { name: 'Original Winner', email: 'original@example.com', message: 'Original message' }),
+            });
+            return null;
+          }
+        }
+        return realContactFindOne(filter, ...args);
+      };
+
+      const resMismatch = await fetch(`${BASE_URL}/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': mismatchKey },
+        body: JSON.stringify(worker2Payload),
+      });
+
+      assert.strictEqual(mismatchBarrierFired, 1, 'Mismatch barrier must fire exactly once');
+      assert.strictEqual(resMismatch.status, 422, 'Must return 422 from catch block on payload mismatch');
+      const errBody = await resMismatch.json();
+      assert.match(errBody.error, /different request parameters/i);
+    } finally {
+      Contact.findOne = realContactFindOne;
+      Contact.create = realContactCreate;
+      await Contact.deleteMany({ idempotencyKey: { $in: testKeys } }).catch((cleanupErr) => {
+        console.error('[test-cleanup] Contact cleanup error:', cleanupErr.message);
+      });
+      await IdempotencyRecord.deleteMany({ key: { $in: testKeys } }).catch((cleanupErr) => {
+        console.error('[test-cleanup] IdempotencyRecord cleanup error:', cleanupErr.message);
+      });
+    }
+  });
+});
+
+// ── 29. Integration: Feedback Route E11000 Catch Recovery & Orphan Cleanup ──
+
+test('SEC-24 Integration: Feedback route catches actual MongoDB E11000, destroys ONLY losing asset, and recovers', async () => {
+  await withRealMongo(async () => {
+    const key = 'race-feedback-e11000-003';
+    const testKeys = [key];
+
+    const realFeedbackFindOne = Feedback.findOne.bind(Feedback);
+    const realFeedbackCreate = Feedback.create.bind(Feedback);
+    const origUploadStream = cloudinary.uploader.upload_stream;
+
+    const losingAssetId = 'gfolio/feedback/losing_orphan_444';
+    const winningAssetId = 'gfolio/feedback/winning_persisted_333';
+
+    try {
+      const payload = {
+        type: 'bug',
+        message: 'Feedback message for deterministic race test',
+        name: 'Deterministic User',
+        email: 'detuser@example.com',
+        page: '/about',
+      };
+      const fileBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x77]);
+      const fileObj = {
+        originalname: 'race-screenshot.png',
+        buffer: Buffer.from(fileBytes),
+        mimetype: 'image/png',
+        size: fileBytes.length,
+      };
+      const requestHash = computePayloadHash('feedback', payload, fileObj);
+
+      // 1. Worker 1 claims key and lease expires
+      await claimIdempotency('feedback', key, requestHash);
+      await IdempotencyRecord.collection.updateOne(
+        { scope: 'feedback', key },
+        { $set: { updatedAt: new Date(Date.now() - 130000) } }
+      );
+
+      // Mock Cloudinary upload to return synthetic losing asset ID
+      cloudinary.uploader.upload_stream = (opts, cb) => {
+        cloudinaryUploads.push(opts);
+        return new Writable({
+          write(chunk, encoding, callback) { callback(); },
+          final(callback) {
+            cb(null, {
+              secure_url: `https://res.cloudinary.com/mock-cloud/image/upload/${losingAssetId}.png`,
+              public_id: losingAssetId,
+              resource_type: 'image',
+            });
+            callback();
+          },
+        });
+      };
+
+      let feedbackBarrierFired = 0;
+      let feedbackCreateEncounteredE11000 = false;
+
+      Feedback.findOne = async function (filter, ...args) {
+        if (filter?.idempotencyKey === key) {
+          if (feedbackBarrierFired === 0) {
+            feedbackBarrierFired++;
+            // Worker 1 inserts winning record with winning asset into MongoDB before Worker 2's Feedback.create!
+            await realFeedbackCreate({
+              ...payload,
+              idempotencyKey: key,
+              requestHash,
+              attachment: {
+                filename: 'race-screenshot.png',
+                contentType: 'image/png',
+                size: fileBytes.length,
+                url: `https://res.cloudinary.com/mock-cloud/image/upload/${winningAssetId}.png`,
+                publicId: winningAssetId,
+                resourceType: 'image',
+              },
+            });
+            // Worker 2 pre-check returns null
+            return null;
+          }
+        }
+        return realFeedbackFindOne(filter, ...args);
+      };
+
+      Feedback.create = async function (...args) {
+        try {
+          return await realFeedbackCreate(...args);
+        } catch (err) {
+          if ((err.code === 11000 || err.name === 'MongoServerError') && err.keyPattern?.idempotencyKey) {
+            feedbackCreateEncounteredE11000 = true;
+          }
+          throw err;
+        }
+      };
+
+      sentEmails = [];
+      cloudinaryUploads = [];
+      destroyedCloudinary = [];
+
+      const fd = new FormData();
+      fd.append('type', payload.type);
+      fd.append('message', payload.message);
+      fd.append('name', payload.name);
+      fd.append('email', payload.email);
+      fd.append('page', payload.page);
+      fd.append('attachment', new Blob([fileBytes], { type: 'image/png' }), 'race-screenshot.png');
+
+      // Send multipart HTTP request through actual feedback Express route and real middleware
+      const res = await fetch(`${BASE_URL}/feedback`, {
+        method: 'POST',
+        headers: { 'Idempotency-Key': key },
+        body: fd,
+      });
+
+      assert.strictEqual(feedbackBarrierFired, 1, 'Barrier must fire exactly once');
+      assert.strictEqual(cloudinaryUploads.length, 1, 'Upload mock must run exactly once for Worker 2');
+      assert.strictEqual(feedbackCreateEncounteredE11000, true, 'Feedback.create must encounter real MongoDB E11000');
+      assert.strictEqual(res.status, 201, 'Status code must be 201');
+      const body = await res.json();
+      assert.strictEqual(body.deduplicated, true, 'Response must indicate deduplicated: true from catch block');
+      assert.strictEqual(await Feedback.countDocuments({ idempotencyKey: key }), 1, 'Exactly one feedback document in MongoDB');
+
+      // Orphan cleanup assertions
+      assert.strictEqual(destroyedCloudinary.length, 1, 'Exactly one asset destroyed');
+      assert.strictEqual(destroyedCloudinary[0].publicId, losingAssetId, 'Only the losing asset was destroyed');
+
+      // Winning asset verification in MongoDB
+      const winner = await realFeedbackFindOne({ idempotencyKey: key });
+      assert.strictEqual(winner.attachment.publicId, winningAssetId, 'Winning asset remains attached to MongoDB document');
+      assert.strictEqual(sentEmails.length, 0, 'Zero duplicate emails sent on E11000 recovery');
+    } finally {
+      cloudinary.uploader.upload_stream = origUploadStream;
+      Feedback.findOne = realFeedbackFindOne;
+      Feedback.create = realFeedbackCreate;
+      await Feedback.deleteMany({ idempotencyKey: { $in: testKeys } }).catch((cleanupErr) => {
+        console.error('[test-cleanup] Feedback cleanup error:', cleanupErr.message);
+      });
+      await IdempotencyRecord.deleteMany({ key: { $in: testKeys } }).catch((cleanupErr) => {
+        console.error('[test-cleanup] IdempotencyRecord cleanup error:', cleanupErr.message);
+      });
+    }
+  });
 });
