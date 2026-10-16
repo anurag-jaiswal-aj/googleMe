@@ -70,23 +70,54 @@ Detailed architectural deep dives, security specifications, API contracts, and o
 
 ## System Architecture
 
+```mermaid
+flowchart TD
+  subgraph Client["Frontend Architecture"]
+    Browser["Visitor Browser<br/>(React 18 SPA · SERP Routing · AI Chat)"]
+    Vercel["Vercel Edge Network<br/>(Global CDN · Static Assets · PWA)"]
+    Vercel -->|Delivers SPA Bundle| Browser
+  end
+
+  subgraph Backend["Backend Architecture · Render Web Service"]
+    direction TB
+    Express["Express API Server<br/>(Trust Proxy · Helmet · CORS · Rate Limiting)"]
+
+    subgraph Controllers["Modular Controllers & Services"]
+      ConfigSvc["Config & Projects Handlers<br/>(SiteConfig & Portfolio State)"]
+      ProxySvc["GitHub & Medium Proxy Routes<br/>(In-Memory Cache · 30m TTL)"]
+      SubmitSvc["Contact & Feedback Handlers<br/>(SEC-24 Lease Fencing)"]
+      UploadSvc["Upload Validation Handler<br/>(Magic-Byte Binary Inspection)"]
+      EmailSvc["Email Delivery Service<br/>(sendEmail Dispatcher)"]
+    end
+
+    Express --> ConfigSvc
+    Express --> ProxySvc
+    Express --> SubmitSvc
+    Express --> UploadSvc
+    SubmitSvc -->|Idempotency Ownership Verified| EmailSvc
+  end
+
+  subgraph DataAndExternal["Persistence & External Services"]
+    MongoDB[("MongoDB Atlas<br/>(Config, Projects, Gallery, Contact, Feedback, Idempotency)")]
+    Cloudinary["Cloudinary CDN<br/>(WebP Optimization & Media Storage)"]
+    ExternalAPIs["GitHub REST API & Medium RSS<br/>(Offline Fallback: shared/projects.json)"]
+
+    subgraph EmailProviders["Dual-Channel Email Delivery"]
+      Resend["Resend API<br/>(Primary Transactional Provider)"]
+      SMTP["Nodemailer SMTP<br/>(Secondary Gmail Fallback)"]
+      Resend -.->|On Failure or Unconfigured| SMTP
+    end
+  end
+
+  Browser <-->|HTTPS API / JSON & Multipart| Express
+  ConfigSvc <--> MongoDB
+  ProxySvc <--> ExternalAPIs
+  SubmitSvc <-->|Atomic Locks & Inquiries| MongoDB
+  UploadSvc -->|Validated Stream| Cloudinary
+  UploadSvc -->|Media Metadata| MongoDB
+  EmailSvc --> Resend
 ```
-Visitor Browser / Edge CDN (Vercel)
-       │
-       ├─── React Router v6 SPA (Search Routing, Voice Engine, AI Chat, DOMPurify)
-       │
-       ▼ HTTPS REST API (CORS, Rate Limiter, Helmet)
-Express API Server (Render)
-       │
-       ├─── In-Memory Cache (TTL: 60s Config, 30m GitHub & Medium)
-       ├─── Distributed Idempotency Engine (SEC-24: Owner Fencing & SHA-256)
-       ├─── Media Validation (Binary Magic-Byte Inspection)
-       │
-       ├─── MongoDB Atlas (Persistent Collections: Config, Projects, Gallery, Inquiries)
-       ├─── Cloudinary CDN (Media Storage & Transcoding)
-       └─── Dual-Channel Email (Resend HTTP API ──[Failover]──► Nodemailer SMTP)
-```
-*For the complete Mermaid flowchart, request lifecycles, and component responsibilities, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).*
+*For detailed request lifecycles, execution boundaries, and the extended component flowchart, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).*
 
 ---
 
