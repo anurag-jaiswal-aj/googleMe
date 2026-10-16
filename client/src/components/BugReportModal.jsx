@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { submitFeedback } from '../api';
+import { createIdempotencyKeyManager } from '../utils/idempotency';
 
 const TYPES = [
   { id: 'bug',        label: 'Bug',            color: '#EA4335' },
@@ -41,11 +42,15 @@ export default function BugReportModal({ open, onClose, initial }) {
   const [sent,       setSent]       = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error,      setError]      = useState('');
+  const submittingRef = useRef(false);
+  const idempotencyManagerRef = useRef(createIdempotencyKeyManager());
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const reset = () => {
-    setForm({ type: 'bug', message: '', name: '', email: '', attachment: null, _hp: '' });
+    submittingRef.current = false;
+    idempotencyManagerRef.current.clearKey();
+    setForm(initial ?? { type: 'bug', message: '', name: '', email: '', attachment: null, _hp: '' });
     setSent(false);
     setError('');
   };
@@ -53,9 +58,13 @@ export default function BugReportModal({ open, onClose, initial }) {
   const handleClose = () => { reset(); onClose(); };
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
+    if (!form.message.trim()) return;
+    submittingRef.current = true;
     setError('');
     setSubmitting(true);
     try {
+      const idempotencyKey = idempotencyManagerRef.current.getOrCreateKey();
       await submitFeedback({
         type:       form.type,
         message:    form.message,
@@ -64,11 +73,15 @@ export default function BugReportModal({ open, onClose, initial }) {
         attachment: form.attachment,
         _hp:        form._hp,
         page:       typeof window !== 'undefined' ? window.location.pathname : '',
+        idempotencyKey,
       });
+      idempotencyManagerRef.current.clearKey();
       setSent(true);
-    } catch {
-      setError('Something went wrong. Please try again.');
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Something went wrong. Please try again.');
+      // NOTE: idempotency key is intentionally retained on error so retry sends identical key
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };

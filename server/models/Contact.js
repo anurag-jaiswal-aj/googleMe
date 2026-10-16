@@ -25,8 +25,30 @@ const contactSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    idempotencyKey: {
+      type: String,
+      trim: true,
+      maxlength: 128,
+    },
+    requestHash: {
+      type: String,
+      maxlength: 64,
+      default: null,
+    },
   },
   { timestamps: true }
+);
+
+// Compound / partial unique index ensures strict uniqueness when an idempotency key is present.
+// Legacy records and requests that omit an idempotency key (undefined/null) are excluded from the index.
+contactSchema.index(
+  { idempotencyKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      idempotencyKey: { $type: 'string' },
+    },
+  }
 );
 
 module.exports = mongoose.model('Contact', contactSchema);

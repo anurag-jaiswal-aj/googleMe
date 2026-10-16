@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { submitContact } from '../api';
+import { createIdempotencyKeyManager } from '../utils/idempotency';
 import SearchResult from '../components/SearchResult';
 import FilterSort from '../components/FilterSort';
 import SEO from '../components/SEO';
@@ -43,6 +44,8 @@ export function ContactForm() {
   const [menuOpen, setMenuOpen] = useState(false);
   const fileRef = useRef(null);
   const menuRef = useRef(null);
+  const isSubmittingRef = useRef(false);
+  const idempotencyManagerRef = useRef(createIdempotencyKeyManager());
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -82,19 +85,25 @@ export function ContactForm() {
 
   const handleSubmit = async e => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
+    isSubmittingRef.current = true;
     setSubmitting(true);
     try {
-      await submitContact({ ...form, files });
+      const idempotencyKey = idempotencyManagerRef.current.getOrCreateKey();
+      await submitContact({ ...form, files, idempotencyKey });
       setSent(true);
       setForm({ name: '', email: '', subject: '', message: '', _hp: '' });
       setFiles([]);
+      idempotencyManagerRef.current.clearKey();
       toast.success("Message sent! I'll get back to you soon.");
     } catch (err) {
       const msg = err?.response?.data?.errors?.[0]?.msg || err?.response?.data?.error || 'Something went wrong. Please try again.';
       toast.error(msg);
+      // NOTE: idempotency key is intentionally retained on error so retry sends identical key
     } finally {
+      isSubmittingRef.current = false;
       setSubmitting(false);
     }
   };
@@ -217,7 +226,7 @@ export function ContactForm() {
             <p className="text-sm text-[#5f6368] dark:text-[#9aa0a6] mb-5">
               Thanks for reaching out. I'll reply within 24 hours.
             </p>
-            <button onClick={() => setSent(false)}
+            <button onClick={() => { setSent(false); idempotencyManagerRef.current.clearKey(); }}
               className="text-sm text-[#1a73e8] dark:text-[#8ab4f8] hover:underline">
               Send another message
             </button>

@@ -72,14 +72,43 @@ global.fetch = async (url, opts) => {
 
 const Contact = require('./models/Contact');
 let savedContacts = [];
+Contact.init = async () => {};
 Contact.create = async (doc) => {
-  savedContacts.push(doc);
-  return { _id: 'mock-contact-id', ...doc };
+  if (doc.idempotencyKey) {
+    const existing = savedContacts.find(c => c.idempotencyKey === doc.idempotencyKey);
+    if (existing) {
+      const err = new Error('Duplicate key');
+      err.code = 11000;
+      throw err;
+    }
+  }
+  const item = { _id: 'mock-contact-id', ...doc };
+  savedContacts.push(item);
+  return item;
+};
+Contact.findOne = (filter) => {
+  const found = savedContacts.find(c => {
+    if (filter.idempotencyKey && c.idempotencyKey !== filter.idempotencyKey) return false;
+    return true;
+  });
+  const res = found ? { ...found } : null;
+  const p = Promise.resolve(res);
+  p.lean = async () => res;
+  return p;
 };
 
 const Feedback = require('./models/Feedback');
 let savedFeedbacks = [];
+Feedback.init = async () => {};
 Feedback.create = async (doc) => {
+  if (doc.idempotencyKey) {
+    const existing = savedFeedbacks.find(f => f.idempotencyKey === doc.idempotencyKey);
+    if (existing) {
+      const err = new Error('Duplicate key');
+      err.code = 11000;
+      throw err;
+    }
+  }
   const newDoc = {
     _id: new mongoose.Types.ObjectId().toString(),
     createdAt: new Date(),
@@ -89,6 +118,70 @@ Feedback.create = async (doc) => {
   };
   savedFeedbacks.push(newDoc);
   return newDoc;
+};
+Feedback.findOne = (filter) => {
+  const found = savedFeedbacks.find(f => {
+    if (filter.idempotencyKey && f.idempotencyKey !== filter.idempotencyKey) return false;
+    return true;
+  });
+  const res = found ? { ...found } : null;
+  const p = Promise.resolve(res);
+  p.lean = async () => res;
+  return p;
+};
+
+const IdempotencyRecord = require('./models/IdempotencyRecord');
+let savedIdempotencyRecords = [];
+IdempotencyRecord.init = async () => {};
+IdempotencyRecord.create = async (doc) => {
+  const existing = savedIdempotencyRecords.find(r => r.scope === doc.scope && r.key === doc.key);
+  if (existing) {
+    const err = new Error('Duplicate key');
+    err.code = 11000;
+    throw err;
+  }
+  const newRec = {
+    _id: new mongoose.Types.ObjectId().toString(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    status: 'in_progress',
+    ...doc,
+  };
+  savedIdempotencyRecords.push(newRec);
+  return newRec;
+};
+IdempotencyRecord.findOne = (filter) => ({
+  lean: async () => {
+    const found = savedIdempotencyRecords.find(r => {
+      if (filter.scope && r.scope !== filter.scope) return false;
+      if (filter.key && r.key !== filter.key) return false;
+      if (filter.ownerToken && r.ownerToken !== filter.ownerToken) return false;
+      if (filter.status && r.status !== filter.status) return false;
+      return true;
+    });
+    return found ? { ...found } : null;
+  },
+});
+IdempotencyRecord.findOneAndUpdate = async (filter, update) => {
+  let found = null;
+  for (const r of savedIdempotencyRecords) {
+    if (r.scope !== filter.scope || r.key !== filter.key) continue;
+    if (filter.$or) {
+      const matchOr = filter.$or.some(cond => {
+        if (cond.status && r.status !== cond.status) return false;
+        if (cond.updatedAt?.$lt && !(new Date(r.updatedAt) < cond.updatedAt.$lt)) return false;
+        return true;
+      });
+      if (!matchOr) continue;
+    }
+    found = r;
+    break;
+  }
+  if (!found) return null;
+  if (update.$set) {
+    Object.assign(found, update.$set);
+  }
+  return { ...found, lean: () => ({ ...found }) };
 };
 
 const matchFilter = (doc, query) => {
@@ -323,6 +416,7 @@ test.beforeEach(() => {
   siteConfigs = {};
   savedContacts = [];
   savedFeedbacks = [];
+  savedIdempotencyRecords = [];
   sentEmails = [];
   galleryImageCreateShouldFail = false;
   galleryImageUpdateShouldFail = false;

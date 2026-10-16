@@ -36,6 +36,9 @@ export const adminVerify = () => api.post('/admin/verify').then(r => r.data);
 
 export const fetchProjects = () => api.get('/projects').then((r) => r.data);
 
+import { generateIdempotencyKey } from '../utils/idempotency.js';
+export { generateIdempotencyKey };
+
 const isTimeoutLikeError = (err) => {
   const code = err?.code || '';
   const msg = err?.message || '';
@@ -49,33 +52,39 @@ const buildContactFormData = (data) => {
   fd.append('message', data.message);
   if (data.subject) fd.append('subject', data.subject);
   if (data._hp !== undefined) fd.append('_hp', data._hp);
+  if (data.idempotencyKey) fd.append('idempotencyKey', data.idempotencyKey);
   (data.files || []).forEach(f => fd.append('attachments', f));
   return fd;
 };
 
 export const submitContact = async (data) => {
-  const fd = buildContactFormData(data);
+  const idempotencyKey = data.idempotencyKey || generateIdempotencyKey();
+  const fd = buildContactFormData({ ...data, idempotencyKey });
+  const headers = {
+    'Content-Type': 'multipart/form-data',
+    'Idempotency-Key': idempotencyKey,
+  };
 
   try {
     const first = await api.post('/contact', fd, {
-      timeout: 20000,
-      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 30000,
+      headers,
     });
     return first.data;
   } catch (err) {
     if (!isTimeoutLikeError(err)) throw err;
 
-    // Render free tier may sleep; warm the backend then retry once.
+    // Render free tier may sleep; warm the backend then retry once with the exact same key.
     try {
       await api.get('/health', { timeout: 15000 });
     } catch {
       // Ignore wake-up ping failures and attempt one final submit.
     }
 
-    const retryFd = buildContactFormData(data);
+    const retryFd = buildContactFormData({ ...data, idempotencyKey });
     const retry = await api.post('/contact', retryFd, {
-      timeout: 20000,
-      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 30000,
+      headers,
     });
     return retry.data;
   }
@@ -99,25 +108,35 @@ export const saveConfig  = (key, value) => api.post('/config', { key, value }).t
 export const saveConfigBulk = (updates) => api.post('/config', { updates }).then(r => r.data);
 
 export const submitFeedback = async (data) => {
-  const fd = new FormData();
-  fd.append('type', data.type);
-  fd.append('message', data.message);
-  if (data.name)       fd.append('name', data.name);
-  if (data.email)      fd.append('email', data.email);
-  if (data.page)       fd.append('page', data.page);
-  if (data.attachment) fd.append('attachment', data.attachment);
-  if (data._hp !== undefined) fd.append('_hp', data._hp);
+  const idempotencyKey = data.idempotencyKey || generateIdempotencyKey();
+  const buildFeedbackFormData = () => {
+    const fd = new FormData();
+    fd.append('type', data.type);
+    fd.append('message', data.message);
+    if (data.name)       fd.append('name', data.name);
+    if (data.email)      fd.append('email', data.email);
+    if (data.page)       fd.append('page', data.page);
+    if (data.attachment) fd.append('attachment', data.attachment);
+    if (data._hp !== undefined) fd.append('_hp', data._hp);
+    fd.append('idempotencyKey', idempotencyKey);
+    return fd;
+  };
 
-  const post = (timeout) => api.post('/feedback', fd, {
+  const headers = {
+    'Idempotency-Key': idempotencyKey,
+  };
+
+  const post = (timeout) => api.post('/feedback', buildFeedbackFormData(), {
     timeout,
+    headers,
   }).then((r) => r.data);
 
   try {
-    return await post(20000);
+    return await post(30000);
   } catch (err) {
     if (!isTimeoutLikeError(err)) throw err;
     try { await api.get('/health', { timeout: 15000 }); } catch {}
-    return await post(20000);
+    return await post(30000);
   }
 };
 

@@ -29,8 +29,30 @@ const feedbackSchema = new mongoose.Schema(
       publicId:     { type: String, default: '' },
       resourceType: { type: String, default: '' },
     },
+    idempotencyKey: {
+      type: String,
+      trim: true,
+      maxlength: 128,
+    },
+    requestHash: {
+      type: String,
+      maxlength: 64,
+      default: null,
+    },
   },
   { timestamps: true }
+);
+
+// Compound / partial unique index ensures strict uniqueness when an idempotency key is present.
+// Legacy records and requests that omit an idempotency key (undefined/null) are excluded from the index.
+feedbackSchema.index(
+  { idempotencyKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      idempotencyKey: { $type: 'string' },
+    },
+  }
 );
 
 module.exports = mongoose.model('Feedback', feedbackSchema);

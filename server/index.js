@@ -105,14 +105,33 @@ app.use((err, req, res, next) => {
 // MongoDB connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/gfolio';
 
+let isListening = false;
+
 mongoose
   .connect(MONGO_URI)
-  .then(() => {
+  .then(async () => {
     console.log('Connected to MongoDB');
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
+    const Contact = require('./models/Contact');
+    const Feedback = require('./models/Feedback');
+    const IdempotencyRecord = require('./models/IdempotencyRecord');
+    try {
+      await Promise.all([
+        Contact.init(),
+        Feedback.init(),
+        IdempotencyRecord.init(),
+      ]);
+    } catch (idxErr) {
+      console.error('Fatal: Failed to initialize database indexes:', idxErr.message);
+      process.exit(1);
+    }
+
+    if (!isListening) {
+      isListening = true;
+      const PORT = process.env.PORT || 5000;
+      app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+      });
+    }
   })
   .catch((err) => {
     console.error('MongoDB connection error:', err.message);

@@ -34,6 +34,15 @@ const {
   sanitizeAttachmentFilename,
   validateAttachmentBuffer,
 } = require('../utils/attachmentValidation');
+const {
+  validateIdempotencyKey,
+  computePayloadHash,
+  claimIdempotency,
+  completeIdempotency,
+  failIdempotency,
+  isClaimOwner,
+  matchesFeedbackPayload,
+} = require('../utils/idempotency');
 
 
 const upload = multer({
@@ -342,9 +351,57 @@ router.post('/', handleUpload, validation, async (req, res, next) => {
     return res.status(201).json({ success: true, message: 'Feedback received. Thank you!' });
   }
 
+  // Idempotency validation & atomic claim
+  const rawIdempotencyKey = req.headers['idempotency-key'] || req.body.idempotencyKey;
+  const keyValidation = validateIdempotencyKey(rawIdempotencyKey);
+  if (!keyValidation.valid) {
+    return res.status(400).json({ error: keyValidation.error });
+  }
+  const idempotencyKey = keyValidation.key;
+
+  let claim = null;
+  let requestHash = null;
+  if (idempotencyKey) {
+    requestHash = computePayloadHash('feedback', req.body, req.file);
+    claim = await claimIdempotency('feedback', idempotencyKey, requestHash);
+    if (!claim.claimed) {
+      if (claim.mismatch) {
+        return res.status(422).json({ error: claim.error });
+      }
+      if (claim.completed) {
+        return res.status(claim.statusCode || 200).json({ ...claim.body, deduplicated: true });
+      }
+      if (claim.inProgress) {
+        return res.status(409).set('Retry-After', String(claim.retryAfterSeconds || 2)).json({
+          error: 'A feedback submission with this idempotency key is currently being processed. Please wait.',
+        });
+      }
+    }
+
+    // Database pre-check: recover if Feedback already exists for this idempotency key
+    // Completely avoids redundant Cloudinary uploads and duplicate emails
+    const existingFeedback = await Feedback.findOne({ idempotencyKey });
+    if (existingFeedback) {
+      if (!matchesFeedbackPayload(existingFeedback, req.body, req.file, requestHash)) {
+        return res.status(422).json({
+          error: 'Idempotency key was already used with different request parameters',
+        });
+      }
+      const responsePayload = { success: true, message: 'Feedback received. Thank you!' };
+      if (claim?.ownerToken) {
+        await completeIdempotency('feedback', idempotencyKey, claim.ownerToken, responsePayload, 201, existingFeedback._id).catch(
+          (compErr) => console.error('[feedback] completeIdempotency recovery error:', compErr.message)
+        );
+      }
+      return res.status(201).json({ ...responsePayload, deduplicated: true });
+    }
+  }
+
   const { type, message, name = '', email = '', page = '' } = req.body;
   const file = req.file || null;
 
+  let uploadedAttachment = null;
+  let feedback = null;
   try {
     let attachmentData = undefined;
     if (file) {
@@ -363,6 +420,7 @@ router.post('/', handleUpload, validation, async (req, res, next) => {
             attachmentData.url = result.secure_url;
             attachmentData.publicId = result.public_id || '';
             attachmentData.resourceType = result.resource_type || '';
+            uploadedAttachment = attachmentData;
           }
         } catch (uploadErr) {
           console.error('[feedback] Attachment Cloudinary upload failed:', uploadErr.message);
@@ -370,7 +428,7 @@ router.post('/', handleUpload, validation, async (req, res, next) => {
       }
     }
 
-    await Feedback.create({
+    feedback = await Feedback.create({
       type,
       message,
       name,
@@ -378,6 +436,7 @@ router.post('/', handleUpload, validation, async (req, res, next) => {
       page,
       status: 'new',
       ...(attachmentData ? { attachment: attachmentData } : {}),
+      ...(idempotencyKey ? { idempotencyKey, requestHash } : {}),
     });
 
     const label = type.charAt(0).toUpperCase() + type.slice(1);
@@ -385,17 +444,73 @@ router.post('/', handleUpload, validation, async (req, res, next) => {
       ? `[Portfolio Feedback] ${label} from ${name}`
       : `[Portfolio Feedback] ${label}`;
 
-    sendEmail({
-      subject,
-      html: buildHtml({ type, message, name, email, page, hasAttachment: !!file }),
-      replyTo: email || undefined,
-      attachments: file
-        ? [{ filename: attachmentData?.filename || sanitizeAttachmentFilename(file.originalname || ''), content: file.buffer }]
-        : [],
-    }).catch((err) => console.error('[feedback] Email send failed:', err.message));
+    // Verify claim ownership as late as practical before dispatching email to prevent stale worker notifications
+    let canSendEmail = true;
+    if (idempotencyKey && claim?.ownerToken) {
+      canSendEmail = await isClaimOwner('feedback', idempotencyKey, claim.ownerToken);
+      if (!canSendEmail) {
+        console.warn('[feedback] Worker lost idempotency lease before email dispatch; suppressing email notification.');
+      }
+    }
 
-    res.status(201).json({ success: true, message: 'Feedback received. Thank you!' });
+    if (canSendEmail) {
+      sendEmail({
+        subject,
+        html: buildHtml({ type, message, name, email, page, hasAttachment: !!file }),
+        replyTo: email || undefined,
+        attachments: file
+          ? [{ filename: attachmentData?.filename || sanitizeAttachmentFilename(file.originalname || ''), content: file.buffer }]
+          : [],
+      }).catch((err) => console.error('[feedback] Email send failed:', err.message));
+    }
+
+    const responsePayload = { success: true, message: 'Feedback received. Thank you!' };
+
+    if (idempotencyKey && claim?.ownerToken) {
+      await completeIdempotency('feedback', idempotencyKey, claim.ownerToken, responsePayload, 201, feedback._id).catch(
+        (compErr) => console.error('[feedback] completeIdempotency error:', compErr.message)
+      );
+    }
+
+    res.status(201).json(responsePayload);
   } catch (err) {
+    const isDuplicateKey = err.code === 11000 || (err.name === 'MongoServerError' && err.code === 11000);
+
+    // If Cloudinary upload succeeded for THIS attempt but Feedback persistence was aborted, clean up the orphaned asset
+    if (uploadedAttachment?.publicId && process.env.CLOUDINARY_CLOUD_NAME) {
+      try {
+        const destroyOpts = {};
+        if (uploadedAttachment.resourceType) destroyOpts.resource_type = uploadedAttachment.resourceType;
+        await cloudinary.uploader.destroy(uploadedAttachment.publicId, destroyOpts);
+      } catch (cleanupErr) {
+        console.error('[feedback] Failed to clean up orphaned attachment:', cleanupErr.message, {
+          publicId: uploadedAttachment.publicId,
+        });
+      }
+    }
+
+    if (isDuplicateKey && idempotencyKey) {
+      const existingFeedback = await Feedback.findOne({ idempotencyKey });
+      if (existingFeedback) {
+        if (!matchesFeedbackPayload(existingFeedback, req.body, req.file, requestHash)) {
+          return res.status(422).json({
+            error: 'Idempotency key was already used with different request parameters',
+          });
+        }
+        const responsePayload = { success: true, message: 'Feedback received. Thank you!' };
+        if (claim?.ownerToken) {
+          await completeIdempotency('feedback', idempotencyKey, claim.ownerToken, responsePayload, 201, existingFeedback._id).catch(
+            (compErr) => console.error('[feedback] completeIdempotency race recovery error:', compErr.message)
+          );
+        }
+        return res.status(201).json({ ...responsePayload, deduplicated: true });
+      }
+    }
+
+    // Only fail the claim if feedback document was not persisted to prevent duplicate records on retry
+    if (idempotencyKey && claim?.ownerToken && !feedback) {
+      await failIdempotency('feedback', idempotencyKey, claim.ownerToken, err.message).catch(() => {});
+    }
     next(err);
   }
 });

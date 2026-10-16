@@ -11,6 +11,15 @@ const {
   sanitizeAttachmentFilename,
   validateAttachmentBuffer,
 } = require('../utils/attachmentValidation');
+const {
+  validateIdempotencyKey,
+  computePayloadHash,
+  claimIdempotency,
+  completeIdempotency,
+  failIdempotency,
+  isClaimOwner,
+  matchesContactPayload,
+} = require('../utils/idempotency');
 
 // Accept up to 3 attachments, max 5 MB each, stored in memory
 const upload = multer({
@@ -91,6 +100,56 @@ router.post('/', handleUpload, validation, async (req, res, next) => {
     });
   }
 
+  // Idempotency validation & atomic claim
+  const rawIdempotencyKey = req.headers['idempotency-key'] || req.body.idempotencyKey;
+  const keyValidation = validateIdempotencyKey(rawIdempotencyKey);
+  if (!keyValidation.valid) {
+    return res.status(400).json({ error: keyValidation.error });
+  }
+  const idempotencyKey = keyValidation.key;
+
+  let claim = null;
+  let requestHash = null;
+  if (idempotencyKey) {
+    requestHash = computePayloadHash('contact', req.body, req.files);
+    claim = await claimIdempotency('contact', idempotencyKey, requestHash);
+    if (!claim.claimed) {
+      if (claim.mismatch) {
+        return res.status(422).json({ error: claim.error });
+      }
+      if (claim.completed) {
+        return res.status(claim.statusCode || 200).json({ ...claim.body, deduplicated: true });
+      }
+      if (claim.inProgress) {
+        return res.status(409).set('Retry-After', String(claim.retryAfterSeconds || 2)).json({
+          error: 'A submission with this idempotency key is currently being processed. Please wait.',
+        });
+      }
+    }
+
+    // Database pre-check: recover if Contact already exists for this idempotency key
+    // (e.g. lease expired after Contact was created but completeIdempotency failed)
+    const existingContact = await Contact.findOne({ idempotencyKey });
+    if (existingContact) {
+      if (!matchesContactPayload(existingContact, req.body, req.files, requestHash)) {
+        return res.status(422).json({
+          error: 'Idempotency key was already used with different request parameters',
+        });
+      }
+      const responseData = {
+        success: true,
+        message: "Your message has been received! I'll get back to you soon.",
+        id: existingContact._id,
+      };
+      if (claim?.ownerToken) {
+        await completeIdempotency('contact', idempotencyKey, claim.ownerToken, responseData, 201, existingContact._id).catch(
+          (compErr) => console.error('[contact] completeIdempotency recovery error:', compErr.message)
+        );
+      }
+      return res.status(201).json({ ...responseData, deduplicated: true });
+    }
+  }
+
   const { name, email, message, subject } = req.body;
   const attachments = (req.files || []).map((f) => ({
     filename: sanitizeAttachmentFilename(f.originalname || ''),
@@ -98,27 +157,78 @@ router.post('/', handleUpload, validation, async (req, res, next) => {
     contentType: f.mimetype,
   }));
 
+  let contact = null;
   try {
-    const contact = await Contact.create({ name, email, message });
+    contact = await Contact.create({
+      name,
+      email,
+      message,
+      ...(idempotencyKey ? { idempotencyKey, requestHash } : {}),
+    });
 
     const subjectLine = subject
       ? `[${subject}] New Portfolio Message from ${name}`
       : `New Portfolio Message from ${name}`;
 
-    // Fire-and-forget: never block the response on email delivery
-    sendEmail({
-      subject: subjectLine,
-      html: buildHtml({ name, email, message, subject, attachments }),
-      replyTo: email,
-      attachments,
-    }).catch((err) => console.error('[contact] Email send failed:', err.message));
+    // Verify claim ownership as late as practical before dispatching email to prevent stale worker notifications
+    let canSendEmail = true;
+    if (idempotencyKey && claim?.ownerToken) {
+      canSendEmail = await isClaimOwner('contact', idempotencyKey, claim.ownerToken);
+      if (!canSendEmail) {
+        console.warn('[contact] Worker lost idempotency lease before email dispatch; suppressing email notification.');
+      }
+    }
 
-    res.status(201).json({
+    if (canSendEmail) {
+      sendEmail({
+        subject: subjectLine,
+        html: buildHtml({ name, email, message, subject, attachments }),
+        replyTo: email,
+        attachments,
+      }).catch((err) => console.error('[contact] Email send failed:', err.message));
+    }
+
+    const responseData = {
       success: true,
       message: "Your message has been received! I'll get back to you soon.",
       id: contact._id,
-    });
+    };
+
+    if (idempotencyKey && claim?.ownerToken) {
+      await completeIdempotency('contact', idempotencyKey, claim.ownerToken, responseData, 201, contact._id).catch(
+        (compErr) => console.error('[contact] completeIdempotency error:', compErr.message)
+      );
+    }
+
+    res.status(201).json(responseData);
   } catch (err) {
+    const isDuplicateKey = err.code === 11000 || (err.name === 'MongoServerError' && err.code === 11000);
+    if (isDuplicateKey && idempotencyKey) {
+      const existingContact = await Contact.findOne({ idempotencyKey });
+      if (existingContact) {
+        if (!matchesContactPayload(existingContact, req.body, req.files, requestHash)) {
+          return res.status(422).json({
+            error: 'Idempotency key was already used with different request parameters',
+          });
+        }
+        const responseData = {
+          success: true,
+          message: "Your message has been received! I'll get back to you soon.",
+          id: existingContact._id,
+        };
+        if (claim?.ownerToken) {
+          await completeIdempotency('contact', idempotencyKey, claim.ownerToken, responseData, 201, existingContact._id).catch(
+            (compErr) => console.error('[contact] completeIdempotency race recovery error:', compErr.message)
+          );
+        }
+        return res.status(201).json({ ...responseData, deduplicated: true });
+      }
+    }
+
+    // Only fail the claim if contact was not persisted to prevent duplicate creation on retry
+    if (idempotencyKey && claim?.ownerToken && !contact) {
+      await failIdempotency('contact', idempotencyKey, claim.ownerToken, err.message).catch(() => {});
+    }
     if (err.name === 'ValidationError') return res.status(400).json({ error: err.message });
     next(err);
   }
