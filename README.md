@@ -83,7 +83,7 @@ flowchart LR
     direction TB
     Express["Express Server<br/>(Security & Routing)"]
     ConfigSvc["Config & Projects<br/>(Site State)"]
-    ProxySvc["External Proxies<br/>(GitHub & Medium)"]
+    ProxySvc["GitHub & Medium Proxies<br/>(Cached Routes)"]
     UploadSvc["Media Validation<br/>(Magic-Byte Check)"]
     SubmitSvc["Form Submissions<br/>(SEC-24 Fencing)"]
     EmailSvc["Email Dispatcher<br/>(Dual-Channel)"]
@@ -103,7 +103,7 @@ flowchart LR
     Resend["Resend API<br/>(Primary Email)"]
     SMTP["Nodemailer SMTP<br/>(Gmail Fallback)"]
 
-    Resend -.->|On Failure or Unconfigured| SMTP
+    Resend -.->|Fallback| SMTP
   end
 
   Browser <-->|HTTPS API| Express
@@ -114,7 +114,7 @@ flowchart LR
   SubmitSvc <--> MongoDB
   EmailSvc --> Resend
 ```
-*For detailed request lifecycles, execution boundaries, and the extended component flowchart, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).*
+*Note: Email delivery attempts primary dispatch via Resend API and automatically falls back to Nodemailer SMTP if Resend is unconfigured or encounters a delivery error. For detailed request lifecycles, execution boundaries, and the extended component flowchart, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).*
 
 ---
 
