@@ -1807,6 +1807,7 @@ export default function SearchLayout() {
                   <input type="text" value={lensUrl} onChange={(e) => setLensUrl(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter" && lensUrl.trim()) setLensImage(lensUrl.trim()); }}
                     placeholder="Paste image URL"
+                    aria-label="Paste image URL"
                     className="flex-1 px-3 py-2 rounded-lg border border-[#dadce0] dark:border-[#5f6368] bg-transparent text-sm text-[#202124] dark:text-[#e8eaed] placeholder:text-[#9aa0a6] outline-none focus:border-[#1a73e8]"/>
                   <button onClick={() => { if (lensUrl.trim()) setLensImage(lensUrl.trim()); }}
                     className="px-4 py-2 rounded-lg bg-[#1a73e8] text-white text-sm font-medium hover:bg-[#1557b0] transition-colors">Search</button>
@@ -1850,7 +1851,7 @@ export default function SearchLayout() {
                   </p>
                 </div>
               )}
-              <input ref={lensFileRef} type="file" accept="image/*" className="hidden"
+              <input ref={lensFileRef} type="file" accept="image/*" className="hidden" aria-label="Upload image"
                 onChange={(e) => { const file = e.target.files?.[0]; if (file) setLensImage(URL.createObjectURL(file)); e.target.value = ""; }}/>
             </motion.div>
           </motion.div>
@@ -2000,7 +2001,7 @@ export default function SearchLayout() {
                 <div className="flex items-center gap-2 rounded-full border border-[#dadce0] dark:border-[#5f6368] bg-white dark:bg-[#303134] pl-4 pr-1.5 py-1.5">
                   <input ref={aiInputRef} type="text" value={aiInput} onChange={(e) => setAiInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") handleAiSend(); }}
-                    placeholder="Ask about Anurag…" disabled={aiTyping}
+                    placeholder="Ask about Anurag…" aria-label="Ask about Anurag" disabled={aiTyping}
                     className="flex-1 bg-transparent py-1.5 text-[13.5px] text-[#202124] dark:text-[#e8eaed] placeholder:text-[#9aa0a6] outline-none disabled:opacity-50"/>
                   <button onClick={() => handleAiSend()} disabled={!aiInput.trim() || aiTyping}
                     className="p-2 rounded-full bg-[#1a73e8] text-white disabled:opacity-35 disabled:cursor-default hover:bg-[#1557b0] transition-all shrink-0">

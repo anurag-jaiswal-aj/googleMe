@@ -1024,6 +1024,7 @@ export default function Home() {
               className="flex-1 bg-transparent text-[#202124] dark:text-[#e8eaed] text-base outline-none min-w-0 caret-[#4285F4]"
               autoComplete="off"
               spellCheck={false}
+              aria-label="Search portfolio"
             />
 
             {/* Right icons */}
@@ -1540,6 +1541,7 @@ export default function Home() {
                         setLensImage(lensUrl.trim());
                     }}
                     placeholder="Paste image URL"
+                    aria-label="Paste image URL"
                     className="flex-1 px-3 py-2 rounded-lg border border-[#dadce0] dark:border-[#5f6368]
                                bg-transparent text-sm text-[#202124] dark:text-[#e8eaed]
                                placeholder:text-[#9aa0a6] outline-none
@@ -1652,6 +1654,7 @@ export default function Home() {
                 type="file"
                 accept="image/*"
                 className="hidden"
+                aria-label="Upload image"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) setLensImage(URL.createObjectURL(file));
@@ -1918,6 +1921,7 @@ export default function Home() {
                       if (e.key === "Enter") handleAiSend();
                     }}
                     placeholder="Ask about Anurag…"
+                    aria-label="Ask about Anurag"
                     disabled={aiTyping}
                     className="flex-1 bg-transparent py-1.5 text-[13.5px] text-[#202124] dark:text-[#e8eaed]
                                placeholder:text-[#9aa0a6] outline-none disabled:opacity-50"

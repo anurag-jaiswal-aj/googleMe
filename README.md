@@ -6,7 +6,7 @@
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-anuragjaiswal.me-4285F4?style=for-the-badge&logo=google-chrome&logoColor=white)](https://www.anuragjaiswal.me)
 [![CI Pipeline](https://img.shields.io/github/actions/workflow/status/anurag-jaiswal-aj/googleMe/ci.yml?branch=main&style=for-the-badge&label=CI%20Pipeline)](https://github.com/anurag-jaiswal-aj/googleMe/actions/workflows/ci.yml)
-[![Automated Tests](https://img.shields.io/badge/Tests-386%20Passed-34A853?style=for-the-badge&logo=node.js&logoColor=white)](docs/TESTING.md)
+[![Automated Tests](https://img.shields.io/badge/Tests-390%20Passed-34A853?style=for-the-badge&logo=node.js&logoColor=white)](docs/TESTING.md)
 [![Node Runtime](https://img.shields.io/badge/Node.js-%3E%3D22.22.0-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-FBBC05?style=for-the-badge)](LICENSE)
 
@@ -27,7 +27,7 @@
 
 **googleMe** transforms the conventional developer portfolio from a passive, vertical-scroll page into an authentic, interactive **Google Search Engine Results Page (SERP)**. Rather than forcing recruiters and engineers through arbitrary animations, googleMe offers zero-friction discovery through keyword-scored routing, sticky category tabs, contextual Knowledge Graph panels, voice search, and an integrated headless CMS.
 
-Behind the Google UI lies a hardened full-stack architecture backed by **386 automated integration tests** (153 client + 233 server), distributed submission idempotency with worker lease fencing (SEC-24), dual-channel email failover (Resend primary with Nodemailer SMTP fallback), binary magic-byte upload validation, and WHATWG URL canonicalization.
+Behind the Google UI lies a hardened full-stack architecture backed by **390 automated integration tests** (157 client + 233 server), distributed submission idempotency with worker lease fencing (SEC-24), dual-channel email failover (Resend primary with Nodemailer SMTP fallback), binary magic-byte upload validation, and WHATWG URL canonicalization.
 
 ### Key Features
 - **Authentic Google SERP UX:** Sticky search header, category tabs (All, About, Projects, Blog, Tools, Images, Contact), sitelinks, and breadcrumbs.
@@ -48,7 +48,7 @@ Detailed architectural deep dives, security specifications, API contracts, and o
 | [**Architecture**](docs/ARCHITECTURE.md) | Decoupled MERN design, Mermaid flowchart, client/server boundaries, and design decisions |
 | [**API Reference**](docs/API.md) | REST endpoints, request/response formats, payload limits, status codes, and auth headers |
 | [**Security Hardening**](docs/SECURITY.md) | SEC-01 through SEC-24 controls, idempotency engine, magic bytes, and threat considerations |
-| [**Automated Testing**](docs/TESTING.md) | Suite breakdown (153 client + 233 server = 386 tests), test count reconciliation, and CI |
+| [**Automated Testing**](docs/TESTING.md) | Suite breakdown (157 client + 233 server = 390 tests), test count reconciliation, and CI |
 | [**Deployment & Operations**](docs/DEPLOYMENT.md) | Vercel edge frontend, Render backend, proxy rules, and production smoke-test checklist |
 | [**Configuration & Setup**](docs/CONFIGURATION.md) | Server and client environment variable reference, secret generation, and local run guide |
 | [**Limitations & Roadmap**](docs/LIMITATIONS.md) | Confirmed architectural boundaries, operational caveats, and documented project roadmap |
@@ -158,14 +158,14 @@ The frontend will be available at `http://localhost:3000` (or `http://localhost:
 The test suite runs on the native Node.js test runner (`node:test`, `node:assert`), requiring zero third-party testing dependencies:
 
 ```bash
-# Run all 153 client tests (sanitizers, routing, visibility, theme, idempotency)
+# Run all 157 client tests (sanitizers, routing, visibility, theme, idempotency)
 cd client && npm test
 
 # Run all 233 server tests (uploads, auth, validation, security, idempotency)
 cd server && npm test
 ```
 
-**Test Baseline:** **386 passed**, 0 failed across 17 test files. Continuous integration runs on GitHub Actions under Node.js 22 with an isolated `mongo:6.0` service container.
+**Test Baseline:** **390 passed**, 0 failed across 17 test files. Continuous integration runs on GitHub Actions under Node.js 22 with an isolated `mongo:6.0` service container.
 
 *For suite breakdowns, test count reconciliation, and CI configurations, see [docs/TESTING.md](docs/TESTING.md).*
 

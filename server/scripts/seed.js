@@ -4,8 +4,8 @@
  */
 require('dotenv').config();
 const mongoose = require('mongoose');
-const Project = require('./models/Project');
-const sharedProjects = require('../shared/projects.json');
+const Project = require('../models/Project');
+const sharedProjects = require('../../shared/projects.json');
 
 const sampleProjects = sharedProjects.map(({ _id, ...project }) => project);
 

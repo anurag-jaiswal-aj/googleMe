@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   DEFAULT_CURRENT_EDUCATION,
   EDUCATION,
@@ -19,6 +22,9 @@ import {
 import { getAiReply } from './src/utils/aiChat.js';
 import { isSafeGalleryLink, getSafeGalleryLink } from './src/utils/galleryUrl.js';
 import sharedProjects from '../shared/projects.json' with { type: 'json' };
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ── 1. Canonical Education Defaults ──────────────────────────────────────────
 
@@ -469,4 +475,45 @@ test('Gallery Links: Rendering boundary preserves image display while suppressin
   assert.strictEqual(legacyRecord.title, 'Legacy Sample');
   assert.strictEqual(legacyRecord.category, 'Other');
   assert.strictEqual(credentialRecord.title, 'Phishing Attempt with Credentials');
+});
+
+// ── 7. Form Controls Accessibility Audit Tests ─────────────────────────────────
+
+test('Accessibility: Home page form controls possess explicit accessible names', () => {
+  const homePath = path.resolve(__dirname, 'src/pages/Home.jsx');
+  const homeContent = fs.readFileSync(homePath, 'utf-8');
+
+  assert.ok(homeContent.includes('aria-label="Search portfolio"'), 'Home search input must have aria-label="Search portfolio"');
+  assert.ok(homeContent.includes('aria-label="Paste image URL"'), 'Home Lens URL input must have aria-label="Paste image URL"');
+  assert.ok(homeContent.includes('aria-label="Upload image"'), 'Home Lens file input must have aria-label="Upload image"');
+  assert.ok(homeContent.includes('aria-label="Ask about Anurag"'), 'Home AI chat input must have aria-label="Ask about Anurag"');
+});
+
+test('Accessibility: SearchLayout form controls possess explicit accessible names', () => {
+  const searchLayoutPath = path.resolve(__dirname, 'src/components/SearchLayout.jsx');
+  const searchLayoutContent = fs.readFileSync(searchLayoutPath, 'utf-8');
+
+  assert.ok(searchLayoutContent.includes('aria-label="Search portfolio"'), 'SearchLayout search input must have aria-label="Search portfolio"');
+  assert.ok(searchLayoutContent.includes('aria-label="Paste image URL"'), 'SearchLayout Lens URL input must have aria-label="Paste image URL"');
+  assert.ok(searchLayoutContent.includes('aria-label="Upload image"'), 'SearchLayout Lens file input must have aria-label="Upload image"');
+  assert.ok(searchLayoutContent.includes('aria-label="Ask about Anurag"'), 'SearchLayout AI chat input must have aria-label="Ask about Anurag"');
+});
+
+test('Accessibility: Contact form inputs have matching label associations and aria-labels', () => {
+  const contactPath = path.resolve(__dirname, 'src/pages/Contact.jsx');
+  const contactContent = fs.readFileSync(contactPath, 'utf-8');
+
+  assert.ok(contactContent.includes('htmlFor="contact-name"') && contactContent.includes('id="contact-name"'), 'Contact name field must have matching htmlFor and id');
+  assert.ok(contactContent.includes('htmlFor="contact-email"') && contactContent.includes('id="contact-email"'), 'Contact email field must have matching htmlFor and id');
+  assert.ok(contactContent.includes('htmlFor="contact-message"') && contactContent.includes('id="contact-message"'), 'Contact message field must have matching htmlFor and id');
+  assert.ok(contactContent.includes('aria-label="Attach files"'), 'Contact file upload input must have aria-label="Attach files"');
+});
+
+test('Accessibility: BugReportModal inputs have explicit accessible names', () => {
+  const modalPath = path.resolve(__dirname, 'src/components/BugReportModal.jsx');
+  const modalContent = fs.readFileSync(modalPath, 'utf-8');
+
+  assert.ok(modalContent.includes('aria-label="Feedback message"'), 'BugReportModal textarea must have aria-label="Feedback message"');
+  assert.ok(modalContent.includes("field === 'email' ? 'Email address (optional)' : 'Your name (optional)'"), 'BugReportModal name/email inputs must have dynamic aria-labels');
+  assert.ok(modalContent.includes('aria-label="Attach file"'), 'BugReportModal file input must have aria-label="Attach file"');
 });

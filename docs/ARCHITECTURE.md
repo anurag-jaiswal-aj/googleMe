@@ -62,7 +62,7 @@ flowchart TD
       GalleryCol["GalleryImage"]
       ContactCol["Contact"]
       FeedbackCol["Feedback"]
-      IdempotencyCol["IdempotencyRecord (120s TTL)"]
+      IdempotencyCol["IdempotencyRecord<br/>(24h Retention TTL, 120s Lease)"]
     end
   end
 
@@ -195,7 +195,7 @@ googleMe/
 │   └── test-*.js                # 7 standalone backend test suites (233 automated tests)
 ├── shared/
 │   └── projects.json            # Deterministic project fallback data for offline or rate-limited environments
-├── lighthouse.png               # Verified Lighthouse audit score snapshot (95/98/96/100)
+├── lighthouse.png               # Verified Lighthouse audit score snapshot (98/94/96/100)
 ├── LICENSE                      # MIT Open Source License
 └── package.json                 # Monorepo management scripts (dev, dev:server, dev:client, install:all, build, seed)
 ```

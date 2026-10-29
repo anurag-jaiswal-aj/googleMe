@@ -162,6 +162,7 @@ export default function BugReportModal({ open, onClose, initial }) {
                   value={form.message}
                   onChange={(e) => set('message', e.target.value)}
                   placeholder={PLACEHOLDERS[form.type] ?? 'Your message…'}
+                  aria-label="Feedback message"
                   className="w-full rounded-xl border border-[#dadce0] dark:border-[#5f6368] bg-[#f8f9fa] dark:bg-[#303134]
                              px-4 py-3 text-[13.5px] text-[#202124] dark:text-[#e8eaed] placeholder:text-[#9aa0a6]
                              outline-none focus:border-[#1a73e8] focus:bg-white dark:focus:bg-[#3c4043] resize-none transition-all"
@@ -176,6 +177,7 @@ export default function BugReportModal({ open, onClose, initial }) {
                       value={form[field]}
                       onChange={(e) => set(field, e.target.value)}
                       placeholder={`${field.charAt(0).toUpperCase() + field.slice(1)} (optional)`}
+                      aria-label={field === 'email' ? 'Email address (optional)' : 'Your name (optional)'}
                       className="rounded-xl border border-[#dadce0] dark:border-[#5f6368] bg-[#f8f9fa] dark:bg-[#303134]
                                  px-4 py-2.5 text-[13px] text-[#202124] dark:text-[#e8eaed] placeholder:text-[#9aa0a6]
                                  outline-none focus:border-[#1a73e8] focus:bg-white dark:focus:bg-[#3c4043] transition-all"
@@ -199,7 +201,7 @@ export default function BugReportModal({ open, onClose, initial }) {
                         className="text-[#EA4335] hover:text-[#c5221f] text-[11px] font-medium"
                       >Remove</button>
                     )}
-                    <input type="file" className="hidden" accept="image/*,.pdf,.txt,.log"
+                    <input type="file" className="hidden" accept="image/*,.pdf,.txt,.log" aria-label="Attach file"
                       onChange={(e) => { set('attachment', e.target.files?.[0] || null); e.target.value = ''; }}
                     />
                   </label>

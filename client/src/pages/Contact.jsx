@@ -293,19 +293,19 @@ export function ContactForm() {
               {/* Name + Email row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">
+                  <label htmlFor="contact-name" className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">
                     Your Name <span className="text-[#c5221f]">*</span>
                   </label>
-                  <input type="text" name="name" value={form.name} onChange={handleChange}
+                  <input id="contact-name" type="text" name="name" value={form.name} onChange={handleChange}
                     placeholder="e.g. Rahul Kumar" autoComplete="name"
                     className={inputCls('name')} />
                   {errors.name && <p className="text-xs text-[#c5221f] mt-1">{errors.name}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">
+                  <label htmlFor="contact-email" className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">
                     Email Address <span className="text-[#c5221f]">*</span>
                   </label>
-                  <input type="email" name="email" value={form.email} onChange={handleChange}
+                  <input id="contact-email" type="email" name="email" value={form.email} onChange={handleChange}
                     placeholder="rahulKumar@example.com" autoComplete="email"
                     className={inputCls('email')} />
                   {errors.email && <p className="text-xs text-[#c5221f] mt-1">{errors.email}</p>}
@@ -314,10 +314,10 @@ export function ContactForm() {
 
               {/* Message */}
               <div>
-                <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">
+                <label htmlFor="contact-message" className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">
                   Message <span className="text-[#c5221f]">*</span>
                 </label>
-                <textarea name="message" value={form.message} onChange={handleChange}
+                <textarea id="contact-message" name="message" value={form.message} onChange={handleChange}
                   rows={4} placeholder="Tell me about your project, idea, or just say hi…"
                   className={`${inputCls('message')} resize-none`} />
                 <div className="flex justify-between mt-1">
@@ -355,7 +355,7 @@ export function ContactForm() {
                   <p className="text-xs text-[#5f6368] dark:text-[#9aa0a6]">
                     <span className="text-[#1a73e8] dark:text-[#8ab4f8]">Click to attach</span> or drag & drop
                   </p>
-                  <input ref={fileRef} type="file" multiple className="hidden"
+                  <input ref={fileRef} type="file" multiple className="hidden" aria-label="Attach files"
                     onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
                 </div>
 
