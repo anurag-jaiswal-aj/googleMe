@@ -4,6 +4,7 @@ import { fetchImages } from '../api';
 import FilterSort from '../components/FilterSort';
 import SEO from '../components/SEO';
 import { isSafeGalleryLink, getSafeGalleryLink } from '../utils/galleryUrl.js';
+import { sortGalleryImages } from '../utils/galleryOrder.js';
 
 const CATEGORIES = ['Projects', 'Certificates', 'UI Work', 'Other'];
 
@@ -135,6 +136,8 @@ function ImageCard({ image, onClick }) {
   );
 }
 
+
+
 /* ── Page ───────────────────────────────────────── */
 export default function Images() {
   const [images, setImages] = useState([]);
@@ -146,7 +149,10 @@ export default function Images() {
   const [lightboxIdx, setLightboxIdx] = useState(null);
 
   useEffect(() => {
-    fetchImages().then(setImages).catch(() => {}).finally(() => setLoading(false));
+    fetchImages()
+      .then((data) => setImages(sortGalleryImages(data)))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   let filtered = filters.length === 0
@@ -154,7 +160,8 @@ export default function Images() {
     : images.filter(img => filters.includes(img.category));
 
   if (sort === 'az') filtered = [...filtered].sort((a, b) => a.title.localeCompare(b.title));
-  if (sort === 'za') filtered = [...filtered].sort((a, b) => b.title.localeCompare(a.title));
+  else if (sort === 'za') filtered = [...filtered].sort((a, b) => b.title.localeCompare(a.title));
+  else filtered = sortGalleryImages(filtered);
 
   const availableCategories = CATEGORIES.filter(c => images.some(img => img.category === c));
 
@@ -244,4 +251,4 @@ export default function Images() {
   );
 }
 
-export { Lightbox, ImageCard, isSafeGalleryLink, getSafeGalleryLink };
+export { Lightbox, ImageCard, isSafeGalleryLink, getSafeGalleryLink, sortGalleryImages };

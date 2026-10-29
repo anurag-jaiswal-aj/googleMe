@@ -101,6 +101,7 @@ export const uploadImage = (formData) =>
   api.post('/images', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 30000 }).then((r) => r.data);
 export const updateImage = (id, data) => api.patch(`/images/${id}`, data).then((r) => r.data);
 export const deleteImage = (id) => api.delete(`/images/${id}`).then((r) => r.data);
+export const reorderImages = (imageIds) => api.put('/images/reorder', { imageIds }).then((r) => r.data);
 
 // ── Site Config ──────────────────────────────────────
 export const fetchConfig = () => api.get('/config').then(r => r.data);

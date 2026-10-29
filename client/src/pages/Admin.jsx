@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api, {
   fetchGithubRepos, saveGithubSelection,
-  fetchImages, uploadImage, updateImage, deleteImage,
+  fetchImages, uploadImage, updateImage, deleteImage, reorderImages,
   fetchConfig, saveConfig, saveConfigBulk,
   adminLogin, adminVerify,
   fetchAdminFeedback, updateFeedbackStatus, deleteFeedback,
@@ -25,6 +25,12 @@ import {
   getEffectiveEducation,
 } from '../data/aboutData';
 import {
+  isGalleryOrderChanged,
+  reorderGalleryItems,
+  getSortableGalleryItemLabels,
+  incorporateUploadedImage,
+} from '../utils/galleryOrder.js';
+import {
   DndContext,
   closestCenter,
   KeyboardSensor,
@@ -34,6 +40,7 @@ import {
 } from '@dnd-kit/core';
 import {
   arrayMove,
+  rectSortingStrategy,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -1905,12 +1912,159 @@ function SiteTab({ cfg, onSaved }) {
 }
 
 /* ══════════════════════════════════════════════════════
-   TAB: IMAGES (existing gallery logic)
+   TAB: IMAGES (gallery with drag-and-drop reordering)
 ══════════════════════════════════════════════════════ */
+function SortableGalleryItem({
+  img,
+  index,
+  total,
+  disabled = false,
+  onMoveEarlier,
+  onMoveLater,
+  onEdit,
+  onDelete,
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: img._id,
+    disabled,
+  });
+  const labels = getSortableGalleryItemLabels(img, index, total, disabled);
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 40 : 'auto',
+    opacity: isDragging ? 0.35 : 1,
+  };
+
+  const imageSrc = img.src || img.imageUrl || img.imageData;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group relative rounded-xl border transition-all ${
+        isDragging
+          ? 'border-[#1a73e8] ring-2 ring-[#1a73e8] shadow-lg'
+          : 'border-[#dadce0] dark:border-[#5f6368] hover:border-[#1a73e8] bg-white dark:bg-[#202124]'
+      } p-2 flex flex-col justify-between`}
+    >
+      {/* Thumbnail */}
+      <div className="relative rounded-lg overflow-hidden bg-[#f1f3f4] dark:bg-[#303134]">
+        <img
+          src={imageSrc}
+          alt={img.title}
+          className="w-full object-cover pointer-events-none select-none"
+          style={{ aspectRatio: '4/3' }}
+          loading="lazy"
+        />
+
+        {/* Position badge and drag handle */}
+        <div className="absolute top-2 left-2 flex items-center gap-1.5 z-10">
+          <span
+            className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-black/75 text-white backdrop-blur-xs"
+            title={`Position ${index + 1}`}
+          >
+            {labels.positionBadge}
+          </span>
+          <button
+            type="button"
+            {...(!disabled ? attributes : {})}
+            {...(!disabled ? listeners : {})}
+            disabled={disabled}
+            aria-disabled={disabled}
+            className={`p-1 rounded-full transition-colors focus:outline-none ${
+              disabled
+                ? 'bg-black/30 text-white/30 cursor-not-allowed pointer-events-none'
+                : 'bg-black/75 hover:bg-[#1a73e8] text-white cursor-grab active:cursor-grabbing focus:ring-2 focus:ring-white'
+            }`}
+            title={disabled ? 'Reordering disabled while saving' : 'Drag to reorder'}
+            aria-label={labels.dragLabel}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Action Buttons: Edit and Delete */}
+        <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
+          <button
+            type="button"
+            onClick={onEdit}
+            disabled={disabled}
+            className="p-1.5 rounded-full bg-black/75 text-white hover:bg-[#1a73e8] disabled:opacity-40 transition-colors focus:outline-none focus:ring-2 focus:ring-white"
+            title="Edit image metadata"
+            aria-label={labels.editLabel}
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H7v-3a2 2 0 01.586-1.414z" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={disabled}
+            className="p-1.5 rounded-full bg-black/75 text-white hover:bg-[#d93025] disabled:opacity-40 transition-colors focus:outline-none focus:ring-2 focus:ring-white"
+            title="Delete image"
+            aria-label={labels.deleteLabel}
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Info and keyboard-accessible move buttons */}
+      <div className="mt-2 flex items-center justify-between gap-1 px-0.5">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-[#202124] dark:text-[#e8eaed] truncate" title={img.title}>
+            {img.title}
+          </p>
+          <p className="text-[11px] text-[#9aa0a6] truncate">{img.category}</p>
+        </div>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            type="button"
+            disabled={disabled || !labels.canMoveEarlier}
+            aria-disabled={disabled || !labels.canMoveEarlier}
+            onClick={onMoveEarlier}
+            className="p-1 rounded text-[#5f6368] dark:text-[#9aa0a6] hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] hover:bg-[#f1f3f4] dark:hover:bg-[#303134] disabled:opacity-25 disabled:pointer-events-none transition-colors"
+            title="Move earlier in order"
+            aria-label={labels.moveEarlierLabel}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            disabled={disabled || !labels.canMoveLater}
+            aria-disabled={disabled || !labels.canMoveLater}
+            onClick={onMoveLater}
+            className="p-1 rounded text-[#5f6368] dark:text-[#9aa0a6] hover:text-[#1a73e8] dark:hover:text-[#8ab4f8] hover:bg-[#f1f3f4] dark:hover:bg-[#303134] disabled:opacity-25 disabled:pointer-events-none transition-colors"
+            title="Move later in order"
+            aria-label={labels.moveLaterLabel}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ImagesTab() {
   const [galleryImages, setGalleryImages] = useState([]);
+  const [savedOrderIds, setSavedOrderIds] = useState([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
   const [galleryError, setGalleryError]     = useState('');
+  const [savingOrder, setSavingOrder]       = useState(false);
+  const [orderSuccess, setOrderSuccess]     = useState(false);
+  const [orderError, setOrderError]         = useState('');
   const [imgUploading, setImgUploading]     = useState(false);
   const [imgForm, setImgForm] = useState({ title: '', category: 'Projects', description: '', link: '' });
   const [imgFile, setImgFile]     = useState(null);
@@ -1919,24 +2073,92 @@ function ImagesTab() {
   const [editingImg, setEditingImg] = useState(null);
   const [editSaving, setEditSaving] = useState(false);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   useEffect(() => { loadGallery(); }, []);
 
   const loadGallery = async () => {
-    setGalleryLoading(true); setGalleryError('');
-    try { setGalleryImages(await fetchImages()); }
-    catch { setGalleryError('Could not load images.'); }
-    finally { setGalleryLoading(false); }
+    setGalleryLoading(true); setGalleryError(''); setOrderError(''); setOrderSuccess(false);
+    try {
+      const data = await fetchImages();
+      setGalleryImages(data);
+      setSavedOrderIds(data.map((i) => i._id));
+    } catch {
+      setGalleryError('Could not load images.');
+    } finally {
+      setGalleryLoading(false);
+    }
+  };
+
+  const isOrderChanged = useMemo(() => {
+    return isGalleryOrderChanged(galleryImages, savedOrderIds);
+  }, [galleryImages, savedOrderIds]);
+
+  const handleDragEnd = (event) => {
+    if (savingOrder) return;
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setOrderSuccess(false);
+    setOrderError('');
+    setGalleryImages((items) => {
+      const oldIndex = items.findIndex((i) => i._id === active.id);
+      const newIndex = items.findIndex((i) => i._id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return items;
+      return reorderGalleryItems(items, oldIndex, newIndex);
+    });
+  };
+
+  const handleMoveImage = (fromIndex, toIndex) => {
+    if (savingOrder) return;
+    if (toIndex < 0 || toIndex >= galleryImages.length || fromIndex === toIndex) return;
+    setOrderSuccess(false);
+    setOrderError('');
+    setGalleryImages((items) => reorderGalleryItems(items, fromIndex, toIndex));
+  };
+
+  const handleCancelOrder = () => {
+    if (savingOrder) return;
+    setOrderError('');
+    setOrderSuccess(false);
+    setGalleryImages((prev) => {
+      const map = new Map(prev.map((i) => [i._id, i]));
+      return savedOrderIds.map((id) => map.get(id)).filter(Boolean);
+    });
+  };
+
+  const handleSaveOrder = async () => {
+    if (savingOrder || !isOrderChanged) return;
+    setSavingOrder(true);
+    setOrderError('');
+    setOrderSuccess(false);
+    try {
+      const imageIds = galleryImages.map((i) => i._id);
+      await reorderImages(imageIds);
+      setSavedOrderIds(imageIds);
+      setOrderSuccess(true);
+    } catch (err) {
+      setOrderError(err?.response?.data?.error || 'Failed to save image order.');
+    } finally {
+      setSavingOrder(false);
+    }
   };
 
   return (
     <div className="space-y-6">
-      <SectionHeader title="Gallery Images" subtitle="Upload and manage images shown on the Images page." />
+      <SectionHeader title="Gallery Images" subtitle="Upload, manage, and rearrange images shown on the public Images page." />
 
       {/* Upload form */}
       <div className="border border-[#dadce0] dark:border-[#5f6368] rounded-xl p-4 space-y-4">
         <p className="text-sm font-medium text-[#202124] dark:text-[#e8eaed]">Upload new image</p>
-        <div onClick={() => imgFileRef.current?.click()}
-          className="flex flex-col items-center justify-center gap-2 py-6 rounded-xl border-2 border-dashed cursor-pointer transition-colors border-[#dadce0] dark:border-[#5f6368] hover:border-[#1a73e8] hover:bg-[#f8fafe] dark:hover:bg-[#1a3a5c]/10">
+        <div onClick={() => !savingOrder && imgFileRef.current?.click()}
+          className={`flex flex-col items-center justify-center gap-2 py-6 rounded-xl border-2 border-dashed transition-colors ${
+            savingOrder
+              ? 'opacity-50 cursor-not-allowed border-[#dadce0] dark:border-[#5f6368]'
+              : 'cursor-pointer border-[#dadce0] dark:border-[#5f6368] hover:border-[#1a73e8] hover:bg-[#f8fafe] dark:hover:bg-[#1a3a5c]/10'
+          }`}>
           {imgPreview ? (
             <img src={imgPreview} alt="preview" className="max-h-32 rounded-lg object-contain" />
           ) : (
@@ -1947,44 +2169,58 @@ function ImagesTab() {
               <p className="text-sm text-[#5f6368] dark:text-[#9aa0a6]"><span className="text-[#1a73e8]">Click to select</span> an image (max 10 MB)</p>
             </>
           )}
-          <input ref={imgFileRef} type="file" accept="image/*" className="hidden"
+          <input ref={imgFileRef} type="file" accept="image/*" disabled={savingOrder} className="hidden"
             onChange={e => { const f = e.target.files[0]; if (!f) return; setImgFile(f); setImgPreview(URL.createObjectURL(f)); e.target.value = ''; }} />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">Title *</label>
-            <input type="text" value={imgForm.title} onChange={e => setImgForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Portfolio Screenshot" className={inputCls} />
+            <input type="text" disabled={savingOrder} value={imgForm.title} onChange={e => setImgForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Portfolio Screenshot" className={inputCls} />
           </div>
           <div>
             <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">Category</label>
-            <select value={imgForm.category} onChange={e => setImgForm(f => ({ ...f, category: e.target.value }))} className={inputCls}>
+            <select disabled={savingOrder} value={imgForm.category} onChange={e => setImgForm(f => ({ ...f, category: e.target.value }))} className={inputCls}>
               {['Projects','Certificates','UI Work','Other'].map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
         </div>
         <div>
           <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">Link (optional)</label>
-          <input type="url" value={imgForm.link} onChange={e => setImgForm(f => ({ ...f, link: e.target.value }))} placeholder="https://..." className={inputCls} />
+          <input type="url" disabled={savingOrder} value={imgForm.link} onChange={e => setImgForm(f => ({ ...f, link: e.target.value }))} placeholder="https://..." className={inputCls} />
         </div>
         <div>
           <label className="block text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6] mb-1">Description (optional)</label>
-          <input type="text" value={imgForm.description} onChange={e => setImgForm(f => ({ ...f, description: e.target.value }))} placeholder="Short description" className={inputCls} />
+          <input type="text" disabled={savingOrder} value={imgForm.description} onChange={e => setImgForm(f => ({ ...f, description: e.target.value }))} placeholder="Short description" className={inputCls} />
         </div>
         {galleryError && <p className="text-sm text-[#d93025]">{galleryError}</p>}
         <div className="flex justify-end">
-          <button disabled={imgUploading || !imgFile || !imgForm.title.trim()}
+          <button disabled={imgUploading || savingOrder || !imgFile || !imgForm.title.trim()}
             onClick={async () => {
-              if (!imgFile || !imgForm.title.trim()) return;
+              if (!imgFile || !imgForm.title.trim() || imgUploading || savingOrder) return;
               setImgUploading(true); setGalleryError('');
               try {
                 const fd = new FormData();
                 fd.append('image', imgFile); fd.append('title', imgForm.title);
                 fd.append('category', imgForm.category); fd.append('description', imgForm.description); fd.append('link', imgForm.link);
-                await uploadImage(fd);
+                const newImg = await uploadImage(fd);
                 setImgForm({ title: '', category: 'Projects', description: '', link: '' });
                 setImgFile(null); setImgPreview(null);
-                await loadGallery();
+
+                if (isOrderChanged) {
+                  // Preserve administrator's unsaved custom sequence and integrate the new image at position #1
+                  const { nextGalleryImages, nextSavedOrderIds } = incorporateUploadedImage(
+                    galleryImages,
+                    savedOrderIds,
+                    newImg
+                  );
+                  setGalleryImages(nextGalleryImages);
+                  setSavedOrderIds(nextSavedOrderIds);
+                  setOrderSuccess(false);
+                  setOrderError('');
+                } else {
+                  await loadGallery();
+                }
               } catch (err) { setGalleryError(err?.response?.data?.error || 'Upload failed.'); }
               finally { setImgUploading(false); }
             }}
@@ -1995,40 +2231,105 @@ function ImagesTab() {
         </div>
       </div>
 
-      {/* Existing images */}
+      {/* Existing images list & reordering controls */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-medium text-[#202124] dark:text-[#e8eaed]">Uploaded images ({galleryImages.length})</p>
-          <button onClick={loadGallery} disabled={galleryLoading} className="text-xs text-[#1a73e8] hover:underline disabled:opacity-50">Refresh</button>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+          <div>
+            <p className="text-sm font-medium text-[#202124] dark:text-[#e8eaed]">Uploaded images ({galleryImages.length})</p>
+            <p className="text-xs text-[#5f6368] dark:text-[#9aa0a6]">
+              Drag cards or use arrow buttons to rearrange display order.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {isOrderChanged && (
+              <button
+                type="button"
+                disabled={savingOrder}
+                onClick={handleCancelOrder}
+                className="px-3 py-1.5 text-xs text-[#5f6368] dark:text-[#9aa0a6] hover:bg-[#f1f3f4] dark:hover:bg-[#3c4043] rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel Changes
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={savingOrder || !isOrderChanged}
+              onClick={handleSaveOrder}
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-[#1a73e8] text-white rounded-lg text-xs font-medium hover:bg-[#1967d2] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {savingOrder && (
+                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+              )}
+              {savingOrder ? 'Saving Order…' : 'Save Order'}
+            </button>
+            <button onClick={loadGallery} disabled={galleryLoading || savingOrder} className="text-xs text-[#1a73e8] hover:underline disabled:opacity-50 ml-1">
+              Refresh
+            </button>
+          </div>
         </div>
+
+        {/* Feedback Alerts */}
+        {orderSuccess && (
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-[#e6f4ea] dark:bg-[#1e3a28] border border-[#34A853]/30 mb-3 text-xs font-medium text-[#137333] dark:text-[#81c995]">
+            <svg className="w-4 h-4 text-[#34A853] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>Image order saved successfully! Public Images page reflects the updated order.</span>
+          </div>
+        )}
+
+        {orderError && (
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-[#fce8e6] dark:bg-[#3c1e1e] border border-[#d93025]/30 mb-3 text-xs font-medium text-[#c5221f] dark:text-[#f28b82]">
+            <svg className="w-4 h-4 text-[#d93025] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{orderError}</span>
+          </div>
+        )}
+
+        {isOrderChanged && (
+          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[#e8f0fe] dark:bg-[#1a3a5c]/30 border border-[#1a73e8]/30 mb-3 text-xs text-[#1a73e8] dark:text-[#8ab4f8]">
+            <span className="w-2 h-2 rounded-full bg-[#1a73e8] animate-pulse shrink-0" />
+            <span>You have unsaved changes to the image order. Click "Save Order" to persist.</span>
+          </div>
+        )}
+
         {galleryLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{[1,2,3].map(i => <div key={i} className="rounded-xl bg-[#f1f3f4] dark:bg-[#2d2e30] animate-pulse" style={{ aspectRatio: '4/3' }} />)}</div>
         ) : galleryImages.length === 0 ? (
           <p className="text-sm text-[#9aa0a6] text-center py-8">No images yet.</p>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {galleryImages.map(img => (
-              <div key={img._id} className="group">
-                <div className="relative rounded-xl overflow-hidden bg-[#f1f3f4] dark:bg-[#303134]">
-                  <img src={img.imageData} alt={img.title} className="w-full object-cover" style={{ aspectRatio: '4/3' }} />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-start justify-end gap-1.5 p-2 opacity-0 group-hover:opacity-100">
-                    <button onClick={() => setEditingImg({ _id: img._id, title: img.title, category: img.category, description: img.description || '', link: img.link || '' })}
-                      className="p-1.5 rounded-full bg-[#1a73e8] text-white hover:bg-[#1557b0] transition-colors" title="Edit">
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H7v-3a2 2 0 01.586-1.414z"/></svg>
-                    </button>
-                    <button onClick={async () => { if (!confirm(`Delete "${img.title}"?`)) return; try { await deleteImage(img._id); setGalleryImages(prev => prev.filter(i => i._id !== img._id)); } catch { setGalleryError('Delete failed.'); } }}
-                      className="p-1.5 rounded-full bg-[#d93025] text-white hover:bg-[#b31412] transition-colors" title="Delete">
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
-                  </div>
-                </div>
-                <div className="mt-1.5 px-0.5">
-                  <p className="text-xs font-medium text-[#202124] dark:text-[#e8eaed] truncate">{img.title}</p>
-                  <p className="text-[11px] text-[#9aa0a6]">{img.category}</p>
-                </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={galleryImages.map((img) => img._id)} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {galleryImages.map((img, idx) => (
+                  <SortableGalleryItem
+                    key={img._id}
+                    img={img}
+                    index={idx}
+                    total={galleryImages.length}
+                    disabled={savingOrder}
+                    onMoveEarlier={() => handleMoveImage(idx, idx - 1)}
+                    onMoveLater={() => handleMoveImage(idx, idx + 1)}
+                    onEdit={() => setEditingImg({ _id: img._id, title: img.title, category: img.category, description: img.description || '', link: img.link || '' })}
+                    onDelete={async () => {
+                      if (!confirm(`Delete "${img.title}"?`)) return;
+                      try {
+                        await deleteImage(img._id);
+                        setGalleryImages((prev) => prev.filter((i) => i._id !== img._id));
+                        setSavedOrderIds((prev) => prev.filter((id) => id !== img._id));
+                      } catch {
+                        setGalleryError('Delete failed.');
+                      }
+                    }}
+                  />
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 

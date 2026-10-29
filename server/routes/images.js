@@ -52,11 +52,111 @@ function uploadToCloudinary(buffer, options = {}) {
 // ── GET all — public ─────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
-    const images = await GalleryImage.find().sort({ order: 1, createdAt: -1 }).select('-__v');
-    res.json(images);
+    const images = await GalleryImage.find().sort({ order: 1, createdAt: -1, _id: 1 }).select('-__v');
+    // Ensure deterministic ordering across any database configuration or legacy items lacking order
+    const sorted = [...images].sort((a, b) => {
+      const orderA = typeof a.order === 'number' && !isNaN(a.order) ? a.order : 0;
+      const orderB = typeof b.order === 'number' && !isNaN(b.order) ? b.order : 0;
+      if (orderA !== orderB) return orderA - orderB;
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (timeB !== timeA) return timeB - timeA;
+      return String(a._id || '').localeCompare(String(b._id || ''));
+    });
+    res.json(sorted);
   } catch (err) {
     console.error('[images] GET failed:', err.message);
     res.status(500).json({ error: 'Failed to fetch images' });
+  }
+});
+
+// ── PUT reorder — admin only ──────────────────────────────────────────────────
+router.put('/reorder', requireAuth, async (req, res) => {
+  try {
+    const rawIds = Array.isArray(req.body)
+      ? req.body
+      : req.body?.imageIds || req.body?.ids;
+
+    if (!Array.isArray(rawIds)) {
+      return res.status(400).json({ error: 'imageIds must be an array of image IDs' });
+    }
+
+    // Handle empty image collection scenario
+    if (rawIds.length === 0) {
+      let totalCount = 0;
+      if (typeof GalleryImage.countDocuments === 'function') {
+        totalCount = await GalleryImage.countDocuments();
+      } else {
+        const all = await GalleryImage.find();
+        totalCount = Array.isArray(all) ? all.length : 0;
+      }
+
+      if (totalCount === 0) {
+        return res.json({ success: true, count: 0 });
+      }
+      return res.status(400).json({ error: 'Cannot submit an empty list when images exist' });
+    }
+
+    // 1. Validate identifier formatting
+    for (const id of rawIds) {
+      if (typeof id !== 'string' || !mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ error: `Invalid image ID: ${id}` });
+      }
+    }
+
+    // 2. Reject duplicate identifiers
+    const uniqueIds = new Set(rawIds);
+    if (uniqueIds.size !== rawIds.length) {
+      return res.status(400).json({ error: 'Duplicate image IDs are not allowed' });
+    }
+
+    // 3. Verify all submitted IDs exist in database
+    let existingCount = 0;
+    const findQuery = GalleryImage.find({ _id: { $in: rawIds } });
+    const existing = findQuery && typeof findQuery.select === 'function' ? await findQuery.select('_id') : await findQuery;
+    existingCount = Array.isArray(existing) ? existing.length : 0;
+
+    if (existingCount !== rawIds.length) {
+      return res.status(400).json({ error: 'One or more image IDs do not exist' });
+    }
+
+    // 4. Verify submitted IDs match the complete gallery set
+    let totalCount = 0;
+    if (typeof GalleryImage.countDocuments === 'function') {
+      totalCount = await GalleryImage.countDocuments();
+    } else {
+      const allQuery = GalleryImage.find();
+      const allDocs = allQuery && typeof allQuery.select === 'function' ? await allQuery.select('_id') : await allQuery;
+      totalCount = Array.isArray(allDocs) ? allDocs.length : 0;
+    }
+
+    if (totalCount !== rawIds.length) {
+      return res.status(400).json({ error: 'Submitted IDs do not match the complete set of gallery images' });
+    }
+
+    // 5. Persist the updated positions reliably
+    const bulkOps = rawIds.map((id, index) => ({
+      updateOne: {
+        filter: { _id: id },
+        update: { $set: { order: index } },
+      },
+    }));
+
+    if (typeof GalleryImage.bulkWrite === 'function') {
+      const result = await GalleryImage.bulkWrite(bulkOps);
+      if (result && typeof result.hasWriteErrors === 'function' && result.hasWriteErrors()) {
+        throw new Error('Bulk write operations encountered write errors');
+      }
+    } else {
+      await Promise.all(
+        rawIds.map((id, index) => GalleryImage.findByIdAndUpdate(id, { order: index }))
+      );
+    }
+
+    res.json({ success: true, count: rawIds.length });
+  } catch (err) {
+    console.error('[images] PUT reorder failed:', err.message);
+    res.status(500).json({ error: 'Failed to reorder images' });
   }
 });
 
